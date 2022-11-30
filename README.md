@@ -11,11 +11,19 @@ los archivos que necesite para su uso de forma independiente.
 
 Los objetivos principales de este Organizador son:
 
-* Reusar los archivos de código para prevenir la proliferación de múltiples copias de un mismo archivo, 
+* Reusar los archivos de código para prevenir la proliferación de múltiples copias de un mismo archivo,
 lo que a su vez permite que las mejoras en ese mismo archivo beneficien a todos los proyectos que lo usan.
 * Generar paquetes de distribución que contengan copias de los archivos necesarios.
 * Facilitar la generación de documentación, mediante la documentación en código con el modelo Javadoc.
 * Aunque está originalmente ideado para manejo de proyectos PHP, se estructura de forma tal que pueda adecuarse
 para la organización de proyectos en otros lenguajes de programación.
 
-Este es un proyecto en desarrollo.
+## Presentación
+
+La presentación de esta propuesta de desarrollo puede consultarse en:
+
+(miCode-Manager Blog)[https://micode-manager.blogspot.com/2022/05/presentacion.html]
+
+## Descargo
+
+Este es un proyecto en desarrollo, sean pacientes.
