@@ -22,7 +22,7 @@ para la organización de proyectos en otros lenguajes de programación.
 
 La presentación de esta propuesta de desarrollo puede consultarse en:
 
-(miCode-Manager Blog)[https://micode-manager.blogspot.com/2022/05/presentacion.html]
+[miCode-Manager Blog](https://micode-manager.blogspot.com/2022/05/presentacion.html)
 
 ## Descargo
 
