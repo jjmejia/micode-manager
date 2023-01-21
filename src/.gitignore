@@ -1,0 +1,7 @@
+*.zip
+admin/micode/config/php-namespaces.ini
+admin/micode/config/sistema.ini
+admin/micode/miframe/*
+externals-installed.ini
+modules-installed.ini
+data/repositories.ini

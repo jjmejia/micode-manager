@@ -13,4 +13,7 @@
  * @since Abril 2022
  */
 
-include_once __DIR__ . '/core/admin/index.php';
+// Raíz (solo para Administrador y proyectos)
+define('MIFRAME_ROOT', __DIR__);
+
+include_once __DIR__ . '/admin/index.php';

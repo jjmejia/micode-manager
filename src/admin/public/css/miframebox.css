@@ -1,0 +1,45 @@
+/* Estilos para miframe-box */
+
+.miframe-box {
+	font-family:Segoe UI, Arial;
+	font-size:14px;
+	margin:10px 0;
+	padding:16px;
+	border:none; /*4px solid gray;*/
+	border-left:5px solid gray;
+	background:#f4f4f4;
+}
+.miframe-box .box-footnote {
+	margin-top:10px;
+	padding-top:10px;
+	border-top:1px solid gray;
+}
+.miframe-box .box-message {
+	max-width:100%;
+	overflow:auto;
+}
+.miframe-box .box-message-limited {
+	max-height:200px;
+}
+.miframe-box .box-title {
+	padding-bottom:10px;
+	font-weight:bold;
+}
+.box-alert {
+	border-color: red;
+}
+.box-mute {
+	border-color: gray;
+}
+.box-info {
+	border-color: blue;
+}
+.box-warning {
+	border-color: brown;
+}
+.box-critical {
+	border-color: darkred;
+}
+.box-console {
+	border-color: black;
+}
