@@ -10,7 +10,12 @@ $modulo = $this->post->getString('module');
 
 // Tipo selecto
 $type = $this->router->param('type', 'php');
-$type_titulo = micode_modules_eval_type($type);
+if (!micode_modules_eval_type($type)) {
+	$this->router->abort(
+			miframe_text('Parámetros incorrectos'),
+			miframe_text('Tipo de módulos a recuperar no es valido ($1).', $type)
+			);
+}
 
 $data_proyecto = array('module' => $modulo);
 

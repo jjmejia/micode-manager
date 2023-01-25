@@ -218,12 +218,6 @@ function miframe_tree_directory(string $path, string $pattern = '', bool $ignore
 	return $dirs;
 }
 
-function miframe_redir(string $location, string $mensaje = '') {
-
-	header("HTTP/1.1 301 Moved Permanently");
-	header("Location: {$location}");
-	exit($mensaje);
-}
 /*
 
 https://stackoverflow.com/questions/11452938/how-to-use-http-x-forwarded-for-properly

@@ -33,7 +33,7 @@
 namespace miFrame\Local;
 
 // Funciones de serialización usadas por AdminModules
-include_once __DIR__ . '/../../micode/miframe/file/serialize.php';
+include_once MIFRAME_LOCALMODULES_PATH . '/miframe/file/serialize.php';
 
 class AdminModules {
 
@@ -136,8 +136,6 @@ class AdminModules {
 	public function getAllModules(string $type = '', string $module = '') { // }, bool $documentar = null) {
 
 		$retornar = array();
-		$type = strtolower(trim($type));
-		$module = strtolower(trim($module));
 
 		// Recupera arreglo de repositorios creados
 		$this->getAllRepos();
@@ -165,9 +163,10 @@ class AdminModules {
 						$dirbase = $this->evalDirBase($modulo, $v);
 						// Redefine "dirbase" para apuntar al repositorio comun
 						if (!isset($this->listado[$modulo])) {
-							if (isset($v['dirbase'])) { unset($v['dirbase']); }
+							// if (isset($v['dirbase'])) { unset($v['dirbase']); }
 							$v['repo-local'] = $base;
 							$v['module-name'] = $k;
+							$v['module-base'] = $modbase;
 							$this->listado[$modulo] = $v;
 						}
 						else {
@@ -187,18 +186,16 @@ class AdminModules {
 			}
 		}
 
-		// miframe_debug_box($this->listabase);
 		// miframe_debug_box($this->listabase, 'listabase');
 		// miframe_debug_box($this->listado, 'modulos-pre');
 		// exit;
 
-		if ($module != '') {
-			if (isset($this->listado[$module])) {
-				$this->evalModuleInfo($module);
-				$retornar[$module] = $this->listado[$module];
-			}
+		if ($module !== '') {
+			$module = strtolower(trim($module));
+			$this->buildModuleArray($module, $retornar);
 		}
 		else {
+			$type = strtolower(trim($type));
 			foreach ($this->listado as $modulo2 => $info) {
 				// $extension = strtolower(pathinfo($modulo2, PATHINFO_EXTENSION));
 				$tipo_modulo = 'php';
@@ -206,13 +203,20 @@ class AdminModules {
 					$tipo_modulo = strtolower($info['type']);
 				}
 				if ($type == '' || ($type == $tipo_modulo)) {
-					$this->evalModuleInfo($modulo2);
-					$retornar[$modulo2] = $this->listado[$modulo2];
+					$this->buildModuleArray($modulo2, $retornar);
 				}
 			}
 		}
 
 		return $retornar;
+	}
+
+	private function buildModuleArray(string $module, array &$data) {
+
+		if ($module != '' && isset($this->listado[$module])) {
+			$this->evalModuleInfo($module);
+			$data[$module] = $this->listado[$module];
+		}
 	}
 
 	public function getModulesApp(string $app_name, array $data_repo, bool $return_missings = false) { // }, bool $documentar = null) {
@@ -347,12 +351,14 @@ class AdminModules {
 		return $this->locales;
 	}
 
-	public function updateRemoteModules(array $data) {
+	public function updateRemoteModules(array $data, string $app_name = '') {
 		// Guarda archivo remoto con actualizaciones
 
 		$resultado = false;
 		$namespaces = array();
-
+		if ($app_name != '') {
+			$this->app_name_local = $app_name;
+		}
 		if ($this->app_name_local !== '') {
 			$data_repo = micode_modules_repo($this->app_name_local);
 			$path = micode_modules_path($this->app_name_local, false, $data_repo);
@@ -380,6 +386,7 @@ class AdminModules {
 			// Guarda arreglo resultante
 			$inifile = miframe_path(dirname($data_repo['inifile']), 'modules-installed.ini');
 			ksort($data);
+			// echo "$inifile<hr>"; print_r($data); echo "<hr>"; exit;
 			$resultado = miframe_inifiles_save_data($inifile, $data);
 			// Guarda archivo con namespaces (si aplica)
 			if (count($namespaces) > 0) {
@@ -403,6 +410,7 @@ class AdminModules {
 		foreach ($this->listado as $modulo => $info) {
 			if (!isset($this->locales['pre'][$modulo])
 				&& !isset($this->locales['add'][$modulo])
+				&& isset($info['description'])
 				) {
 				// Para adicionar
 				$nuevos[$modulo] = array(
@@ -456,20 +464,26 @@ class AdminModules {
 			}
 		}
 
+		$tipodir = '';
 		if ($dirbase != '') {
-			$inicio = substr($dirbase, 0, 1);
-			if ($inicio == '/' || $inicio == '\\') {
+			$root = strtolower(str_replace(DIRECTORY_SEPARATOR, '/', $_SERVER['DOCUMENT_ROOT'])) . '/';
+			$ldirbase = strtolower(str_replace(DIRECTORY_SEPARATOR, '/', $dirbase));
+			$inicio = substr($ldirbase, 0, 1);
+			if ($inicio == '/') {
 				// Referido al document-root
 				$dirbase = miframe_path($_SERVER['DOCUMENT_ROOT'], $dirbase);
+				$tipodir = 'document-root';
 			}
-			elseif (is_dir($dirbase)) {
-				// Es un directorio valido
+			elseif (substr($ldirbase, 0, strlen($root)) == $root && is_dir($dirbase)) {
+				// Es un directorio valido (debe contener document-root)
 				$dirbase = realpath($dirbase);
+				$tipodir = 'realpath';
 			}
 			elseif (isset($this->repositories[$arreglo[0]])) {
 				// Tomado del repositorio local, complementa
 				// $dirbase = micode_modules_repository_path($arreglo[0] . '/' . $dirbase);
 				$dirbase = miframe_path($_SERVER['DOCUMENT_ROOT'], $this->repositories[$arreglo[0]]['path'], $dirbase);
+				$tipodir = 'Repositorio';
 			}
 		}
 		if ($dirbase == '' || !is_dir($dirbase)) {
@@ -485,6 +499,8 @@ class AdminModules {
 		elseif (strpos(strtolower($dirbase), strtolower(miframe_path($_SERVER['DOCUMENT_ROOT']))) === false) {
 			miframe_error('El directorio base para el módulo local "$1" no es valido', $module);
 		}
+
+		// echo "$tipodir: $dirbase<hr>";
 
 		return $dirbase;
 	}
@@ -511,6 +527,7 @@ class AdminModules {
 	public function getDirRemote(string $module, string $path = '', string $basename = '') {
 
 		$arreglo = explode('/', $module);
+		// Solamente usa dos elementos de $module
 		$path = miframe_path($path, $arreglo[0], $arreglo[1], $basename);
 
 		return $path;
@@ -550,18 +567,22 @@ class AdminModules {
 		}
 
 		if (!isset($info['sha'])) {
-			// Busca elementos que coinciden con los requeridos
-			if (isset($info['require']) && trim($info['require']) != '') {
+			if (!isset($info['type'])) {
+				$info['type'] = 'php'; // Por defecto asume PHP
+			}
+
+			if (!micode_modules_eval_type($info['type'])) {
+				// miframe_error('Módulo local "$1" definido para un tipo no soportado ($2)', $module, $info['type']);
+			}
+			elseif (!isset($info['require']) || trim($info['require']) == '') {
+				miframe_error('Módulo local "$1" definido sin archivos asociados', $module);
+			}
+			else {
+				// Procesa información
 
 				$info['php-namespaces'] = array();
 
 				$dirbase = $this->getDirBase($module);
-
-				if (!isset($info['type'])) {
-					$info['type'] = 'php'; // Por defecto asume PHP
-				}
-
-				micode_modules_eval_type($info['type']);
 
 				$requeridos = $this->addFiles($module, $info['require'], $dirbase, true);
 
@@ -608,15 +629,12 @@ class AdminModules {
 						foreach ($documentar_params as $dparam) {
 							if ($info[$dparam] == '') { $info[$dparam] = $inforeq[$dparam]; }
 						}
-						$info['#reference'] = $inforeq['path'];
+						$info['#docfile'] = $inforeq['path'];
 						$primero = false;
 					}
 				}
 
 				$this->listado[$module] = $info;
-			}
-			else {
-				miframe_error('Módulo local "$1" definido sin archivos asociados', $module);
 			}
 		}
 
@@ -640,6 +658,8 @@ class AdminModules {
 			}
 		}
 		*/
+
+		return $modulo_valido;
 	}
 
 	/**

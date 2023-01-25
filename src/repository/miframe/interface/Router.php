@@ -17,7 +17,6 @@
  * a la aplicación.
  *
  * @micode-uses miframe/common/functions
- * @micode-uses miframe/interface/shared
  * @author John Mejia
  * @since Abril 2022
  */
@@ -1067,11 +1066,16 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			miframe_serialize($filename, $data);
 		}
 
-		$enlace = $this->getFormAction($request_param, true, $params);
+		$location = $this->getFormAction($request_param, true, $params);
 
-		// Complementa con headers? Falta el hostname...
-		echo "<script>window.location='$enlace';</script>";
-		exit;
+		$mensaje = "<script>window.location='{$location}';</script>" .
+			miframe_text("Esta página ha sido consultada de forma incorrecta.") .
+			"<a href=\"{$location}\">" . miframe_text('Favor consultar desde esta página') . "</a>.";
+		if (!headers_sent()) {
+			// header("HTTP/1.1 301 Moved Permanently"); <-- No debe marcarla como permanente!
+			header("Location: {$location}");
+		}
+		exit($mensaje);
 	}
 
 	public function getDataReloaded(bool $delete_file = false) {

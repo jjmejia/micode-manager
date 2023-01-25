@@ -7,7 +7,12 @@
  */
 
 $type = $this->router->param('type', 'php');
-micode_modules_eval_type($type);
+if (!micode_modules_eval_type($type)) {
+	$this->router->abort(
+			miframe_text('Parámetros incorrectos'),
+			miframe_text('Tipo de módulos a recuperar no es valido ($1).', $type)
+			);
+}
 
 $m = new \miFrame\Local\AdminModules(true);
 

@@ -8,11 +8,6 @@
  * @since Abril 2022.
  */
 
-// Realiza includes requeridos por este modulo pero igual debe definir el respectivo modules.files
-// para asegurarse que los archivos sean incluidos en producción.
-require_once __DIR__ . '/functions.php';
-require_once __DIR__ . '/debug.php';
-
 function miframe_get_proyecto_ini() {
 
 	$data = array();
@@ -47,7 +42,8 @@ function miframe_get_proyecto_ini() {
 // Previene se sobreescriban variables de la función que invoca
 function miframe_include_module($modulo) {
 
-	$filename = miframe_path(MIFRAME_LOCALMODULES_PATH, $modulo);
+	// Nota: No usa miframe_path() para poder usar esta función aunque no haya incluido functions.php
+	$filename = MIFRAME_LOCALMODULES_PATH . DIRECTORY_SEPARATOR . $modulo;
 	if (file_exists($filename)) {
 		include_once $filename;
 		return true;

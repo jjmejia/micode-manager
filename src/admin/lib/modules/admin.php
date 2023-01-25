@@ -303,16 +303,7 @@ function micode_modules_eval_type(string $type) {
 	$validos = false;
 	if ($type != '') {
 		// Recupera tipos validos
-		$validos = micode_modules_types($type);
-	}
-	if ($validos === false) {
-		miframe_error('Tipo de módulo no es valido ($1)', $type);
-		/*
-		$this->router->abort(
-				miframe_text('Parámetros incorrectos'),
-				miframe_text('Tipo de módulos a recuperar no es valido ($1).', $type)
-				);
-		*/
+		$validos = (micode_modules_types($type) !== false);
 	}
 
 	return $validos;

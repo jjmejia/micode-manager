@@ -35,37 +35,216 @@ class EvalMiCode {
 	public function __construct() {
 
 		$this->dirbase = realpath(__DIR__ . '/../../..');
-		$this->diradmin = $this->dirbase . '/admin/';
+		$this->diradmin = realpath($this->dirbase . '/admin');
 		$this->app_name = 'micode-admin';
+		$this->checkLocalPath();
+	}
+
+	private function checkLocalPath() {
+
+		$inifile = str_replace(DIRECTORY_SEPARATOR, '/', $this->dirbase) . '/projects/micode-admin.path';
+		$local = '';
+		if (file_exists($inifile)) {
+			// Valida que apunte a un directorio valido
+			$contenido = str_replace('..', '_', file_get_contents($inifile));
+			$local = $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . $contenido;
+			if ($contenido == '' || realpath($local) !== $this->diradmin) {
+				$local = '';
+			}
+		}
+		if ($local == '') {
+			// Crea archivo con el path actual
+			$root = realpath($_SERVER['DOCUMENT_ROOT']) . DIRECTORY_SEPARATOR;
+			$len = strlen($root);
+			if (substr($this->diradmin, 0, $len) == $root) {
+				$local = str_replace('/', DIRECTORY_SEPARATOR, substr($this->diradmin, $len));
+				$dirname = dirname($inifile);
+				if (!is_dir($dirname)) { @mkdir($dirname); }
+				$contenido = '';
+				if (!@file_put_contents($inifile, $local)) {
+					$contenido = "<p>No pudo crear archivo requerido ($inifile).</p>" .
+						"<p>Compruebe que el directorio existe y que se tienen los permisos necesarios para crear directorios/archivos.</p>";
+				}
+				else {
+					$this->mensajes['ok'] = "Creado archivo requerido por el sistema ($inifile)";
+					$contenido = "<p>Referencia asociada al path <b>{$local}</b></p>";
+				}
+				// Salida a pantalla
+				$this->openHTML('miCode - Path local micode-admin');
+				echo $contenido;
+				$this->closeHTML();
+			}
+			exit;
+		}
 	}
 
 	public function checkMiCode() {
 
 		// Valida que exista php-namespaces.ini y modules-installed.ini
-		$inifile_modulos = $this->dirbase . '/projects/' . $this->app_name . '/modules-installed.ini';
-		$inifile_namespaces = $this->diradmin . 'micode/config/php-namespaces.ini';
-		if (!file_exists($inifile_modulos) || !file_exists($inifile_namespaces)) {
+		$inifile_modulos = $this->dirbase . '/admin/micode.private/modules-installed.ini';
+		$inifile_namespaces = $this->diradmin . '/micode/config/php-namespaces.ini';
+		// Carga definiciones, incluidas en uno de los templates del sistema
+		$filename = $this->dirbase . '/repository/templates/startup/micode-admin/tpl-config.ini';
+		// echo "!$inifile_modulos = " . file_exists($inifile_modulos) . " || !$inifile_namespaces = " . file_exists($inifile_namespaces) . "<hr>"; exit;
+		// Procesa si no existe alguno de los archivos indicados o si el archivo de instalados es mas antiguo
+		// que  el archivo guia (template).
+		if (!file_exists($inifile_modulos)
+			|| !file_exists($inifile_namespaces)
+			|| (file_exists($inifile_modulos) && filemtime($inifile_modulos) < filemtime($filename))
+			) {
 
-			include_once $this->diradmin . 'micode/initialize.php';
-			include_once $this->diradmin . 'lib/modules/admin.php';
-			include_once $this->diradmin . 'lib/class/AdminModules.php';
+			$startup_info = parse_ini_file($filename, true, INI_SCANNER_TYPED);
+			// print_r($datamodules['modules']); exit;
 
-			$data_repo = micode_modules_repo($this->app_name);
+			// Si no se han creado los archivos de arranque (micode/miframe/xxx) lo que se detecta porque no
+			// existe "modules-installed.ini", debe apuntar directamente al repositorio
+
+			// Directorio para ubicar los módulos asociados al proyecto
+			define('MIFRAME_LOCALMODULES_PATH', $this->dirbase . '/repository');
+
+			// Carga el resto de las librerías
+			include_once $this->diradmin . '/micode/initialize.php';
+			include_once $this->diradmin . '/lib/modules/admin.php';
+			include_once $this->diradmin . '/lib/class/AdminModules.php';
+
+			// Incluye manualmente librerá de documentación en caso que no se hayan creado las relaciones
+			// entre paths y clases (php-namespaces.ini)
+			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/utils/DocSimple.php';
+
+
 			// Recupera solo información del proyecto local
-			$data_proyecto = micode_modules_proyecto_ini($this->app_name, $data_repo);
+			// $data_proyecto = micode_modules_proyecto_ini($this->app_name, $data_repo);
 
 			$m = new \miFrame\Local\AdminModules(true);
-			// Obtiene modulos disponibles
-			$listado = $m->getModulesApp($this->app_name, $data_repo);
-			// miframe_debug_box($listado);
-			// Actualiza control de versiones
-			if (!$m->updateRemoteModules($listado['pre'])) {
-				$this->mensajes['error'] = miframe_text('Archivo para control de versiones no pudo ser creado/actualizado.');
+			// Obtiene modulos disponibles (esto requiere que existan los archivos de referencia en "micode")
+			// Usar una lista predefinida para crear los archivos de arranque! Validar que el listado de modulos
+			// instalados tenga una fecha > a la de dicho archivo para que refresque si es necesario!
+
+			// $listado = $m->getAllModules('', $startup_info['modules']);
+
+			$startup = 'micode-admin';
+			$modules = $startup_info['modules'];
+			$exe = true; // FALSE no copia archivos
+			$app_name = $this->app_name;
+
+			// PENDIENTE: Este bloque se usa en admin/control/projects/edit.php, homologar...
+			$datamodules = array();
+			$requeridos  = array();
+			$repositorios = $m->getAllRepos();
+			$data_repo = micode_modules_repo($app_name);
+			$path_modulos = micode_modules_path($app_name, false, $data_repo);
+
+			$k = 0;
+			while (isset($modules[$k])) {
+				$modulo = $modules[$k];
+				$listado = $m->getAllModules('', $modulo);
+				if (isset($listado[$modulo])) {
+					$info = $listado[$modulo];
+					// Acumula resultado para generar luego el .ini de instalados
+					$datamodules[$modulo] = $info;
+					// Busca modulos adicionales
+					if (isset($info['uses'])) {
+						foreach ($info['uses'] as $p => $umodulo) {
+							if (!in_array($umodulo, $modules)) {
+								// Adiciona al listado de modulos a capturar
+								$modules[] = $umodulo;
+							}
+						}
+					}
+					// Lista requeridos
+					$requeridos_local = $m->getRequiredFiles($modulo, true);
+					// print_r($requeridos_local); echo "<hr>";
+					foreach ($requeridos_local as $basename => $inforeq) {
+						// $origen = $m->getDirRemote($modulo, '', $basename);
+						// if ($tipo == 'new') { $siempre[$dmodulo] = true; }
+						// $destino = miframe_path($path_modulos, $basename);
+						$dmodulo = md5(strtolower($inforeq['path']));
+						// $dmodulo se usa como control de duplicados
+						$requeridos[$dmodulo] = array(
+							'module' => $modulo,
+							'src' => $inforeq['path'],
+							'dest' => miframe_path($path_modulos, $info['module-base'], $basename)
+							);
+					}
+				}
+				elseif ($startup != '') {
+					miframe_error('El modulo "$1" indicado en el modelo de inicio "$2" no existe.', $modulo, $startup);
+				}
+				else {
+					miframe_error('El modulo "$1" solicitado no existe.', $modulo);
+				}
+				// Incrementa arreglo base (modulos)
+				$k ++;
 			}
-			else {
-				$this->mensajes['ok'] = miframe_text('Archivo para control de versiones creado/actualizado.');
+
+			// echo "<pre>$modulo<hr>"; print_r($datamodules); echo "<hr>"; print_r($requeridos); echo "<hr>$origen --> $destino<hr>"; exit;
+			// if (!$exe) { return >$requeridos; }
+
+			$mensajes = array('ok' => array(), 'error' => '');
+
+			foreach ($requeridos as $dmodulo => $inforeq) {
+				$modulo = $inforeq['module'];
+				if ($m->loadManager($inforeq['src'])) {
+					if ($m->clase_manejador->exportWorkCopy($modulo, $inforeq['src'], $inforeq['dest'])) {
+						$mensajes['ok'][$modulo] = miframe_text('Módulo **$1** instalado con éxito', $modulo);
+					}
+					else {
+						// Ocurrió un error y no pudo realizar el cambio
+						$mensajes['error'] = miframe_text('Ocurrió un error en el módulo **$1** al exportar el archivo "$2" a "$3": $4',
+							$inforeq['module'],
+							$inforeq['src'],
+							$inforeq['dest'],
+							$m->clase_manejador->getError()
+							);
+					}
+				}
+				elseif (@copy($inforeq['src'], $inforeq['dest'])) {
+					$mensajes['ok'][$modulo] = miframe_text('Módulo $1 instalado con éxito', $modulo);
+				}
+				else {
+					// Falló copiado del archivo
+					$errors = error_get_last();
+					$mensajes['error'] = miframe_text('Ocurrió un error en el módulo **$1** al copiar el archivo "$2" a "$3": $4',
+						$inforeq['module'],
+						$inforeq['src'],
+						$inforeq['dest'],
+						$errors['message']
+						);
+				}
+				if ($mensajes['error'] != '') {
+					// Remueve mensaje de éxito asociado a este modulo (si alguno)
+					if (isset($mensajes['ok'][$modulo])) {
+						unset($mensajes['ok'][$modulo]);
+					}
+					// Abandona ciclo
+					break;
+				}
 			}
-			$this->checkMiCodeShow($listado['pre']);
+
+			if ($mensajes['error'] == '') {
+				// Actualiza control de versiones
+				if (!$m->updateRemoteModules($datamodules, $app_name)) {
+					$mensajes['error'] = miframe_text('Archivo para control de versiones no pudo ser creado/actualizado.');
+				}
+				else {
+					$mensajes['ok'][] = miframe_text('Archivo para control de versiones creado/actualizado.');
+				}
+			}
+
+			// return $mensajes, $datamodules;
+
+			//////////////////////
+
+			if ($mensajes['error'] != '') {
+				$this->mensajes['error'] = $mensajes['error'] .
+					'<br \>' .
+					miframe_text('La copia de archivos requeridos se suspende hasta que sea solucionado el problema encontrado.');
+			}
+			if (count($mensajes['ok']) > 0) {
+				$this->mensajes['ok'] = implode('<br \>', $mensajes['ok']);
+			}
+
+			$this->checkMiCodeShow($datamodules);
 			exit;
 		}
 	}
@@ -447,8 +626,8 @@ class EvalMiCode {
 			"</style>" . PHP_EOL;
 
 		foreach ($this->mensajes as $tipo => $mensaje) {
-			if ($tipo == 'ok') {
-				$mensaje .= '<br />Recargue la página o <a href="">haga click aquí para continuar</a>.';
+			if ($tipo == 'ok' && !isset($this->mensajes['error'])) {
+				$mensaje .= '<p>Recargue la página o <a href="">haga click aquí para continuar</a>.</p>';
 			}
 			echo "<div class=\"msg-{$tipo}\">{$mensaje}</div>";
 		}

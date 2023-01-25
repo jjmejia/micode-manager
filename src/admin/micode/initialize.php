@@ -7,37 +7,49 @@
  * @since Abril 2022
  */
 
-include_once __DIR__ . '/miframe/common/modules.php';
+// Raíz (solo para Administrador y proyectos) - Se declara MIFRAME_ROOT en el index.php principal
+if (!defined('MIFRAME_ROOT')) {
+	// miframe_redir('../index.php', 'Script no ejecutado correctamente.');
+	$location = '../index.php';
+	$mensaje = "<script>window.location='{$location}';</script>" .
+		"Esta página ha sido consultada de forma incorrecta." .
+		"<a href=\"{$location}\">Favor consultar desde esta página</a>.";
+	if (!headers_sent()) {
+		header("HTTP/1.1 301 Moved Permanently");
+		header("Location: {$location}");
+	}
+	exit($mensaje);
+}
+
+// Directorio para ubicar los módulos asociados al proyecto.
+// Puede declararse externamente para casos especiales, como la validación de inicio en "chexk-externals.php".
+if (!defined('MIFRAME_LOCALMODULES_PATH')) {
+	define('MIFRAME_LOCALMODULES_PATH', __DIR__);
+}
+
+ // Directorio base del proyecto actual (xxx/admin)
+define('MIFRAME_BASEDIR', dirname(__DIR__));
+
+// Patrón para ubicar archivo de configuración de proyecto (Si no existe lo crea)
+define('MIFRAME_LOCALCONFIG_PATH', __DIR__ . DIRECTORY_SEPARATOR . 'config');
+
+// Path para registro local de proyectos
+define('MIFRAME_PROJECTS_REPO', MIFRAME_ROOT . DIRECTORY_SEPARATOR . 'projects');
+
+// Deben haberse creado los archivos basicos de arranque
+include_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/modules.php';
 
 // Habilita mensajes de depuración (por configuración se maneja)
 // miframe_debug_enable(true);
 
-// Define valores de constantes requeridas por "modules/admin.php"
-// ----------------------------------------------------------------------------------
-$dirname = dirname(__DIR__);
-
-// Directorio base del proyecto actual (xxx/admin)
-define('MIFRAME_BASEDIR', $dirname);
-
-// Directorio para ubicar los módulos asociados al proyecto
-define('MIFRAME_LOCALMODULES_PATH', __DIR__);
-
-// Patrón para ubicar archivo de configuración de proyecto (Si no existe lo crea)
-define('MIFRAME_LOCALCONFIG_PATH', miframe_path(__DIR__, 'config'));
-
+// Realiza includes requeridos por este modulo pero igual debe definir el respectivo modules.files
+// para asegurarse que los archivos sean incluidos en producción.
+miframe_include_module('/miframe/common/functions.php');
+miframe_include_module('/miframe/common/debug.php');
 // Si incluyó librería para manejo de errores realiza el cargue automático
 miframe_include_module('miframe/common/errors.php');
 miframe_include_module('miframe/common/phpsettings.php');
 
-// ----------------------------------------------------------------------------------
-
-// Raíz (solo para Administrador y proyectos) - Se declara MIFRAME_ROOT en el index.php principal
-if (!defined('MIFRAME_ROOT')) {
-	miframe_redir('../index.php', 'Script no ejecutado correctamente.');
-}
-
-// Path para registro local de proyectos
-define('MIFRAME_PROJECTS_REPO', miframe_path(MIFRAME_ROOT, 'projects'));
 
 // ----------------------------------------------------------------------------------
 // Autoload para carga de clases ("miframe_autoload_classes" se define en modules.php).

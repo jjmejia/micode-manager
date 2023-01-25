@@ -2,6 +2,8 @@
 admin/micode/config/php-namespaces.ini
 admin/micode/config/sistema.ini
 admin/micode/miframe/*
+admin/micode/vendor/*
 externals-installed.ini
 modules-installed.ini
 data/repositories.ini
+admin/projects/micode-admin.path
