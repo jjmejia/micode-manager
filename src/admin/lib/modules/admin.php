@@ -157,7 +157,7 @@ function micode_modules_project_new() {
 /**
  * Remueve archivos locales asociados a módulos previamente seleccionados.
  */
-function micode_modules_remove(string $module, string $filename) {
+function micode_modules_remove(string $filename) {
 
 	if (file_exists($filename)) {
 		// echo "REMOVE $filename<hr>";
@@ -202,8 +202,7 @@ function micode_modules_repo_filename(string $app_name, bool $check_file = true,
 	else {
 		miframe_error('No se encontró archivo con la ubicación del proyecto $1', $app_name);
 	}
-	// miframe_debug_box("$path --> $file_repo", $filepath); // exit;
-	// return miframe_path(MIFRAME_PROJECTS_REPO, strtolower($app_name), 'repo.ini');
+
 	return $file_repo;
 }
 
@@ -215,7 +214,6 @@ function micode_modules_repo(string $app_name, string $filename = '') {
 	}
 	$data_repo = miframe_inifiles_get_data($filename, false);
 	$data_repo['inifile'] = $filename;
-	// miframe_debug_box($data_repo, $file_repo);
 
 	// Valida casos especiales
 	if (!isset($data_repo['since'])) {
@@ -387,37 +385,3 @@ function micode_modules_startup_data(string $startup = '') {
 
 	return $data;
 }
-
-/*
-function micode_modules_add_files($modulo, $info, $type, $path_modulos, $clase_manejador, &$mensajes) {
-
-	$hay_errores = false;
-	$total_files = 0;
-	$total_ok = 0;
-
-	if (isset($info['add'])) {
-		foreach ($info['add'] as $a => $add_path) {
-			$origen = micode_modules_repository_path($add_path);
-			$destino = miframe_path($path_modulos, $add_path);
-			$total_files ++;
-			if ($clase_manejador->exportWorkCopy($modulo, $origen, $destino)) {
-				$total_ok ++;
-			}
-			else {
-				// Ocurrió un error y no pudo realizar el cambio
-				$mensajes[] = $clase_manejador->getLastError();
-				$hay_errores = true;
-			}
-		}
-
-		if ($total_ok > 0) {
-			$mensajes[] = miframe_text('Módulo $1: $2 de $3 archivos adicionales instalados con éxito', $modulo, $total_ok, $total_files);
-		}
-		elseif ($total_files > 0) {
-			$mensajes[] = miframe_text('Módulo $1: No pudo copiar archivos adicionales ($2 existentes)', $modulo, $total_files);
-		}
-	}
-
-	return $hay_errores;
-}
-*/

@@ -38,7 +38,7 @@ try {
 	$app->loadView(miframe_path(MIFRAME_ROOT, 'data', 'vistas.ini'), 'views/web', 'views/api');
 
 	// Se asegura que haya configurado "sistema.ini"
-	if ($app->userEmail() == '') {
+	if ($app->userEmail() == '' || $app->userName() == '') {
 		$app->router->runDefault('settings.php', true);
 		exit;
 	}

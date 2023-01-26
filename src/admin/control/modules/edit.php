@@ -219,29 +219,8 @@ if ($this->config->checkformRequest('configok') && ($modulo_name != '' || $modul
 	}
 }
 
-/*
-// Captura todos los modulos
-$modulos = $m->getAllModules();
-
-foreach ($modulos as $modulo => $data) {
-	$basename = urlencode($modulo);
-	$tipo_encode = urlencode($data['type']);
-	$urlbase = "modules/detail/{$tipo_encode}?module={$basename}";
-	$modulos[$modulo]['url'] = $this->router->getFormAction($urlbase, true);
-	$modulos[$modulo]['dirbase'] = $m->getDirBase($modulo);
-	// $listado[$modulo]['dirdest'] = $m->getDirRemote($modulo);
-}
-
-// miframe_debug_box($modulos);
-
-// $this->startView('modules/list.php', [ 'listado' => $modulos, 'reponame' => $clase ]);
-*/
-
 if ($modulo == '') { $modulo = '?'; } // Se asegura muestre menu de repo
 
 $data_proyecto = array('nuevo' => $modulo_nuevo, 'module' => $modulo, 'form-hidden' => array('module' => $modulo));
-if (isset($listado[$modulo])) {
-	// $data_proyecto['repodata'] = $listado[$modulo];
-}
 
 $this->startView('projects/edit.php', $data_proyecto);

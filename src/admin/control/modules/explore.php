@@ -38,6 +38,4 @@ if ($modulo == '' || !isset($listado[$modulo])) {
 $enlace = $this->router->getFormAction('modules/explore/' . $type . '?module=' . $modulo, true);
 $data_proyecto['html'] = micode_modules_explore($enlace, $data_proyecto['dirbase']);
 
-// miframe_debug_box($data_proyecto);
-
 $this->startView('projects\explore.php', $data_proyecto);

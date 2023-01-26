@@ -15,7 +15,7 @@ $this->view->setParam('page-buttons', [
 ?>
 
 <p class="info">
-	<?= $this->view->iif('listado:empty', "<i>No hay repositorios creados aun</i>", "<b>" . $this->view->param('listado:count') . "</b> repositorios encontrados") ?>
+	<?= $this->view->iif('listado:empty', "<i>No hay repositorios creados aun.</i>", "<b>" . $this->view->param('listado:count') . "</b> repositorios encontrados") ?>
 </p>
 
 <?= $this->view->param('mensajes:implode', '', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>

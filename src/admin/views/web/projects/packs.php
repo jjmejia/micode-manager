@@ -6,9 +6,9 @@
  * @since Abril 2022
  */
 
-$this->view->setParam('page-buttons', [ 
-	'?new' => miframe_text('Nuevo paquete'), 
-	// '?export' => miframe_text('Exportar proyecto') 
+$this->view->setParam('page-buttons', [
+	'?new' => miframe_text('Nuevo paquete'),
+	// '?export' => miframe_text('Exportar proyecto')
 ]);
 
 ?>
@@ -17,7 +17,7 @@ $this->view->setParam('page-buttons', [
 
 if ($this->view->param('listado:count') <= 0) {
 	// $this->view->buffer("<p>No hay módulos " . htmlspecialchars($tipo) . " creados aun</p>");
-	$this->view->buffer("<p>No hay paquetes creados aun</p>");
+	$this->view->buffer("<p>No hay paquetes creados aun.</p>");
 }
 else {
 	$this->view->buffer("<p class=\"info\">Hay <b>" . $this->view->param('listado:count') . "</b> paquetes encontrados.</p>");

@@ -20,7 +20,7 @@ if ($reponame != '') {
 
 if ($this->view->param('listado:count') <= 0) {
 	// $this->view->buffer("<p>No hay módulos " . htmlspecialchars($tipo) . " creados aun</p>");
-	$this->view->buffer("<p>No hay módulos creados aun</p>");
+	$this->view->buffer("<p>No hay módulos creados aun.</p>");
 }
 // else {
 // 	$this->view->buffer("<p class=\"info\">Hay <b>" . $this->view->param('listado:count') . "</b> módulos/archivos encontrados.</p>");

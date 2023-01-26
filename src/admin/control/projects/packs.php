@@ -35,7 +35,6 @@ if ($this->post->exists('down')) {
 }
 elseif ($this->post->exists('new')) {
 	// Nuevo paquete
-	// $filepack = miframe_path(MIFRAME_PROJECTS_REPO, $app_name, 'packs', strtolower($app_name) . '-' . date('Ymd') . '.zip');
 	$basepack = strtolower($app_name) . '-' . date('Ymd');
 	$filepack = miframe_path($path_packs, $basepack . '.zip');
 	$dirname = dirname($filepack);
@@ -44,10 +43,8 @@ elseif ($this->post->exists('new')) {
 			miframe_error('No pudo crear directorio requerido: $1', $dirname);
 		}
 	}
-	// $filesha = miframe_path(miframe_temp_dir(), $basepack . '.sha');
 
 	$conteo = 0;
-
 	$estado = '';
 	$errorfile = false;
 
@@ -59,7 +56,6 @@ elseif ($this->post->exists('new')) {
 		$path = miframe_path($data_proyecto['config']['path']);
 
 		$dirs = miframe_tree_directory($path, '', true);
-
 		$files = array();
 		$requeridos = array();
 
@@ -67,31 +63,22 @@ elseif ($this->post->exists('new')) {
 
 		$data_proyecto_pre = &$data_proyecto['modules']['pre'];
 
-		// miframe_debug_box($data_proyecto_pre, $path_modulos);
-
 		$m = new \miFrame\Local\AdminModules();
 
-		foreach ($data_proyecto_pre as $modulo => $info) {
-			// $listado = $m->getAllModules('', $modulo);
-			$requeridos_local = $m->getRequiredFiles($modulo);
-			// miframe_debug_box($requeridos, $modulo);
-			foreach ($requeridos_local as $basename => $pathrepo) {
-				$dmodulo = $m->getDirRemote($modulo, '', $basename);
-				$requeridos[$dmodulo] = $pathrepo;
-			}
-		}
+		$requeridos = $m->exportRemoteFiles($app_name, array_keys($data_proyecto_pre), '', true);
 
 		// Obtiene archivos a ignorar (no incluir en el paquete)
 		$ignorar = array();
 		$minimizar = false;
 
 		/*
-		Leer de ignore-files.ini
+		PENDIENTE:
 		Crear .gitignore con la lista de archivos de micode y micode.private
 		(complementa el existente si alguno)
 		No remover lineas (a menos que el archivo relacionado en las mismas no exista)
 		*/
 
+		// Valida lista de archivos a ignorar
 		if (isset($data_repo['ignore-files'])) {
 			$arreglo = explode("\n", str_replace(',', "\n", $data_repo['ignore-files']));
 			foreach ($arreglo as $linea) {
@@ -111,8 +98,7 @@ elseif ($this->post->exists('new')) {
 				}
 			}
 		}
-		// Ignora siempre el archivo sha
-		// $ignorar['full'][] = basename($filesha);
+
 		// Ignora todo el contenido de "micode.private"
 		$ignorar['parcial'][] = 'micode.private' . DIRECTORY_SEPARATOR;
 
@@ -121,8 +107,7 @@ elseif ($this->post->exists('new')) {
 			// exit('PENDIENTE HABILITAR MINIMIZADO');
 		}
 
-		// PENDIENTE GENERAR .gitignore
-
+		// PENDIENTE MANEJO DEL MINIMIZAR
 		// miframe_debug_box($ignorar, 'IGNORAR ' . $minimizar);
 
 		// Obtiene los archivos por directorio
@@ -157,11 +142,9 @@ elseif ($this->post->exists('new')) {
 
 						// Registra archivo
 						$origen = $filename;
-						if (strtolower(substr($filename, 0, $lenmodulos)) == $lmodulos) {
-							$dmodulo = substr($filename, $lenmodulos);
-							if (isset($requeridos[$dmodulo])) {
-								$origen = $requeridos[$dmodulo];
-							}
+						$dmodulo = md5(strtolower($filename));
+						if (isset($requeridos[$dmodulo])) {
+							$origen = $requeridos[$dmodulo]['src'];
 						}
 						// Recupera el SHA de cada archivo
 						$crc = sha1_file($origen);
@@ -176,6 +159,9 @@ elseif ($this->post->exists('new')) {
 				}
 			}
 		}
+
+		// echo '<pre>'; print_r($requeridos); exit;
+		// echo '<pre>'; print_r($files); exit;
 
 		// Archivo a contener el SHA del ZIP actual
 		$origensha = miframe_path($path_packs, 'lastpack.sha');
@@ -199,23 +185,6 @@ elseif ($this->post->exists('new')) {
 						$filepack = $previo_path;
 					}
 				}
-
-				/*$zip = new ZipArchive();
-				$res = $zip->open($filepack);
-				if ($res) {
-					$res = $zip->extractTo(dirname($filesha), basename($filesha));
-					$zip->close();
-					// El archivo puede no existir o fallar en la extracción
-					if ($res && file_exists($filesha)) {
-						$sha_previo = file_get_contents($filesha);
-						unlink($filesha);
-						if (substr($sha_previo, 4) == $sha_acum) {
-							// El archivo actual es valido, no necesita reescribirlo
-							$estado = 'ZIP_VALIDO';
-						}
-					}
-					// echo "PREVIO $res : $filesha : " . file_exists($filesha) . "<br>$sha_previo<br>$sha_acum<hr>";
-				}*/
 			}
 		}
 
@@ -229,11 +198,6 @@ elseif ($this->post->exists('new')) {
 			else {
 				// Adiciona archivo con "sha"
 				file_put_contents($origensha, 'SHA:' . $sha_acum . "\n" . basename($filepack));
-				// $files[] = array(
-				// 	'path' => basename($filesha),
-				// 	'src' => $origensha
-				// 	// 'sha' => $crc
-				// );
 
 				foreach ($files as $datafile) {
 					if (!@$zip->addFile($datafile['src'], $datafile['path'])) {
@@ -254,10 +218,6 @@ elseif ($this->post->exists('new')) {
 				}
 			}
 		}
-
-		// Actualizar .ini?
-
-		// miframe_debug_box($dirs, $path);
 	}
 	else {
 		$estado = 'CAMBIOS_PENDIENTES';

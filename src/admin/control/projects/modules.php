@@ -35,20 +35,6 @@ if ($path_modulos == '') {
 // Mensajes a mostrar en pantalla
 $mensajes = array();
 
-/*
-// REVISAR ESTE MANEJO!!!
-// Archivo para control de versiones con los listados en "pre"
-$inifile = miframe_path($path_modulos, '..', 'config', 'mvc.ini');
-
-$modificados = array();
-
-if (file_exists($inifile)) {
-	// Valida listado actual
-	$data_proyecto['modules']['changes'] = micode_modules_versioncontrol($inifile, $data_proyecto['modules']['pre'], true);
-	$data_proyecto['ini_datetime'] = filemtime($inifile);
-}
-*/
-
 // Evalua $_REQUEST.
 // Acciones:
 // - removido de "pre" lo pasa a "new"
@@ -56,13 +42,9 @@ if (file_exists($inifile)) {
 // - seleccionado en "add" lo pasa a "pre" y crea archivos locales
 // - seleccionado en "del" elimina directorio local (ya no existen en el repositorio global)
 
-// PENDIENTE: Actualizar la configuración del proyecto
-// $post = new \miFrame\Interface\Request();
-
 $proceder = ($this->post->getString('modulok') != '');
 
 //**********************************************************
-// CODIGO A REUSAR AL CREAR PROYECTOS!!
 
 $data_proyecto_add = &$data_proyecto['modules']['add'];
 
@@ -86,6 +68,7 @@ if ($proceder || count($data_proyecto_add) > 0) {
 
 	$requeridos = array();
 	$siempre = array();
+	$data_proyecto_remoto = array(); // Acumula modulos de "pre" y "new"
 
 	// Reconstruir los archivos actuales (si desmarca alguno de los instalados, no lo incluye en la
 	// actualización).
@@ -112,14 +95,12 @@ if ($proceder || count($data_proyecto_add) > 0) {
 	foreach ($add as $a => $tipo) {
 		// Complementa "pre" y "new"
 		foreach ($user[$tipo] as $k => $modulo) {
-			// miframe_debug_box($user[$tipo], $tipo . '/' . $k);
-			// $modulo = $user[$tipo][$k];
 			$listado = $m->getAllModules('', $modulo);
 			if (isset($listado[$modulo])) {
 				if (count($listado[$modulo]['uses']) > 0) {
 					foreach ($listado[$modulo]['uses'] as $p => $umodulo) {
 						if (!in_array($umodulo, $user['pre']) && !in_array($umodulo, $user['new'])) {
-							// Valida si ya está registradp
+							// Valida si ya está registrado
 							if (isset($data_proyecto_pre[$umodulo])) {
 								$user['pre'][] = $umodulo;
 								$mensajes[] = miframe_text('Mantiene $1, requerido por $2.', $umodulo, $modulo);
@@ -138,23 +119,10 @@ if ($proceder || count($data_proyecto_add) > 0) {
 				unset($user[$tipo][$k]);
 			}
 		}
-		// Recupera archivos
-		foreach ($user[$tipo] as $k => $modulo) {
-			// Recupera los archivos requeridos
-			$requeridos_local = $m->getRequiredFiles($modulo);
-			foreach ($requeridos_local as $basename => $path) {
-				$dmodulo = $m->getDirRemote($modulo, '', $basename);
-				if ($tipo == 'new') { $siempre[$dmodulo] = true; }
-				$requeridos[$dmodulo] = $path;
-			}
-			// Adiciona listado a los nuevos
-			if (isset($data_proyecto_new[$modulo])) {
-				$data_proyecto_new[$modulo]['files'] = array_keys($requeridos_local);
-			}
-		}
 	}
 
-	// Los items en $data_proyecto_add deben ser adicionados
+	// Los items en $data_proyecto_add deben ser adicionados (actualiza $user['new']
+	// para su siguiente visualización)
 	foreach ($data_proyecto_add as $k => $modulo) {
 		if (!in_array($modulo, $user['pre']) && !in_array($modulo, $user['new'])) {
 			$user['new'][] = $modulo;
@@ -162,14 +130,38 @@ if ($proceder || count($data_proyecto_add) > 0) {
 		}
 	}
 
-	// Los items preinstalados que no aparezcan en "pre" deben ser removidos?
-	// SEP/2022: Ya no se detectan modulos "retirados" toda vez que no se explora cada
-	// archivo en los directorios. La razón es que el usuario podría tener archivos
-	// adicionados o los "require" pueden copiar archivos individuales dentro de un paquete.
-	// Aun asi pueden aparecer modulos a retirar, de modulos que hayan sido retirados pero
-	// estén instalados en cliente.
+	// $eliminar = array();
+	$ordenar = false;
+	// Hace lo mismo para REMOVER los "pre" que YA no esten selectos
+	foreach ($data_proyecto_pre as $modulo => $info) {
+		if (!in_array($modulo, $user['pre']) && !in_array($modulo, $user['new'])) {
+			// $requeridos_del = $info['files'];
+			// if (is_array($requeridos_del)) {
+			// 	foreach ($requeridos_del as $dmodulo) {
+			// 		$dmodulo = $m->getDirRemote($modulo, '', $dmodulo);
+			// 		$filename = miframe_path($path_modulos, $dmodulo);
+			// 		if (!isset($requeridos[$dmodulo]) && file_exists($filename)) {
+			// 			$eliminar[$dmodulo] = $filename;
+			// 		}
+			// 	}
+			// }
+			$requeridos['modulos-del'][$modulo] = true;
+		}
+	}
+	// Adiciona todos los modulos nuevos (los "pre" se mantienen, no hay nada que hacerles)
+	foreach ($user['new'] as $k => $modulo) {
+		$requeridos['modulos-add'][$modulo] = true;
+		// Si estaba en lista para eliminar, lo retira
+		if (isset($requeridos['modulos-del'][$modulo])) {
+			$mensajes[] = miframe_text('Módulo $1 no puede ser removido, es requerido por el proyecto.', $modulo);
+			unset($requeridos['modulos-del'][$modulo]);
+		}
+	}
 
-	$eliminar = array();
+	/*
+	PENDIENTE REVISAR! ESTOS SON MODULOS QUE NO EXISTEN Y SE DEBE VALIDAR EL LISTADO DE ARCHIVOS A ELIMINAR!
+	// NO elimina cualquier modulo que se encuentre en $requeridos['modulos-add'].
+	// $data_proyecto_del contiene los módulos QUE YA NO EXISTEN EN LOS REPOSITORIOS.
 	foreach ($data_proyecto_del as $modulo => $info) {
 		if (!in_array($modulo, $user['del'])) {
 			$requeridos_del = $info['files'];
@@ -188,119 +180,102 @@ if ($proceder || count($data_proyecto_add) > 0) {
 			unset($data_proyecto_del[$modulo]);
 		}
 	}
+	*/
 
-	$ordenar = false;
-	// Hace lo mismo para los "pre" que no esten selectos
-	foreach ($data_proyecto_pre as $modulo => $info) {
-		if (!in_array($modulo, $user['pre'])) {
-			$requeridos_del = $info['files'];
-			if (is_array($requeridos_del)) {
-				foreach ($requeridos_del as $dmodulo) {
-					$dmodulo = $m->getDirRemote($modulo, '', $dmodulo);
-					$filename = miframe_path($path_modulos, $dmodulo);
-					if (!isset($requeridos[$dmodulo]) && file_exists($filename)) {
-						$eliminar[$dmodulo] = $filename;
-					}
+	$modulos_eliminados = array();
+	// Elimina archivos previos
+	if (isset($requeridos['modulos-del'])) {
+		$eliminar = $m->exportRemoteFiles($app_name, array_keys($requeridos['modulos-del']), '', true);
+		// print_r($requeridos); print_r($eliminar); exit;
+		// Elimina archivos no requeridos.
+		// "src" indica el archivo original (repositorio) y "dest" el destino en el proyecto,
+		// es decir, el archivo a eliminar.
+		$eliminados = 0;
+		foreach ($eliminar as $filereq) {
+			if (micode_modules_remove($filereq['dest'])) {
+				$eliminados++;
+				if (!array_key_exists($filereq['module'], $modulos_eliminados)) {
+					// Si ya existe, respeta el valor actual, sea true o false (ocurrión un error)
+					// FALSE para remover el modulo.
+					$modulos_eliminados[$filereq['module']] = false;
 				}
 			}
-			// Remueve elemento, lo mueve a "disponibles"
-			if (!isset($data_proyecto_new[$modulo])) {
-				$data_proyecto_new[$modulo] = $data_proyecto_pre[$modulo];
+			else {
+				$mensajes[] = miframe_text('Módulo **$1**: No pudo eliminar archivo $2.', $filereq['module'], $filereq['dest']);
+				// TRUE para mantener el modulo.
+				$modulos_eliminados[$filereq['module']] = true;
 			}
-			unset($data_proyecto_pre[$modulo]);
-			$ordenar = true;
+		}
+		$total_modulos = 0;
+		foreach ($modulos_eliminados as $modulo => $resultado) {
+			if (!$resultado) {
+				$mensajes[] = miframe_text('Módulo **$1** eliminado del proyecto.', $modulo);
+				// Remueve elemento, lo mueve a "disponibles"
+				if (!isset($data_proyecto_new[$modulo]) && isset($data_proyecto_pre[$modulo])) {
+					$data_proyecto_new[$modulo] = $data_proyecto_pre[$modulo];
+				}
+				if (isset($data_proyecto_pre[$modulo])) {
+					unset($data_proyecto_pre[$modulo]);
+				}
+				$ordenar = true;
+				$total_modulos ++;
+			}
+			else {
+				$mensajes[] = miframe_text('Módulo **$1**: No pudo remover todos los archivos asociados.', $modulo);
+				unset($modulos_eliminados[$modulo]);
+			}
+		}
+		if ($eliminados > 0) {
+			$mensajes[] = miframe_text('Retirados $1 archivos (de $2) usados en $3 módulos.',
+				$eliminados,
+				count($eliminar),
+				$total_modulos
+				);
+			// Actualiza archivo .ini (aunque pueda que sea actualizado de nuevo al adicionar módulos)
+			if (!$m->updateRemoteModules($modulos_eliminados, $app_name, true)) {
+				$mensajes[] = miframe_text('Archivo para control de versiones: No pudo actualizar módulos retirados.');
+			}
+			else {
+				$mensajes[] = miframe_text('Archivo para control de versiones actualizado (módulos retirados).');
+				$data_proyecto['ini_datetime'] = time(); // Recien actualizado
+			}
+		}
+	}
+	// Archivos a adicionar
+	if (isset($requeridos['modulos-add'])) {
+		$datamodules = $m->exportRemoteFiles($app_name, array_keys($requeridos['modulos-add']));
+		$total = 0;
+		foreach ($datamodules['modules'] as $modulo => $subtotal) {
+			if ($subtotal > 1) {
+				$mensajes[] = miframe_text('Módulo **$1** instalado con éxito ($2 archivos)', $modulo, $subtotal);
+			}
+			else {
+				$mensajes[] = miframe_text('Módulo **$1** instalado con éxito (1 archivo)', $modulo);
+			}
+			$total += $subtotal;
+			// Actualiza listados
+			if (isset($data_proyecto_new[$modulo])) {
+				$data_proyecto_pre[$modulo] = $data_proyecto_new[$modulo];
+				unset($data_proyecto_new[$modulo]);
+				$ordenar = true;
+			}
+		}
+
+		if (count($datamodules['modules']) > 1) {
+			$mensajes[] = miframe_text('Copiados en total $1 archivos durante esta actualización', $total);
+		}
+		if ($datamodules['result'] != '') {
+			$mensajes[] = $datamodules['result'];
+		}
+		if ($datamodules['ini-installed']) {
+			$data_proyecto['modules']['changes'] = 0;
+			$data_proyecto['ini_datetime'] = time(); // Recien actualizado
 		}
 	}
 
 	if ($ordenar) {
 		ksort($data_proyecto_new);
-	}
-
-	// Valida de los requeridos, cuáles faltan por instalar
-	foreach ($requeridos as $dmodulo => $filebase) {
-		$filename = miframe_path($path_modulos, $dmodulo);
-		if (!isset($siempre[$dmodulo]) && file_exists($filename)) {
-			unset($requeridos[$dmodulo]);
-		}
-	}
-
-	// Elimina archivos no requeridos
-	$eliminados = 0;
-	foreach ($eliminar as $modulo => $filename) {
-		if (micode_modules_remove($modulo, $filename)) {
-			$eliminados++;
-		}
-		else {
-			$mensajes[] = miframe_text('No pudo eliminar archivo $1', $modulo);
-		}
-	}
-	if ($eliminados > 0) {
-		$mensajes[] = miframe_text('Retirados $1 archivos (de $2)', $eliminados, count($eliminar));
-	}
-
-	$ordenar = false;
-	// Adiciona modulos nuevos
-	foreach ($user['new'] as $k => $modulo) {
-		if (isset($data_proyecto_new[$modulo])) {
-			if (!isset($data_proyecto_pre[$modulo]) || $rebuildall) {
-				// Valida, en caso que sea un pre (rebuild-all)
-				$mensajes[] = miframe_text('Adiciona $1 con éxito', $modulo);
-			}
-			else {
-				$mensajes[] = miframe_text('Actualiza $1 con éxito', $modulo);
-			}
-
-			$data_proyecto_pre[$modulo] = $data_proyecto_new[$modulo];
-			unset($data_proyecto_new[$modulo]);
-			$ordenar = true;
-		}
-		else {
-			$mensajes[] = miframe_text('Modulo $1 no existe.', $modulo);
-		}
-	}
-
-	if ($ordenar) {
 		ksort($data_proyecto_pre);
-	}
-
-	// Adiciona requeridos
-	$creados = 0;
-	foreach ($requeridos as $modulo => $origen) {
-		$destino = miframe_path($path_modulos, $modulo);
-		// echo "$destino<hr>";
-		$resultado = false;
-		$infoerror = '';
-		if ($m->loadManager($origen)) {
-			$resultado = $m->clase_manejador->exportWorkCopy($modulo, $origen, $destino);
-			// Valida si ocurrió un error y no pudo realizar el cambio
-			$infoerror = $m->clase_manejador->getLastError();
-		}
-		else {
-			// Copia el archivo manualmente
-			$resultado = @copy($origen, $destino);
-			$infoerror = miframe_text('Error al copiar archivo');
-		}
-		if ($resultado) {
-			$creados ++;
-		}
-		else {
-			if ($infoerror != '') { $infoerror = ' (' . $infoerror . ')'; }
-			$mensajes[] = miframe_text('Falló adición del módulo $1 $2', $modulo, $infoerror);
-		}
-	}
-
-	if ($creados > 0) {
-		$mensajes[] = miframe_text('Copiados $1 archivos (de $2)', $creados, count($requeridos));
-	}
-
-	// Actualiza control de versiones
-	if ($m->updateRemoteModules($data_proyecto_pre + $data_proyecto_del)) {
-		$mensajes[] = miframe_text('Archivo para control de versiones creado/actualizado.');
-		$data_proyecto['modules']['changes'] = 0;
-		$data_proyecto['ini_datetime'] = time(); // Recien actualizado
-	}
-	else {
-		$mensajes[] = miframe_text('No pudo crear archivo para control de versiones.');
 	}
 }
 

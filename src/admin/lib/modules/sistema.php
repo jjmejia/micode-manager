@@ -24,9 +24,6 @@ function micode_modules_sistema_ini(bool $process = false) {
 		$filename = MIFRAME_LOCALCONFIG_PATH . '/sistema.ini';
 
 		if (file_exists($filename)) {
-			// miframe_error('Archivo *$1* no encontrado.', $filename);
-		// }
-		// else {
 			$datasys = miframe_define_config('sistema', 'php');
 			$sistema = parse_ini_file($filename, false, INI_SCANNER_TYPED) + $datasys;
 		}
@@ -43,8 +40,6 @@ function micode_modules_sistema_ini(bool $process = false) {
 			}
 		}
 	}
-
-	// echo "<hr><pre>"; $c = get_defined_constants(true); print_r($c['user']); echo "<hr>"; print_r($GLOBALS['MIFRAMEDATA']); exit;
 
 	return $sistema;
 }

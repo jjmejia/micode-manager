@@ -500,10 +500,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			}
 			elseif (!$this->strict && isset($this->rutas['map'][$type][$reference][$metodo_any])) {
 				$accion = $this->rutas['map'][$type][$reference][$metodo_any]['action'];
-				// echo "ACCION OK $accion<hr>";
 			}
-			// miframe_debug_box("{$this->strict} : $type : $reference : $metodo = $accion --> " . isset($this->rutas[$type][$reference][$metodo_any]), 'getRoute');
-			// ECHO "<PRE>"; print_r($this->rutas); print_r($this->request); echo "</pre><hr>";
 		}
 		elseif (isset($this->rutas['general'][$reference])) {
 			// Generales
@@ -561,8 +558,6 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 				}
 			}
 		}
-
-		// miframe_debug_box($this->rutas, 'Rutas');
 	}
 
 	/**

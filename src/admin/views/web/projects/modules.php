@@ -32,7 +32,7 @@ function checkModules(&$view, string $param_name, string $default = '') {
 			/*if (isset($info['used-by']) && count($info['used-by']) > 0) {
 				$modificado .= '<div class="box-data"><b>Usado por:</b> ' . implode(', ', $info['used-by']) . '</div>';
 			}*/
-			if ($info['datetime'] > 0) {
+			if (isset($info['datetime']) && $info['datetime'] > 0) {
 				$modificado .= '<div class="box-data"><b>Fecha instalación/modificación:</b> ' . date('Y/m/d H:i:s', $info['datetime']) . '</div>';
 			}
 			// Ojo que $name contiene "/" y eso afecta la lectura de $this->view->param()

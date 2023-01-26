@@ -11,7 +11,7 @@ $this->view->setParam('page-buttons', [ "projects/create" => miframe_text('Nuevo
 ?>
 
 <p class="info">
-	<?= $this->view->iif('listado:empty', "<i>No hay proyectos creados aun</i>", "<b>" . $this->view->param('listado:count') . "</b> proyectos encontrados") ?>
+	<?= $this->view->iif('listado:empty', "<i>No hay proyectos creados aun.</i>", "<b>" . $this->view->param('listado:count') . "</b> proyectos encontrados") ?>
 </p>
 
 <?php

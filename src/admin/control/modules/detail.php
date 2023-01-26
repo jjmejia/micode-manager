@@ -82,7 +82,6 @@ elseif ($filename != '') {
 	$documento = miframe_text('**Error:** No pudo encontrar archivo "$2" asociado al módulo $1', $modulo, $filename);
 }
 
-// miframe_debug_box($listado);
 if (micode_modules_eval_type($type)) {
 	$this->router->abort(
 			miframe_text('Parámetros incorrectos'),

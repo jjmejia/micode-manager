@@ -22,7 +22,8 @@ $micode_logo = $this->view->createURL('favicon.png');
 
 
 <div class="header">
-	<b><!-- img src="<?= $micode_logo ?>" width="16" --><a href="<?= $this->view->documentRoot() ?>"><span class="micode-main"><?= $this->view->param('page-title:e') ?></span> - <?= strtoupper($this->view->param('author:e')) ?></a></b>
+	<div class="header-logo"><img src="<?= $micode_logo ?>" width="18"></div>
+	<b><a href="<?= $this->view->documentRoot() ?>"><span class="micode-main"><?= $this->view->param('page-title:e') ?></span> - <?= strtoupper($this->view->param('author:e')) ?></a></b>
 	<div class="session-info"><small><?= $this->view->param('author-email:e') ?></small></div>
 </div>
 

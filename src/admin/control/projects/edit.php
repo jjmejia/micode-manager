@@ -275,10 +275,12 @@ if (count($lista_modulos) > 0) {
 // Comentarios adicionales para el ini
 $this->config->commentData('miproyecto', miframe_text('Archivo de configuración de proyecto'));
 
+$since = '';
+if (isset($data_repo['since'])) { $since = $data_repo['since']; }
 // Fija valores definidos en los cfg como "private" o "readonly" o que requieren
 // asegurar un formato especifico.
 $this->config->setDataValue('project-name', $app_name, true);
-$this->config->setDataValue('since', $data_repo['since'], true);
+$this->config->setDataValue('since', $since, true);
 $this->config->setDataValue('temp-path', miframe_temp_dir(), true);
 
 // checkformRequest() captura la data recibida via POST, por ello se valida primero.
@@ -343,7 +345,6 @@ if ($this->config->checkformRequest('configok') && $app_name != '') {
 				}
 				else {
 					// Realiza copia directa del archivo
-					// miframe_debug_box($origen, 'COPIA ' . $destino);
 					if (@copy($origen, $destino)) {
 						$mensaje = miframe_text('Archivo $1 copiado con éxito', $path);
 						$items_guardados ++;
@@ -361,45 +362,16 @@ if ($this->config->checkformRequest('configok') && $app_name != '') {
 	}
 
 	if ($notype && isset($startup_info['modules'])) {
-
-		// Recorre el listado. No usa foreach() porque la lista se modifica durante el recorrido.
-		$k = 0;
-		while (isset($startup_info['modules'][$k])) {
-			$modulo = $startup_info['modules'][$k];
-			$listado = $m->getAllModules('', $modulo);
-
-			if (isset($listado[$modulo])) {
-				if (isset($listado[$modulo]['uses'])) {
-					foreach ($listado[$modulo]['uses'] as $p => $umodulo) {
-						if (!in_array($umodulo, $startup_info['modules'])) {
-							$startup_info['modules'][] = $umodulo;
-						}
-					}
-				}
-				$origen = $listado[$modulo]['path'];
-				$destino = miframe_path($path_modulos, $modulo);
-
-				if ($m->loadManager($modulo)) {
-					if ($m->clase_manejador->exportWorkCopy($modulo, $origen, $destino)) {
-						$this->config->setMessage(miframe_text('Módulo $1 instalado con éxito', $modulo));
-						$items_guardados ++;
-					}
-					else {
-						// Ocurrió un error y no pudo realizar el cambio
-						$this->config->setMessage($m->clase_manejador->getError());
-					}
-				}
-				else {
-					// Realizar copia completa del archivo???
-					miframe_error('No pudo encontrar un Manager para el módulo $1', $modulo);
-				}
-			}
-			else {
-				miframe_error('El modulo "$2" indicado en el modelo de inicio "$1" no existe.', $startup, $modulo);
-			}
-			// Siguiente modulo
-			$k ++;
+		$datamodules = $m->exportRemoteFiles($app_name, $startup_info['modules'], $startup);
+		// Muestra resultados
+		$total = 0;
+		foreach ($datamodules['modules'] as $modulo => $subtotal) {
+			$total += $subtotal;
 		}
+		if (count($datamodules['modules']) > 1) {
+			$this->config->setMessage(miframe_text('Copiados en total $1 archivos durante esta actualización', $total));
+		}
+		$this->config->setMessage($datamodules['result']);
 	}
 
 	if ($data_proyecto['readme-path'] != ''

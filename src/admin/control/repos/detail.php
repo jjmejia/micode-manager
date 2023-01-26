@@ -66,8 +66,6 @@ if (count($tiposvalidos) > 1) {
 	}
 }
 
-// miframe_debug_box($modulos);
-
 $data_proyecto = array(
 	'listado' => $modulos,
 	'reponame' => $clase,
@@ -75,7 +73,5 @@ $data_proyecto = array(
 	'tiposvalidos' => $tiposvalidos,
 	'type' => $type
 	);
-// Valida valores fijados por ej. al crear proyecto
-// if (isset($mensajes)) { $data_proyecto['mensajes'] = $mensajes; }
 
 $this->startView('modules/list.php', $data_proyecto);

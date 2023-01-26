@@ -265,7 +265,10 @@ class EditConfig {
 
 	public function getConfigAttrib(string $name, string $attrib, mixed $default = false) {
 
-		if (isset($this->config[$name]) && array_key_exists($attrib, $this->config[$name])) {
+		if (isset($this->config[$name])
+			&& array_key_exists($attrib, $this->config[$name])
+			&& !is_null($this->config[$name][$attrib])
+			) {
 			$default = $this->config[$name][$attrib];
 		}
 
@@ -790,7 +793,9 @@ class EditConfig {
 			}
 		}
 
-		// miframe_debug_box($form);
+		if ($this->debug) {
+			miframe_debug_box($form, 'Formulario');
+		}
 
 		return $form;
 	}

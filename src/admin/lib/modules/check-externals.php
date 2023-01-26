@@ -123,128 +123,31 @@ class EvalMiCode {
 			// $listado = $m->getAllModules('', $startup_info['modules']);
 
 			$startup = 'micode-admin';
-			$modules = $startup_info['modules'];
-			$exe = true; // FALSE no copia archivos
-			$app_name = $this->app_name;
 
-			// PENDIENTE: Este bloque se usa en admin/control/projects/edit.php, homologar...
-			$datamodules = array();
-			$requeridos  = array();
-			$repositorios = $m->getAllRepos();
-			$data_repo = micode_modules_repo($app_name);
-			$path_modulos = micode_modules_path($app_name, false, $data_repo);
+			$datamodules = $m->exportRemoteFiles($this->app_name, $startup_info['modules'], $startup);
 
-			$k = 0;
-			while (isset($modules[$k])) {
-				$modulo = $modules[$k];
-				$listado = $m->getAllModules('', $modulo);
-				if (isset($listado[$modulo])) {
-					$info = $listado[$modulo];
-					// Acumula resultado para generar luego el .ini de instalados
-					$datamodules[$modulo] = $info;
-					// Busca modulos adicionales
-					if (isset($info['uses'])) {
-						foreach ($info['uses'] as $p => $umodulo) {
-							if (!in_array($umodulo, $modules)) {
-								// Adiciona al listado de modulos a capturar
-								$modules[] = $umodulo;
-							}
-						}
-					}
-					// Lista requeridos
-					$requeridos_local = $m->getRequiredFiles($modulo, true);
-					// print_r($requeridos_local); echo "<hr>";
-					foreach ($requeridos_local as $basename => $inforeq) {
-						// $origen = $m->getDirRemote($modulo, '', $basename);
-						// if ($tipo == 'new') { $siempre[$dmodulo] = true; }
-						// $destino = miframe_path($path_modulos, $basename);
-						$dmodulo = md5(strtolower($inforeq['path']));
-						// $dmodulo se usa como control de duplicados
-						$requeridos[$dmodulo] = array(
-							'module' => $modulo,
-							'src' => $inforeq['path'],
-							'dest' => miframe_path($path_modulos, $info['module-base'], $basename)
-							);
-					}
-				}
-				elseif ($startup != '') {
-					miframe_error('El modulo "$1" indicado en el modelo de inicio "$2" no existe.', $modulo, $startup);
-				}
-				else {
-					miframe_error('El modulo "$1" solicitado no existe.', $modulo);
-				}
-				// Incrementa arreglo base (modulos)
-				$k ++;
+			$total = 0;
+			$mensajes_ok = array();
+			foreach ($datamodules['modules'] as $modulo => $subtotal) {
+				$total += $subtotal;
 			}
-
-			// echo "<pre>$modulo<hr>"; print_r($datamodules); echo "<hr>"; print_r($requeridos); echo "<hr>$origen --> $destino<hr>"; exit;
-			// if (!$exe) { return >$requeridos; }
-
-			$mensajes = array('ok' => array(), 'error' => '');
-
-			foreach ($requeridos as $dmodulo => $inforeq) {
-				$modulo = $inforeq['module'];
-				if ($m->loadManager($inforeq['src'])) {
-					if ($m->clase_manejador->exportWorkCopy($modulo, $inforeq['src'], $inforeq['dest'])) {
-						$mensajes['ok'][$modulo] = miframe_text('Módulo **$1** instalado con éxito', $modulo);
-					}
-					else {
-						// Ocurrió un error y no pudo realizar el cambio
-						$mensajes['error'] = miframe_text('Ocurrió un error en el módulo **$1** al exportar el archivo "$2" a "$3": $4',
-							$inforeq['module'],
-							$inforeq['src'],
-							$inforeq['dest'],
-							$m->clase_manejador->getError()
-							);
-					}
-				}
-				elseif (@copy($inforeq['src'], $inforeq['dest'])) {
-					$mensajes['ok'][$modulo] = miframe_text('Módulo $1 instalado con éxito', $modulo);
-				}
-				else {
-					// Falló copiado del archivo
-					$errors = error_get_last();
-					$mensajes['error'] = miframe_text('Ocurrió un error en el módulo **$1** al copiar el archivo "$2" a "$3": $4',
-						$inforeq['module'],
-						$inforeq['src'],
-						$inforeq['dest'],
-						$errors['message']
-						);
-				}
-				if ($mensajes['error'] != '') {
-					// Remueve mensaje de éxito asociado a este modulo (si alguno)
-					if (isset($mensajes['ok'][$modulo])) {
-						unset($mensajes['ok'][$modulo]);
-					}
-					// Abandona ciclo
-					break;
-				}
+			if (count($datamodules['modules']) > 1) {
+				$mensajes_ok[] = miframe_text('Copiados en total $1 archivos durante esta actualización', $total);
 			}
-
-			if ($mensajes['error'] == '') {
-				// Actualiza control de versiones
-				if (!$m->updateRemoteModules($datamodules, $app_name)) {
-					$mensajes['error'] = miframe_text('Archivo para control de versiones no pudo ser creado/actualizado.');
-				}
-				else {
-					$mensajes['ok'][] = miframe_text('Archivo para control de versiones creado/actualizado.');
-				}
+			if ($datamodules['ini-installed']) {
+				$mensajes_ok[] = $datamodules['result'];
 			}
-
-			// return $mensajes, $datamodules;
-
-			//////////////////////
-
-			if ($mensajes['error'] != '') {
-				$this->mensajes['error'] = $mensajes['error'] .
+			else {
+				$this->mensajes['error'] =  $datamodules['result'] .
 					'<br \>' .
 					miframe_text('La copia de archivos requeridos se suspende hasta que sea solucionado el problema encontrado.');
 			}
-			if (count($mensajes['ok']) > 0) {
-				$this->mensajes['ok'] = implode('<br \>', $mensajes['ok']);
+
+			if (count($mensajes_ok) > 0) {
+				$this->mensajes['ok'] = implode('<br \>', $mensajes_ok);
 			}
 
-			$this->checkMiCodeShow($datamodules);
+			$this->checkMiCodeShow($datamodules['modules']);
 			exit;
 		}
 	}
@@ -598,10 +501,15 @@ class EvalMiCode {
 
 		echo "<p>Los siguientes módulos han sido encontrados:</p><ul>";
 
-		foreach ($listado as $modulo => $info) {
-			$descripcion = $info['description'];
-			if ($descripcion != '') { $descripcion = '<br>' . $descripcion; }
-			echo "<li><b>$modulo</b>{$descripcion}</li>";
+		foreach ($listado as $modulo => $subtotal) {
+			$mensajes = '';
+			if ($subtotal > 1) {
+				$mensajes = miframe_text('Módulo **$1** instalado con éxito ($2 archivos)', $modulo, $subtotal);
+			}
+			else {
+				$mensajes = miframe_text('Módulo **$1** instalado con éxito (1 archivo)', $modulo);
+			}
+			echo "<li>$mensajes</li>";
 		}
 
 		echo "</ul>";

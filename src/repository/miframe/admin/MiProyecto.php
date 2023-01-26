@@ -98,7 +98,7 @@ class MiProyecto { // extends Router
 
 		$this->view->setParams( [
 			'form-action' => $this->formAction,
-			'author' => $this->user(),
+			'author' => $this->userName(),
 			'author-email' => $this->userEmail(),
 			'page-title' => $this->projectTitle(),
 			]);
@@ -124,7 +124,7 @@ class MiProyecto { // extends Router
 	 *
 	 * @return string Texto
 	 */
-	public function user() {
+	public function userName() {
 		return miframe_data_get('micode-user', 'Anónimo');
 	}
 

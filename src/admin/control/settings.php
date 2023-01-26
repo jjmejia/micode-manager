@@ -10,6 +10,7 @@ $this->startEditConfig();
 
 // Datos del sistema actuales
 $inifile = miframe_path(MIFRAME_LOCALCONFIG_PATH, 'sistema.ini');
+$desde_inicio = !file_exists($inifile); // TRUE si no existe "sistema.ini"
 $this->config->loadData('sistema', $inifile);
 
 // Configuración de los campos de sistema.ini
@@ -26,6 +27,12 @@ if ($this->config->checkformRequest('configok')) {
 		$guardado = $this->config->putData('sistema');
 		if ($guardado) {
 			$mensaje = miframe_text('Configuración actualizada con éxito.');
+			if ($desde_inicio) {
+				// Adiciona mensaje para recargar página
+				$this->config->setMessage($mensaje);
+				$enlace = $this->router->getFormAction('index.php');
+				$mensaje = miframe_text('Recargue la página o <a href="$1">haga click aquí para continuar</a>.', $enlace);
+			}
 		}
 		else {
 			$mensaje = miframe_text('No pudo actualizar Configuración.');
@@ -37,8 +44,6 @@ if ($this->config->checkformRequest('configok')) {
 	$this->config->setMessage($mensaje);
 }
 
-$data_proyecto = array();
-
-// miframe_debug_box($this->config);
+$data_proyecto = array('desde-inicio' => $desde_inicio);
 
 $this->startView('projects/edit.php', $data_proyecto);

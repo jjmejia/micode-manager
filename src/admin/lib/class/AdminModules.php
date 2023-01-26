@@ -251,55 +251,12 @@ class AdminModules {
 					}
 				}
 			}
+			// Si no hay "pre" o si la validación de los instalados da ceros, busca en el directorio
+			// para encontrar posibles equivalencias.
 			if (!is_array($this->locales['pre'])
-				// Hace revisión manual si no hay valores en "pre" o si existe el .ini pero todo está errado
 				|| ($total_validos_pre <= 0 && count($this->locales['pre']) > 0)
 				) {
-				// No pudo leer el archivo .ini
-				if (!is_array($this->locales['pre'])) {
-					$this->locales['pre'] = array();
-				}
-
-				foreach ($listado as $modulo => $info) {
-					// Busca localmente
-					if (isset($this->locales['pre'][$modulo])
-					 	&& (!isset($this->locales['pre'][$modulo]['auto-recover']))
-					) {
-						// Módulo pre-existente, no autorecuperado
-						continue;
-					}
-
-					$dirbase = $this->getDirBase($modulo);
-					$dirdestino = $this->getDirRemote($modulo, $path);
-					$requeridos = $this->addFiles($modulo, $info['require'], $dirbase);
-
-					foreach ($requeridos as $basename => $filename) {
-						$fileremote = miframe_path($dirdestino, $basename);
-						if (file_exists($fileremote)) {
-							// El archivo existe localmente en el proyecto
-							$inforeq = array(
-								'datetime' => filemtime($fileremote),
-								'size' => filesize($fileremote),
-								'sha' => sha1_file($fileremote),
-								'require-total' => 1,
-								'changed' => false,
-								'auto-recover' => true,
-								'files' => array($basename)
-							);
-							if (!isset($this->locales['pre'][$modulo])) {
-								$this->locales['pre'][$modulo] = $inforeq;
-							}
-							else {
-								// No procesa los ya existentes
-								$this->acumModuleInfo($this->locales['pre'][$modulo], $inforeq);
-								$this->locales['pre'][$modulo]['require-total'] ++;
-								$this->locales['pre'][$modulo]['files'][] = $basename;
-							}
-						}
-					}
-				}
-
-				// miframe_debug_box($this->locales['pre'], 'Instalados'); exit;
+				$this->getRemoteModules($path);
 			}
 
 			// Valida información
@@ -340,6 +297,7 @@ class AdminModules {
 				}
 				else {
 					// Posible modulo removido
+					echo "DEL $modulo "; print_r($infolocal); echo "<hr>";
 					$this->locales['del'][$modulo] = $infolocal;
 					unset($this->locales['pre'][$modulo]);
 				}
@@ -351,7 +309,190 @@ class AdminModules {
 		return $this->locales;
 	}
 
-	public function updateRemoteModules(array $data, string $app_name = '') {
+	private function getRemoteModules(string $path) {
+
+		// Hace revisión manual de todos los módulos creados y busca cuáles están en el directorio remoto
+		// solamente si no hay valores en "pre" o si existe el .ini pero todo está errado
+		// No pudo leer el archivo .ini
+		if (!is_array($this->locales['pre'])) {
+			$this->locales['pre'] = array();
+		}
+
+		foreach ($listado as $modulo => $info) {
+			// Busca localmente
+			if (isset($this->locales['pre'][$modulo])
+				&& (!isset($this->locales['pre'][$modulo]['auto-recover']))
+			) {
+				// Módulo pre-existente, no autorecuperado
+				continue;
+			}
+
+			$dirbase = $this->getDirBase($modulo);
+			$dirdestino = $this->getDirRemote($modulo, $path);
+			$requeridos = $this->addFiles($modulo, $info['require'], $dirbase);
+
+			foreach ($requeridos as $basename => $filename) {
+				$fileremote = miframe_path($dirdestino, $basename);
+				if (file_exists($fileremote)) {
+					// El archivo existe localmente en el proyecto
+					$inforeq = array(
+						'datetime' => filemtime($fileremote),
+						'size' => filesize($fileremote),
+						'sha' => sha1_file($fileremote),
+						'require-total' => 1,
+						'changed' => false,
+						'auto-recover' => true,
+						// 'files' => array($basename)
+						);
+					if (!isset($this->locales['pre'][$modulo])) {
+						$this->locales['pre'][$modulo] = $inforeq;
+					}
+					else {
+						// No procesa los ya existentes
+						$this->acumModuleInfo($this->locales['pre'][$modulo], $inforeq);
+						$this->locales['pre'][$modulo]['require-total'] ++;
+						// $this->locales['pre'][$modulo]['files'][] = $basename;
+					}
+					// Ya validó el módulo, no necesita revisar más requeridos
+					break;
+				}
+			}
+		}
+	}
+
+	public function exportRemoteFiles(string $app_name, array $modules, string $startup = '', bool $return_files = false) {
+
+		$datamodules = array();
+		$requeridos  = array();
+		$repositorios = $this->getAllRepos();
+		$data_repo = micode_modules_repo($app_name);
+		$path_modulos = micode_modules_path($app_name, false, $data_repo);
+		$resultado = '';
+
+		$k = 0;
+		while (isset($modules[$k])) {
+			$modulo = $modules[$k];
+			$listado = $this->getAllModules('', $modulo);
+			if (isset($listado[$modulo])) {
+				$info = $listado[$modulo];
+				// Acumula resultado para generar luego el .ini de instalados
+				$datamodules[$modulo] = $info;
+				// Busca modulos adicionales
+				if (isset($info['uses'])) {
+					foreach ($info['uses'] as $p => $umodulo) {
+						if (!in_array($umodulo, $modules)) {
+							// Adiciona al listado de modulos a capturar
+							$modules[] = $umodulo;
+						}
+					}
+				}
+				// Lista requeridos
+				$requeridos_local = $this->getRequiredFiles($modulo, true);
+				// print_r($requeridos_local); echo "<hr>";
+				foreach ($requeridos_local as $basename => $inforeq) {
+					// $origen = $this->getDirRemote($modulo, '', $basename);
+					// if ($tipo == 'new') { $siempre[$dmodulo] = true; }
+					// Usa destino para generar la llave porque al crear paquetes es fácil asociarlo
+					// ya que allá se remplaza el path real aqui listado, pero asociado al path
+					// destino (lee los archivos directamente).
+					$destino = miframe_path($path_modulos, $info['module-base'], $basename);
+					$dmodulo = md5(strtolower($destino));
+					// $dmodulo se usa como control de duplicados
+					$requeridos[$dmodulo] = array(
+						'module' => $modulo,
+						'src' => $inforeq['path'],
+						'dest' => $destino
+						);
+				}
+			}
+			elseif ($startup != '') {
+				$resultado = miframe_text('El modulo "$1" indicado en el modelo de inicio "$2" no existe.', $modulo, $startup);
+			}
+			else {
+				$resultado = miframe_text('El modulo "$1" solicitado no existe.', $modulo);
+			}
+			// Incrementa arreglo base (modulos)
+			$k ++;
+		}
+
+		// echo "<pre>$modulo<hr>"; print_r($datamodules); echo "<hr>"; print_r($requeridos); echo "<hr>$origen --> $destino<hr>"; exit;
+
+		// Retorna listado de archivos sin procesar
+		if ($return_files) { return $requeridos; }
+
+		$resultmodules = array();
+
+		if ($resultado === '') {
+			foreach ($requeridos as $dmodulo => $inforeq) {
+				$modulo = $inforeq['module'];
+				if ($this->loadManager($inforeq['src'])) {
+					if ($this->clase_manejador->exportWorkCopy($modulo, $inforeq['src'], $inforeq['dest'])) {
+						if (!isset($resultmodules[$modulo])) { $resultmodules[$modulo] = 0; }
+						$resultmodules[$modulo] ++;
+					}
+					else {
+						// Ocurrió un error y no pudo realizar el cambio
+						$resultado = miframe_text('Módulo **$1**: No pudo exportar el archivo "$2" a "$3": $4',
+							$inforeq['module'],
+							$inforeq['src'],
+							$inforeq['dest'],
+							$this->clase_manejador->getError()
+							);
+					}
+				}
+				else {
+					$destino_base = dirname($inforeq['dest']);
+					if (!is_dir($destino_base)) {
+						@mkdir($destino_base, 0777, true);
+					}
+					if (!is_dir($destino_base)) {
+						$resultado = miframe_text('Módulo $1: No pudo crear directorio "$2"', $modulo, $destino_base);
+					}
+					elseif (@copy($inforeq['src'], $inforeq['dest'])) {
+						if (!isset($resultmodules[$modulo])) { $resultmodules[$modulo] = 0; }
+						$resultmodules[$modulo] ++;
+					}
+					else {
+						// Falló copiado del archivo
+						$errors = error_get_last();
+						$resultado = miframe_text('Módulo **$1**: No pudo copiar el archivo "$2" a "$3": $4',
+							$inforeq['module'],
+							$inforeq['src'],
+							$inforeq['dest'],
+							$errors['message']
+							);
+					}
+				}
+				if ($resultado !== '') {
+					if (isset($resultmodules[$modulo])) {
+						unset($resultmodules[$modulo]);
+					}
+					// Abandona ciclo
+					// $hay_errores = true;
+					break;
+				}
+			}
+		}
+
+		$ini_actualizado = false;
+		if ($resultado == '') {
+			// Realiza actualización de los .ini
+			// Captura información actual
+
+			// print_r($datamodules); echo "<hr>";
+			if (!$this->updateRemoteModules($datamodules, $app_name, true)) {
+				$resultado = miframe_text('Archivo para control de versiones no pudo ser creado/actualizado.');
+			}
+			else {
+				$resultado = miframe_text('Archivo para control de versiones creado/actualizado.');
+				$ini_actualizado = true;
+			}
+		}
+
+		return array('result' => $resultado, 'modules' => $resultmodules, 'ini-installed' => $ini_actualizado);
+	}
+
+	public function updateRemoteModules(array $data, string $app_name = '', bool $partial = false) {
 		// Guarda archivo remoto con actualizaciones
 
 		$resultado = false;
@@ -362,9 +503,30 @@ class AdminModules {
 		if ($this->app_name_local !== '') {
 			$data_repo = micode_modules_repo($this->app_name_local);
 			$path = micode_modules_path($this->app_name_local, false, $data_repo);
+			$inifile = miframe_path(dirname($data_repo['inifile']), 'modules-installed.ini');
+			if ($partial) {
+				// Captura la información actual y la actualiza con la $data actual
+				$pre = miframe_inifiles_get_data($inifile, true);
+				// Actualiza con $data
+				foreach ($data as $modulo => $info) {
+					if ($info === false && isset($pre[$modulo])) {
+						// Remover esta entrada
+						unset($pre[$modulo]);
+					}
+					elseif (is_array($info)) {
+						$pre[$modulo] = $info;
+					}
+				}
+				// Actualiza
+				$data = $pre;
+				// Libera memoria
+				$pre = false;
+			}
+
 			// Elementos a remover
-			$mantener = array('datetime', 'size', 'sha', 'require-total', 'files'); // 'path'
+			$mantener = array('datetime', 'size', 'sha', 'require-total'); // 'path', 'files'
 			foreach ($data as $modulo => $info) {
+				if (!is_array($info)) { continue; }
 				// Se asegura que existan los valores minimos y remueve el resto
 				$nuevo = array();
 				foreach ($mantener as $k => $param) {
@@ -384,9 +546,7 @@ class AdminModules {
 				}
 			}
 			// Guarda arreglo resultante
-			$inifile = miframe_path(dirname($data_repo['inifile']), 'modules-installed.ini');
 			ksort($data);
-			// echo "$inifile<hr>"; print_r($data); echo "<hr>"; exit;
 			$resultado = miframe_inifiles_save_data($inifile, $data);
 			// Guarda archivo con namespaces (si aplica)
 			if (count($namespaces) > 0) {
@@ -447,7 +607,6 @@ class AdminModules {
 				if (!is_array($this->externas)) {
 					$filename = miframe_path(MIFRAME_PROJECTS_REPO, 'micode-admin', 'externals-installed.ini');
 					$this->externas = miframe_inifiles_get_data($filename);
-					// miframe_debug_box($this->externas, 'Externas ' . $filename);
 				}
 				// $module = "miframe/...", cualquier otro es ignorado
 				$modulo_externo = str_replace('miframe/', '', $module);
