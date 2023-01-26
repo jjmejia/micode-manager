@@ -2,28 +2,19 @@
 
 Organizador de código personal para la gestión de librerías propias y de terceros en los proyectos de desarrollo.
 
-Esta propuesta se realiza considerando que un desarrollador (particularmente aquellos _freelance_) puedan
-manejar los diferentes bloques de código funcionales (librerías include con funciones y/o clases) que realizan
-en su trabajo, de forma que puedan reusarlos en sus diferentes proyectos sin estar copiando los archivos una y
-otra vez. Así mismo, las mejoras que realicen a futuro podrán beneficiar proyectos pasados. La aplicación
-provee los medios para que una vez se tenga listo el proyecto se pueda generar un paquete que contenga todos
-los archivos que necesite para su uso de forma independiente.
-
 Los objetivos principales de este Organizador son:
 
 * Reusar los archivos de código para prevenir la proliferación de múltiples copias de un mismo archivo,
-lo que a su vez permite que las mejoras en ese mismo archivo beneficien a todos los proyectos que lo usan.
+  lo que a su vez permite que las mejoras en ese mismo archivo beneficien a todos los proyectos que lo usan.
 * Generar paquetes de distribución que contengan copias de los archivos necesarios.
 * Facilitar la generación de documentación, mediante la documentación en código con el modelo Javadoc.
 * Aunque está originalmente ideado para manejo de proyectos PHP, se estructura de forma tal que pueda adecuarse
-para la organización de proyectos en otros lenguajes de programación.
+  para la organización de proyectos en otros lenguajes de programación.
 
-## Presentación
+## Documentación
 
-La presentación de esta propuesta de desarrollo puede consultarse en:
+La siguiente documentación puede consultarse en el Blog asociado:
 
-(miCode-Manager Blog)[https://micode-manager.blogspot.com/2022/05/presentacion.html]
+* [Presentación](https://micode-manager.blogspot.com/2022/05/presentacion.html)
 
-## Descargo
-
-Este es un proyecto en desarrollo, sean pacientes.
+* [Caso de uso práctico](https://micode-manager.blogspot.com/2022/12/micodemanager-caso-de-uso.html)

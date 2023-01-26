@@ -9,12 +9,8 @@
  * @since Abril 2022
  */
 
-// Valida librerias externas
+// Valida librerias externas y otros valores de inicio requeridos para que funcione este proyecto.
 include_once __DIR__ . '/lib/modules/check-externals.php';
-
-chdir(__DIR__);
-
-$app = false;
 
 // Definiciones requeridas para uso de los archivos en el repositorio.
 include_once __DIR__ . '/micode/initialize.php';
@@ -31,11 +27,11 @@ try {
 	// $app->debug(true);
 
 	// Carga rutas (puede definir un archivo diferente por ejemplo si la consulta es para Web Services)
-	$app->loadRoutes(miframe_path(MIFRAME_ROOT, 'data', 'rutas.ini'), 'control');
+	$app->loadRoutes(miframe_path(MIFRAME_ROOT, 'data', 'rutas.ini'), miframe_path(__DIR__, 'control'));
 
 	// Configuración de vistas
 	// (si hay multiples directorios de vistas para Web, indicar el path a la vista deseada)
-	$app->loadView(miframe_path(MIFRAME_ROOT, 'data', 'vistas.ini'), 'views/web', 'views/api');
+	$app->loadView(miframe_path(MIFRAME_ROOT, 'data', 'vistas.ini'), miframe_path(__DIR__, 'views/web'), miframe_path(__DIR__, 'views/api'));
 
 	// Se asegura que haya configurado "sistema.ini"
 	if ($app->userEmail() == '' || $app->userName() == '') {

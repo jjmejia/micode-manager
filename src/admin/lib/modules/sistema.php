@@ -95,15 +95,12 @@ function micode_modules_enlace(string $cfg_name, mixed $data_repo = false) {
 		// Compara MIFRAME_ROOT con el path del directorio de proyectos.
 		// Los primeros items iguales corresponden al directorio "www" y los restantes
 		// se usan para crear el URl de acceso directo al proyecto.
-		$root = explode('/' , str_replace('\\', '/', strtolower(dirname(MIFRAME_ROOT))));
-		$user = explode('/' , str_replace('\\', '/', strtolower(dirname($filename))));
-		for ($i = 0; $i < count($root); $i++) {
-			if ($root[$i] != $user[$i]) {
-				break;
-			}
-			unset($user[$i]);
+		$root = str_replace('\\', '/', strtolower($_SERVER['DOCUMENT_ROOT'])) . '/';
+		$user = str_replace('\\', '/', strtolower(dirname($filename)));
+		$len = strlen($root);
+		if (substr($user, 0, $len) == $root) {
+			$enlace = '/' . substr($user, $len);
 		}
-		$enlace = '/' . implode('/', $user);
 	}
 
 	return $enlace;

@@ -21,7 +21,6 @@ if (file_exists($filename)) {
 	// Función para realizar Parser
 	$parser = miframe_class_load('\Parsedown');
 	if ($parser !== false) {
-		// $parser = new \Parsedown();
 		// Escape HTML even in trusted input
 		$parser->setMarkupEscaped(true);
 		$data_proyecto['readme'] = $parser->text($data_proyecto['readme']);
@@ -30,7 +29,6 @@ if (file_exists($filename)) {
 }
 
 // Valida valores fijados por ej. al crear proyecto
-// if (isset($mensajes)) { $data_proyecto['mensajes'] = $mensajes; }
 $data = $this->router->getDataReloaded(true);
 if ($data !== false && is_array($data) && isset($data['msg'])) {
 	$data_proyecto['mensajes'] = $data['msg'];

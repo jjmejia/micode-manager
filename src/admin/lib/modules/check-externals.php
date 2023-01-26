@@ -78,6 +78,24 @@ class EvalMiCode {
 		}
 	}
 
+	private function checkInstalledIni(string $inifile_modulos, string $inifile_tpl) {
+		// Valida que los módulos mínimos requeridos estén instalados
+		$retornar = true;
+		$install_info = parse_ini_file($inifile_modulos, true, INI_SCANNER_TYPED);
+		$startup_info = parse_ini_file($inifile_tpl, true, INI_SCANNER_TYPED);
+		$modulos_instalados = array_keys($install_info);
+		$modulos_requeridos = $startup_info['modules'];
+
+		foreach ($modulos_requeridos as $modulo) {
+			if (!in_array($modulo, $modulos_instalados)) {
+				$retornar = false;
+				break;
+			}
+		}
+
+		return $retornar;
+	}
+
 	public function checkMiCode() {
 
 		// Valida que exista php-namespaces.ini y modules-installed.ini
@@ -91,10 +109,10 @@ class EvalMiCode {
 		if (!file_exists($inifile_modulos)
 			|| !file_exists($inifile_namespaces)
 			|| (file_exists($inifile_modulos) && filemtime($inifile_modulos) < filemtime($filename))
+			|| !$this->checkInstalledIni($inifile_modulos, $filename)
 			) {
 
 			$startup_info = parse_ini_file($filename, true, INI_SCANNER_TYPED);
-			// print_r($datamodules['modules']); exit;
 
 			// Si no se han creado los archivos de arranque (micode/miframe/xxx) lo que se detecta porque no
 			// existe "modules-installed.ini", debe apuntar directamente al repositorio
@@ -468,6 +486,9 @@ class EvalMiCode {
 			elseif (isset($info['valor'])) {
 				$valor = htmlspecialchars(trim($info['valor']));
 			}
+			if (!is_array($info['require'])) {
+				$info['require'] = explode("\n", str_replace("\r", '', $info['require']));
+			}
 			$archivo = array_shift($info['require']);
 			echo "<p>Archivo de referencia: <i>{$archivo}</i></p>";
 			echo "<p>Directorio base: ";
@@ -478,7 +499,11 @@ class EvalMiCode {
 					$mensaje = trim($info['error']);
 				}
 				echo "<input type=\"text\" size=\"50\" value=\"{$valor}\" name=\"{$info['ctl']}\"> <b class=\"check-error\">&lt; {$mensaje}</b>";
-				echo "<br /><small>Debe ser un subdirectorio de " . str_replace('/', DIRECTORY_SEPARATOR, $_SERVER['DOCUMENT_ROOT'] . '/' . $datarepos[$info['clase']]['path']) . "</small>";
+				echo "<div><small>Debe ser un subdirectorio de <i>" . str_replace('/', DIRECTORY_SEPARATOR, $_SERVER['DOCUMENT_ROOT'] . '/' . $datarepos[$info['clase']]['path']) . "</i>";
+				if (isset($info['help']) && $info['help'] != '') {
+					echo "<br />{$info['help']}";
+				}
+				echo "</small></div>";
 			}
 			else {
 				echo " <b class=\"check-ok\">{$valor}</b>";

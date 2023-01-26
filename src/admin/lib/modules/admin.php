@@ -140,7 +140,17 @@ function micode_modules_project_data(string $app_name, mixed $data_repo = false,
 
 function micode_modules_readme(string $path) {
 
-	return miframe_path($_SERVER['DOCUMENT_ROOT'], $path, 'README.md');
+	$path_readme = '';
+	$lpath = strtolower(str_replace("\\", '/', $path));
+	$root = strtolower(str_replace("\\", '/', $_SERVER['DOCUMENT_ROOT'])) . '/';
+	if (substr($lpath, 0, strlen($root)) !== $root) {
+		$path_readme = miframe_path($_SERVER['DOCUMENT_ROOT'], $path, 'README.md');
+	}
+	else {
+		$path_readme = miframe_path($path, 'README.md');
+	}
+
+	return $path_readme;
 }
 
 function micode_modules_project_new() {
