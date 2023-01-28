@@ -204,11 +204,14 @@ class DocSimple {
 	 */
 	public function serialize(array $data) {
 		// Guarda en disco
-		if ($this->pathCache != '' && is_dir($this->pathCache) && isset($data['file'])) {
+		if ($this->pathCache != ''
+			&& is_dir($this->pathCache)
+			&& isset($data['file'])
+			&& function_exists('miframe_serialize')
+			) {
 			// Adiciona control para actualizar caché si se modifica este archivo
 			$data['docmtime'] = filemtime(__FILE__);
 			$filecache = $this->pathCache . '/docsimple-' . md5($data['file']);
-			// Usar miframe_data_call()?
 			miframe_serialize($filecache, $data);
 		}
 	}
@@ -222,8 +225,10 @@ class DocSimple {
 	 * @return bool TRUE si recupera con éxito de caché en disco. FALSE en otro caso.
 	 */
 	public function unserialize(string $filename, mixed &$info) {
-return false; // xxxxxxxxxxxxxxxxxxxxxxxxx
-		if ($this->pathCache != '' && is_dir($this->pathCache)) {
+		if ($this->pathCache != ''
+			&& is_dir($this->pathCache)
+			&& function_exists('miframe_unserialize')
+			) {
 			// $encache es un arreglo con los datos del arreglo de documentacion
 			$filecache = $this->pathCache . '/docsimple-' . md5($filename);
 			// El archivo en disco debe tener fecha mayor o a la del original

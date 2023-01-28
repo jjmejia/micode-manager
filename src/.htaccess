@@ -9,7 +9,7 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# redirect all api calls to /api/index.php
+# redirect all api calls to /index.php
 RewriteRule ^((?!(.*)\.php$).+)$ index.php [L,NC]
 
 # otherwise, serve your index.html app

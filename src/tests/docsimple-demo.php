@@ -9,8 +9,12 @@
 include_once __DIR__ . '/lib/testfunctions.php';
 
 $files = array(
+	// Archivos locales (si existen)
+	__DIR__ . '/../src/serialize.php',
 	__DIR__ . '/../src/docsimple.php',
 	__DIR__ . '/../src/functions.php',
+	// Archivos del repositorio (si se invoca desde miCode-Manager)
+	__DIR__ . '/../repository/miframe/file/serialize.php',
 	__DIR__ . '/../repository/miframe/utils/docsimple.php',
 	__DIR__ . '/../repository/miframe/common/shared/functions.php'
 );
@@ -40,7 +44,7 @@ $doc = new \miFrame\Utils\DocSimple();
 
 //////////////////////////////////////
 // TEMPORAL!
-include 'C:\Desarrollo\www\vendor\parsedown-master\parsedown.php';
+include_once 'C:\Desarrollo\www\vendor\parsedown-master\parsedown.php';
 // Función para realizar Parser
 if (class_exists('\Parsedown')) {
 	$parser = new \Parsedown();

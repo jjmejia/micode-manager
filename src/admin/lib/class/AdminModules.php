@@ -899,7 +899,7 @@ class AdminModules {
 		return $listado;
 	}
 
-	private function readCacheModule(string $module, string $type) {
+	private function readCacheModule(string $filename, string $type) {
 
 		$info = false;
 
@@ -907,37 +907,36 @@ class AdminModules {
 		if ($type != '') { $prefijo = $type; }
 
 		$dirname = miframe_temp_dir('micode-cache-modules', false);
-		$filename = miframe_path($dirname , $prefijo . '-' . md5($module));
+		$filename = miframe_path($dirname , $prefijo . '-' . md5($filename));
 		if (file_exists($filename)) {
-			// $info = miframe_inifiles_get_data($filename);
 			$info = miframe_unserialize($filename);
 			// Realiza confirmación de la información leida
 			if (!is_array($info)
 				|| !isset($info['type'])
-				|| !isset($info['#module'])
+				|| !isset($info['#file'])
 				|| $info['type'] != $type
-				|| $info['#module'] != $module) {
+				|| $info['#file'] != $filename) {
 				$info = false;
 			}
 			else {
 				// Remueve item no necesario
-				unset($info['#module']);
+				unset($info['#file']);
 			}
 		}
 
 		return $info;
 	}
 
-	private function updateCacheModule(string $module, array $info) {
+	private function updateCacheModule(string $filename, array $info) {
 
 		$prefijo = 'nn';
 		if (isset($info['type'])) { $prefijo = $info['type']; }
 		// Adiciona item de control
 		$info['crc'] = $this->moduleCRC('new', $info);
-		$info['#module'] = $module;
+		$info['#file'] = $filename;
 
 		$dirname = miframe_temp_dir('micode-cache-modules', true);
-		$filename = miframe_path($dirname , $prefijo . '-' . md5($module));
+		$filename = miframe_path($dirname , $prefijo . '-' . md5($filename));
 
 		// IMPORTANTE! Si cambia la definición de caché este archivo queda inservible!
 
