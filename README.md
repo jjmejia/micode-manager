@@ -27,7 +27,7 @@ Para usar **miCode-Manager** primero debes descargar una copia del código publi
 Una vez terminados los procesos de configuración inicial, podrás usar **miCode-Manager**. El primer proyecto registrado
 (para referencia) es precisamente la interfaz de administración.
 
-**Importante:** Se recomienda (aunque no es mandatorio) configurar el servidor web usado para permitir direccionamiento dinámico en el directorio donde se instale **miCode-Manager** y apuntar toda consulta sobre dicho directorio al script ´index.php´.
+**Importante:** Se recomienda (aunque no es mandatorio) configurar el servidor web usado para permitir direccionamiento dinámico en el directorio donde se instale **miCode-Manager** y apuntar toda consulta sobre dicho directorio al script `index.php`.
 
 Más información sobre esta primera versión puedes encontrarla en [el Blog](https://micode-manager.blogspot.com/2023/01/micode-manager-version-10.html).
 
