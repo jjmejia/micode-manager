@@ -18,3 +18,5 @@ La siguiente documentación puede consultarse en el Blog asociado:
 * [Presentación](https://micode-manager.blogspot.com/2022/05/presentacion.html)
 
 * [Caso de uso práctico](https://micode-manager.blogspot.com/2022/12/micodemanager-caso-de-uso.html)
+
+* [Versión 1.0](https://micode-manager.blogspot.com/2023/01/micode-manager-version-10.html)
