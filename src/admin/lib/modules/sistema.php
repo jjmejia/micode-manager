@@ -108,7 +108,7 @@ function micode_modules_enlace(string $cfg_name, mixed $data_repo = false) {
 
 function micode_modules_explore(string $enlace, string $path_base) {
 
-	$explorer = new \miFrame\Utils\Explorer();
+	$explorer = new \miFrame\Utils\Explorer\ExplorerHTML();
 	$doc = new \miFrame\Utils\DocSimple();
 	// Función para realizar Parser
 	$parser = new \Parsedown();
@@ -117,10 +117,11 @@ function micode_modules_explore(string $enlace, string $path_base) {
 	$doc->parserTextFunction = array($parser, 'text');
 	$doc->clickable = true;
 
+	$explorer->useFavorites = false;
 	$explorer->setContentsFun('md', array($parser, 'text'));
-	$explorer->setContentsFun('php', array($doc, 'getDocumentationHTML'), 'filename'); // '/index.php?doc={file}&dir={dir}'
+	// $explorer->setContentsFun('php', array($doc, 'getDocumentationHTML'), 'filename'); // '/index.php?doc={file}&dir={dir}'
 
 	$explorer->setRoot($path_base);
 
-	return $explorer->exploreHTML($enlace);
+	return $explorer->render($enlace);
 }

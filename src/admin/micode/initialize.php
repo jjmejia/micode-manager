@@ -60,7 +60,6 @@ miframe_include_module('miframe/common/autoload.php');
 miframe_get_proyecto_ini();
 
 // Inicializa valores PHP (log errores, etc.)
-// Sugerencia: Esta línea solo se adiciona si incluye módulo miframe/common/phpsettings.
 phpsettings_load();
 
 // ----------------------------------------------------------------------------------

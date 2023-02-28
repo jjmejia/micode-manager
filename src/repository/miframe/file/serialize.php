@@ -24,7 +24,7 @@ function miframe_serialize(string $filename, mixed $data) {
 	if ($filename != '' && is_dir(dirname($filename)) && !is_bool($data)) {
 		$contenido = base64_encode(serialize($data));
 		$crc = md5($contenido);
-		return file_put_contents($filename, wordwrap(miframe_serialize_id() . $crc . $contenido, 120, "\n", true));
+		return file_put_contents($filename, wordwrap(miframe_serialize_id() . $crc . $contenido, 120, "\n", true), LOCK_EX);
 	}
 
 	return false;
@@ -40,15 +40,18 @@ function miframe_unserialize(string $filename) {
 
 	if ($filename != '' && file_exists($filename)) {
 		$contenido = str_replace("\n", '', file_get_contents($filename));
-		$identificador_base = miframe_serialize_id();
-		$len = strlen($identificador_base);
-		$identificador = substr($contenido, 0, $len);
-		$crc = substr($contenido, $len, 32);
-		$contenido = substr($contenido, $len + 32);
-		if ($identificador == $identificador_base
-			&& $crc == md5($contenido)
-			) {
-			return @unserialize(base64_decode($contenido));
+		// NOTA: Es posible que al leer el archivo si está siendo actualizado con LOCK_EX, retorne una cadena vacia.
+		if ($contenido != '') {
+			$identificador_base = miframe_serialize_id();
+			$len = strlen($identificador_base);
+			$identificador = substr($contenido, 0, $len);
+			$crc = substr($contenido, $len, 32);
+			$contenido = substr($contenido, $len + 32);
+			if ($identificador == $identificador_base
+				&& $crc == md5($contenido)
+				) {
+				return @unserialize(base64_decode($contenido));
+			}
 		}
 	}
 

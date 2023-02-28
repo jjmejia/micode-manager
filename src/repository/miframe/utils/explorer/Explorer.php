@@ -10,19 +10,20 @@
  * - favadd: URL a adicionar a favoritos.
  * - favrem: URL a remover de favoritos.
  *
+ * Pueden adicionarse a favoritos aquellos archivos cuya extensión se encuentre en la lista de
+ * $this->showContentsFor o que tengan un visor de contenido asociado (en este caso, se realiza apertura
+ * "indirecta" del contenido).
+ *
  * Se puede generar toda la navegación usando los estilos propietarios o pueden ser personalizados.
  *
  * ## Mensajes de error
  *
- * Se pueden presentar Exceptions con los siguientes códigos (en $e->getMessage() retorna el directorio
- * al que hace referencia el mensaje de error):
+ * Se pueden presentar los siguientes códigos de error (en $this->error_data):
  *
- * - 1001 No pudo recuperar valor para DOCUMENT ROOT.
- * - 1002 El path indicado para el directorio base (a partir del cual va a navegar) no es valido.
- * - 1003 El path indicado para construir una URL no es valido.
- * - 1005 El path del DOCUMENT ROOT no es un directorio valido o no pudo ser recuperado.
+ * - 1: No pudo recuperar valor para DOCUMENT ROOT.
+ * - 2: El path indicado para el directorio base (a partir del cual va a navegar) no es valido.
+ * - 3: El directorio o archivo indicado en POST (dir/file) no existe. No genera interrupción, salta al directorio raíz.
  *
- * @micode-uses miframe/common/shared
  * @author John Mejia
  * @since Julio 2022
  */
@@ -36,7 +37,6 @@ namespace miFrame\Utils\Explorer;
  * - $useFavoritos: TRUE para habilitar las opciones de Favoritos, esto es, visualizar en la navegación y actualizar archivo .ini.
  * - $parserTextFunction: Función a usar para interpretar el texto (asumiendo formato Markdown). Retorna texto HTML. Ej:
  * 		function (text) { ... return $html; }
- * - $stylesCSS: string. Estilos CSS a usar. Si emplea un archivo externo, use: "url:(path)".
  */
 class Explorer {
 
@@ -45,7 +45,7 @@ class Explorer {
 	private $root = '';
 	private $document_root = '';
 	private $arreglofav = array();	// Arreglo de favoritos
-	private $error_code = 0;
+	private $error_data = array();
 	private $baselink = '';
 
 	// * - $showContentsFor: array. Extensiones para las que se muestra el contenido. Por defecto se habilita para
@@ -60,12 +60,11 @@ class Explorer {
 
 	public function __construct() {
 
+		$this->error_data = array('code' => 0, 'details' => array());
 		// Fija el DOCUMENT_ROOT
 		$this->setDocumentRoot();
 		// Fija el directorio de exploración por defecto (DOCUMENT_ROOT)
 		$this->setRoot();
-		// Fija directorio de Favoritos
-		$this->setFavoritesPath();
 		// Predefine extensiones para las que puede visualizar contenido
 		$this->showContentsFor = array(
 			'htm'  => 'html',
@@ -75,12 +74,12 @@ class Explorer {
 			'md'   => 'text',
 			'ini'  => 'text',
 			'json' => 'text',
-			'jpg'  => 'img',
-			'jpeg' => 'img',
-			'gif'  => 'img',
-			'svg'  => 'img',
-			'ico'  => 'img',
-			'png'  => 'img',
+			'jpg'  => 'image',
+			'jpeg' => 'image',
+			'gif'  => 'image',
+			'svg'  => 'image',
+			'ico'  => 'image',
+			'png'  => 'image',
 			'pdf'  => 'pdf'
 		);
 		// Predefine enlaces para los que permite ejecución o seguimiento de links
@@ -91,23 +90,36 @@ class Explorer {
 		);
 	}
 
-	public function addFollowLink(string $name) {
+	/**
+	 * Adiciona extensión de archivo (script) que puede consultarse directamente en el navegador.
+	 *
+	 * @param string $extension Extension asociada.
+	 */
+	public function addFollowLink(string $extension) {
 
-		$name = strtolower(trim($name));
-		if ($name != '' && !in_array($name, $this->followLinks)) {
-			$this->followLinks[] = $name;
+		$extension = strtolower(trim($extension));
+		if ($extension != '' && !in_array($extension, $this->followLinks)) {
+			$this->followLinks[] = $extension;
 		}
 	}
 
-	public function removeFollowLink(string $name) {
+	/**
+	 * Remueve extensión de archivo (script) para que no pueda consultarse directamente en el navegador.
+	 *
+	 * @param string $extension Extensión asociada.
+	 */
+	public function removeFollowLink(string $extension) {
 
-		$name = strtolower(trim($name));
-		$pos = array_search($name, $this->followLinks);
-		if ($name != '' && $pos !== false) {
+		$extension = strtolower(trim($extension));
+		$pos = array_search($extension, $this->followLinks);
+		if ($extension != '' && $pos !== false) {
 			unset($this->followLinks[$pos]);
 		}
 	}
 
+	/**
+	 * Limpia la lista de extensiones de archivos (scripts) que pueden consultarse directamente en el navegador.
+	 */
 	public function clearFollowLinks() {
 
 		$this->followLinks = array();
@@ -126,12 +138,14 @@ class Explorer {
 		if ($dir == '') { $dir = $this->document_root; }
 		if ($dir != '' && is_dir($dir)) {
 			$this->root = str_replace("\\", '/', realpath($dir)) . '/';
-		}
+			// Fija directorio de Favoritos
+			$this->setFavoritesPath();
+			}
 		else {
 			// DEBE contener al DOCUMENT_ROOT? No necesariamente.
-			// $this->root = $this->evalDocumentRoot($dir);
-			$this->error_code = 2;
-			$this->throwError($dir);
+			$this->error_data['code'] = 2;
+			$this->error_data['details']['path'] = $dir;
+			// $this->throwError($dir);
 		}
 	}
 
@@ -147,23 +161,29 @@ class Explorer {
 		return str_replace($this->document_root, '', $this->root);
 	}
 
+	/**
+	 * Fija directorio para el archivo a usar para guardar listado de favoritos.
+	 * El directorio a usar debe tener permisos para lectura y escritura. Por defecto usa DOCUMENT ROOT.
+	 *
+	 * @param string $dir Directorio destino.
+	 */
 	public function setFavoritesPath(string $dir = '') {
 
 		$this->fileFavorites = '';
-		if ($dir == '') { $dir = $this->document_root; }
+		if ($dir == '') { $dir = $this->root; }
 		if ($dir != '' && is_dir($dir)) {
-			$this->fileFavorites = realpath($dir) . DIRECTORY_SEPARATOR . 'favoritos.ini';
+			$this->fileFavorites = realpath($dir) . DIRECTORY_SEPARATOR . 'miframe-explorer-favorites.ini';
 		}
 	}
 
 	/**
-	 * Configura enlaces a usar para visualizar documentación de scripts.
-	 * $url debe permitir concatenar el nombre del archivo a documentar (debería terminar en "var=")
+	 * Configura enlaces a usar para visualizar contenido o información de un archivo.
 	 *
 	 * @param string $extension Extension asociada.
 	 * @param string $fun Función predefinida o una personalizada.
-	 * @param string $type Tipo de argumento a usar con $fun (para el caso personalizado). "filename"/"contents"
-	 *               (por defecto)
+	 * @param string $type Tipo de argumento a usar con $fun (para el caso personalizado). Puede ser
+	 *               "filename" para recibir el path completo del archivo o "contents" para recibir el
+	 *               contenido del archivo (este es el valor por defecto si no se especifica alguno).
 	 */
 	public function setContentsFun(string $extension, mixed $fun, string $type = '') {
 
@@ -179,6 +199,11 @@ class Explorer {
 		}
 	}
 
+	/**
+	 * Remueve enlace asociado a una extensión para visualización de contenido.
+	 *
+	 * @param string $extension Extension asociada.
+	 */
 	public function removeContentsFun(string $extension) {
 
 		$extension = strtolower(trim($extension));
@@ -197,89 +222,110 @@ class Explorer {
 
 		$salida = array();
 
-		// Complementa el enlace base
-		if (strpos($baselink, '?') !== false) { $this->baselink = $baselink . '&'; }
-		else { $this->baselink = $baselink . '?'; }
+		if ($this->continue()) {
+			// Complementa el enlace base
+			if (strpos($baselink, '?') !== false) { $this->baselink = $baselink . '&'; }
+			else { $this->baselink = $baselink . '?'; }
 
-		$this->arreglofav = array();
-		// Captura listado de favoritos
-		if ($this->useFavorites && $this->fileFavorites != '' && file_exists($this->fileFavorites)) {
-			$this->arreglofav = file($this->fileFavorites, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-		}
-
-		$salida = $this->getBaseDir();
-
-		if (is_array($salida)) {
-			if ($this->filename != '') {
-				// Visualización de Archivos
-				$salida += $this->getFileData();
+			$this->arreglofav = array();
+			// Captura listado de favoritos
+			if ($this->useFavorites && $this->fileFavorites != '' && file_exists($this->fileFavorites)) {
+				$this->arreglofav = file($this->fileFavorites, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
 			}
-			else {
-				// Visualización de directorios
-				$salida += $this->getDirectoryData();
+
+			$salida = $this->getBaseDir();
+
+			// Valida que no hayan ocurrido errores al procesar $this->getBaseDir()
+			if ($this->continue()) {
+				if ($this->filename != '') {
+					// Visualización de Archivos
+					$salida += $this->getFileData();
+				}
+				else {
+					// Visualización de directorios
+					$salida += $this->getDirectoryData();
+				}
 			}
 		}
 
 		return $salida;
 	}
 
+	/**
+	 * Procesa los parámetros recibidos por web para ubicar el directorio o archivo a explorar.
+	 *
+	 * @return array Arreglo de paths asociados al directorio de exploración.
+	 */
 	private function getBaseDir() {
 
 		$salida = array();
+		$this->basedir = '';
+		$post = '';
 
 		// Path a mostrar
 		if (isset($_REQUEST['dir'])) {
-			$this->basedir = trim($_REQUEST['dir']);
+			$post = 'dir';
 		}
 		elseif (isset($_REQUEST['file'])) {
-			$this->basedir = trim($_REQUEST['file']);
+			$post = 'file';
 		}
-		elseif ($this->useFavorites) {
+
+		if ($post != '') {
+			// Limpia basedir
+			$this->basedir = str_replace("\\", '/', trim($_REQUEST[$post]));
+			if ($this->basedir != '') {
+				while (substr($this->basedir, -1, 1) == '/') {
+					$this->basedir = substr($this->basedir, 0, -1);
+				}
+				while (substr($this->basedir, 0, 1) == '/') {
+					$this->basedir = substr($this->basedir, 1);
+				}
+				if ($this->basedir == '.') { $this->basedir = ''; }
+			}
+		}
+
+		if ($this->useFavorites) {
 			// Adicionar favorito
 			if (isset($_REQUEST['favadd'])) {
 				$favorito = strtolower(trim($_REQUEST['favadd']));
 				$favorito_full = $this->root . $favorito;
 				if (file_exists($favorito_full) && is_file($favorito_full)) {
-					$this->basedir = dirname($favorito);
+					if ($post == '') {
+						$post = 'favadd';
+						$this->basedir = dirname($favorito);
+					}
 					// Adiciona a favoritos.ini
 					if (!in_array($favorito, $this->arreglofav)) {
 						$this->arreglofav[] = $favorito;
 						if ($this->useFavorites && $this->fileFavorites != '') {
-							file_put_contents($this->fileFavorites, implode("\n", $this->arreglofav));
+							$resultado = @file_put_contents($this->fileFavorites, implode("\n", $this->arreglofav));
+							// Si $resultado === false no pudo guardar archivo, pero qué hacer?
 						}
 					}
 				}
 			}
 			// Retirar favorito
-			elseif (isset($_REQUEST['favrem'])) {
+			if (isset($_REQUEST['favrem'])) {
 				$favorito = strtolower(trim($_REQUEST['favrem']));
 				if ($favorito != '') {
 					$guardar = false;
 					do {
-						$pos = array_search($favorito, $this->arreglofav);
+						$posfav = array_search($favorito, $this->arreglofav);
 						// echo "$pos / $favorito<hr>";
-						if ($pos !== false) {
-							$this->basedir = dirname($favorito);
-							unset($this->arreglofav[$pos]);
+						if ($posfav !== false) {
+							if ($post == '') {
+								$post = 'favrem';
+								$this->basedir = dirname($favorito);
+							}
+							unset($this->arreglofav[$posfav]);
 							$guardar = true;
 						}
-					} while ($pos != false);
+					} while ($posfav != false);
 					// Guarda archivo
-					file_put_contents($this->fileFavorites, implode("\n", $this->arreglofav));
+					$resultado = @file_put_contents($this->fileFavorites, implode("\n", $this->arreglofav));
+					// Si $resultado === false no pudo guardar archivo, pero qué hacer?
 				}
 			}
-		}
-
-		// Limpia basedir
-		if ($this->basedir != '') {
-			$this->basedir = str_replace('..', '_', $this->basedir);
-			while (substr($this->basedir, -1, 1) == '/') {
-				$this->basedir = substr($this->basedir, 0, -1);
-			}
-			while (substr($this->basedir, 0, 1) == '/') {
-				$this->basedir = substr($this->basedir, 1);
-			}
-			if ($this->basedir == '.') { $this->basedir = ''; }
 		}
 
 		if ($this->basedir != '') {
@@ -288,19 +334,28 @@ class Explorer {
 			$this->basedir = str_replace('\\', '/', $this->basedir);
 
 			if ($real != '') {
+				$this->basedir = substr($real, strlen($this->root));
 				if (is_dir($real)) {
-					$this->basedir = substr($real, strlen($this->root)) . '/';
+					$this->basedir .= '/';
 					}
 				else {
 					// Path de un archivo a abrir
-					$this->filename = substr($real, strlen($this->root));
+					$this->filename = $this->basedir;
 				}
 			}
 			else {
 				// Intenta salirse del directorio web
-				return false;
+				$this->error_data['code'] = 3;
+				$this->error_data['details']['param'] = $post;
+				$this->error_data['details']['value'] = htmlspecialchars($_REQUEST[$post]);
+				$this->error_data['details']['path'] = $this->basedir;
+				// Elimina acceso
+				$this->basedir = '';
+				$this->filename = '';
 			}
+		}
 
+		if ($this->continue() && $this->basedir != '') {
 			// Adiciona enlaces a directorios previos
 			$dirname = dirname($this->basedir);
 			$acum = '';
@@ -318,6 +373,13 @@ class Explorer {
 		return $salida;
 	}
 
+	/**
+	 * Recupera la información del archivo solicitado ($this->filename).
+	 * Incluye contenido a mostrar para tipos de archivos declarados en $this->showContentsFor.
+	 * Los tipos predefinidos son: "html", "text", "pdf", "image", "down".
+	 *
+	 * @return array Arreglo de datos.
+	 */
 	private function getFileData() {
 
 		$filename_full = $this->root . $this->filename;
@@ -357,7 +419,7 @@ class Explorer {
 						$salida['class'] = 'text';
 						break;
 
-					case 'img':
+					case 'image':
 						// Imagenes
 						// Debería armar ruta desde WWROOT para evitar conflictos cuando cambia el root
 						$salida['content'] = '<img src="' . $this->url() . '">';
@@ -388,7 +450,7 @@ class Explorer {
 				// Funciones
 				$contenido = $filename_full;
 				if ($this->showContentsFor[$extension]['type'] != 'filename') {
-					$contenido = file_get_contents($filename_full);
+					$contenido = @file_get_contents($filename_full);
 				}
 				$salida['content'] = call_user_func($this->showContentsFor[$extension]['fun'], $contenido);
 			}
@@ -397,6 +459,11 @@ class Explorer {
 		return $salida;
 	}
 
+	/**
+	 * Recupera la información del archivo solicitado ($this->filename).
+	 *
+	 * @return array Arreglo de datos.
+	 */
 	private function getDirectoryData() {
 
 		$salida = array(
@@ -516,25 +583,32 @@ class Explorer {
 	 */
 	private function setDocumentRoot() {
 
-		$this->error_code = 1;
 		if (isset($_SERVER['DOCUMENT_ROOT'])) {
 			// Usa documento root por defecto para limitar accesos
 			$this->document_root = realpath($_SERVER['DOCUMENT_ROOT']);
-			$this->error_code = 5;
 		}
 		if ($this->document_root != '' && is_dir($this->document_root)) {
 			$this->document_root = str_replace("\\", '/', $this->document_root) . '/';
 		}
 		else {
 			// Reporta un directorio no valido para prevenir consulte el raiz si retorna vacio.
-			$this->throwError($this->document_root);
+			// $this->throwError($this->document_root);
+			$this->error_data['code'] = 1;
+			$this->error_data['details']['path'] = $this->document_root;
 		}
 	}
 
-	private function evalDocumentRoot(string $dir) {
+	/**
+	 * Retorna segmento del path de un archivo sin incluir DOCUMENT ROOT, para usar como URL.
+	 *
+	 * @param string $path Ruta de archivo o directorio. Si se omite, usa el valor definido en $this->filename.
+	 * @return string URL.
+	 */
+	public function url(string $path = '') {
 
 		$real = '';
-		$path = trim($dir);
+		$path = trim($path);
+		if ($path == '') { $path = $this->filename; }
 		if ($path != '') {
 			// Maneja todos los separadores como "/"
 			// Valida SIEMPRE contra el DOCUMENT_ROOT
@@ -553,21 +627,6 @@ class Explorer {
 	}
 
 	/**
-	 * Retorna el URL asociado.
-	 * El enlace se genera con origen en el DOCUMENT ROOT para evitar conflictos con el directorio raíz usado.
-	 *
-	 * @param string $path Enlace a reconstruir. Si se omite, usa el valor definido en $this->filename.
-	 * @return string URL.
-	 */
-	public function url(string $path = '') {
-
-		if ($path == '') { $path = $this->filename; }
-		$path = $this->evalDocumentRoot($path);
-
-		return $path;
-	}
-
-	/**
 	 * Formatea contenido del archivo texto indicado por $this->filename.
 	 * Hace clickables los enlaces contenidos en el texto.
 	 *
@@ -575,16 +634,33 @@ class Explorer {
 	 */
 	private function formatText() {
 
-		$contenido = file_get_contents($this->root . $this->filename);
-		// https://stackoverflow.com/a/206087
-		$contenido = preg_replace(
-				'#((https?|ftp)://(\S*?\.\S*?))([\s)\[\]{},;"\'<]|\.\s|$)#i',
-				"<a href=\"$1\" target=\"_blank\">$1</a>$4",
-				$contenido
-				);
-		$salida = '<pre>' . $contenido . '</pre>';
+		$salida = '';
+		$contenido = @file_get_contents($this->root . $this->filename);
+		if ($contenido != '') {
+			$salida = '<pre>' . $this->formatLinks($contenido) . '</pre>';
+		}
 
 		return $salida;
+	}
+
+	/**
+	 * Da formato HTML a enlaces en contenidos de archivos texto y html.
+	 *
+	 * @param  string $text Contenido texto a dar formato.
+	 * @return string Texto formateado para HTML.
+	 */
+	private function formatLinks(string $text) {
+
+		if ($text != '') {
+			// https://stackoverflow.com/a/206087
+			$text = preg_replace(
+					'#((https?|ftp)://(\S*?\.\S*?))([\s)\[\]{},;"\'<]|\.\s|$)#i',
+					"<a href=\"$1\" target=\"_blank\">$1</a>$4",
+					$text
+					);
+		}
+
+		return $text;
 	}
 
 	/**
@@ -595,23 +671,30 @@ class Explorer {
 	 */
 	private function formatHtml() {
 
-		$contenido = highlight_file($this->root . $this->filename, true);
-		// https://stackoverflow.com/a/206087
-		$contenido = preg_replace(
-				'#((https?|ftp)://(\S*?\.\S*?))([\s)\[\]{},;"\'<]|\.\s|$)#i',
-				"<a href=\"$1\" target=\"_blank\">$1</a>$4",
-				$contenido
-				);
+		$salida = '';
+		$contenido = @highlight_file($this->root . $this->filename, true);
+		if ($contenido != '') {
+			// https://stackoverflow.com/a/206087
+			$contenido = $this->formatLinks($contenido);
+		}
 
 		return $contenido;
 	}
 
+	/**
+	 * Formatea contenido del archivo markdown (MD) indicado por $this->filename.
+	 * Hace clickables los enlaces contenidos en el texto.
+	 *
+	 * @return string Texto formateado para HTML.
+	 */
 	private function formatMD() {
 
 		$salida = '';
 		if (is_callable($this->parserTextFunction)) {
-			$contenido = file_get_contents($this->root . $this->filename);
-			$salida = call_user_func($this->parserTextFunction, $contenido);
+			$contenido = @file_get_contents($this->root . $this->filename);
+			if ($contenido != '') {
+				$salida = call_user_func($this->parserTextFunction, $contenido);
+			}
 		}
 		else {
 			$salida = $this->formatText();
@@ -620,7 +703,14 @@ class Explorer {
 		return $salida;
 	}
 
-	public function formatBytes($size) {
+	/**
+	 * Da formato amigable al valor del tamaño de archivos.
+	 * Retorna valores formateados a bytes, KB, MB y GB.
+	 *
+	 * @param  int    $size Tamaño del archivo en bytes.
+	 * @return string Tamaño formateado.
+	 */
+	public function formatBytes(int $size) {
 
 		$num = 0;
 		$tipos = array('bytes', ' KB', ' MB', ' GB');
@@ -634,7 +724,55 @@ class Explorer {
 		return str_replace('.00', '', number_format($num, 2)) . ' ' . $tipos[$ciclos];
 	}
 
-	private function throwError(string $detail) {
-		throw new \Exception($detail, 1000 + $this->error_code);
+	/**
+	 * Retorna arreglo con errores.
+	 * El arreglo contiene: "code" código de error y "details" arreglo con información del error.
+	 * Los códigos reportados son:
+	 * - 1 No pudo recuperar valor para DOCUMENT ROOT. Como detalle reporta el "path" encontrado (si alguno).
+	 * - 2 El path indicado para el directorio base (a partir del cual va a navegar) no es valido. Como detalle reporta el
+	 *     "path" encontrado (si alguno).
+	 * - 3 El directorio o archivo indicado en POST (dir/file) no existe. Como detalle reporta el parámetro recibido via POST
+	 *     ("post" = file, dir, ...), el valor recibido en dicho parámetro ("value") y su interpretación ("path").
+	 *
+	 * @param int          $error_code Código de error a evaluar. Si no se indica, retorna todo el arreglo de errores. Si se
+	 *                                 indica y existe el error asociado a ese código, retorna los detalles asociados.
+	 * @return bool/array              Arreglo de datos o FALSE si no aplica.
+	 */
+	public function getError(int $error_code = 0) {
+
+		$retornar = false;
+		if ($error_code <= 0) {
+			// Retorna todo
+			$retornar = $this->error_data;
+		}
+		elseif ($this->error_data['code'] == $error_code) {
+			$retornar = $this->error_data['details'];
+		}
+		if (is_array($retornar)) {
+			// Complementa respuesta
+			$retornar['root'] = $this->root;
+			$retornar['favorites'] = $this->fileFavorites;
+			$retornar['main-url'] = substr($this->baselink, 0, -1);
+		}
+
+		return $retornar;
+	}
+
+	/**
+	 * Retorna detalles cuando se solicita un recurso que no existe.
+	 *
+	 * @return array/bool Detalles del error o FALSE si no se presentó error alguno.
+	 */
+	public function resourceNotFound() {
+		return $this->getError(3);
+	}
+
+	/**
+	 * Valida si han ocurrido errores en la exploración del directorio.
+	 *
+	 * @return bool TRUE si puede continuar, FALSE si ha ocurrido algún error.
+	 */
+	private function continue() {
+		return ($this->error_data['code'] == 0);
 	}
 }

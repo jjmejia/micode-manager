@@ -20,14 +20,12 @@ class BaseClass {
 
 	private $dir_base = '';
 	private $indexfile = '';
-	// private $args_include = array();
 	private $include_fun = false;
 	private $secuencia = 0;
 
 	protected $path_files = '';
 	protected $uri_base = '';
 	protected $params = array();
-	// protected $contenedor = array();		// Contenedor para variables/objetos
 	protected $color_debug = '';
 	protected $dir_temp = '';
 

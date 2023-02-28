@@ -1,8 +1,14 @@
 <?php
-
+/**
+ * Clase para generar salida HTML a los datos generados por la clase Explorer.
+ *
+ * @micode-uses miframe/common/shared
+ * @author John Mejia
+ * @since Julio 2022
+ */
 namespace miFrame\Utils\Explorer;
 
-// Clase base
+// Incluye la clase base
 include_once __DIR__ . '/Explorer.php';
 
 class ExplorerHTML extends Explorer {
@@ -12,7 +18,7 @@ class ExplorerHTML extends Explorer {
 	// public function __construct() {	}
 
 	/**
-	 * Recupera el listado de archivos o contenido asociado a un archivo, en formato HTML.
+	 * Genera presentación del listado de archivos o contenido asociado a un archivo, en formato HTML.
 	 *
 	 * @param string $baselink Enlace principal. A este enlace se suman los parámetros para navegación en línea.
 	 * @return string HTML.
@@ -21,13 +27,7 @@ class ExplorerHTML extends Explorer {
 
 		$listado = $this->explore($baselink);
 
-		// echo "<pre>"; print_r($listado); echo "</pre><hr>";
-
-		if (!is_array($listado)) {
-			$salida = "Error: Path indicado (" . $baselink .") no es valido.<br /><a href=\"$baselink\">Volver al Inicio</a>";
-			return $salida;
-		}
-
+		// Adiciona estilos en líne (si previamente no han sido incluidos)
 		$salida = $this->getStylesCSS(true);
 
 		$salida .= '<div class="x-explorer">';
@@ -77,7 +77,10 @@ class ExplorerHTML extends Explorer {
 			$salida .= '</p>' . PHP_EOL;
 		}
 
-		if ($listado['type'] == 'file') {
+		$totaldirs = 0;
+		$totalfiles = 0;
+
+		if (isset($listado['type']) && $listado['type'] == 'file') {
 			// Muestra contenido de archivo
 			$salida .= '<div class="x-info">' .
 				'<table><tr><td><b>Creado en:</b></td><td>' . $listado['date-creation'] . '</td></tr>' .
@@ -88,44 +91,57 @@ class ExplorerHTML extends Explorer {
 			return $salida;
 		}
 
-		foreach ($listado['dirs'] as $ufilename => $info) {
-			// Listado de directorios
-			$salida .= '<div class="x-folder"><i class="bi bi-folder-fill"></i> ' .
-				'<a href="' . $info['url-content'] . '"> ' . $info['name'] . '</a>' .
-				'</div>';
+		if (isset($listado['dirs'])) {
+			$totaldirs = count($listado['dirs']);
+			foreach ($listado['dirs'] as $ufilename => $info) {
+				// Listado de directorios
+				$salida .= '<div class="x-folder"><i class="bi bi-folder-fill"></i> ' .
+					'<a href="' . $info['url-content'] . '"> ' . $info['name'] . '</a>' .
+					'</div>';
+			}
 		}
 
-		foreach ($listado['files'] as $ufilename => $info) {
-			// Listado de archivos
-			$enlace = $info['file'];
-			if ($info['url-content'] != '') {
-				// Enlace para visualizar contenido
-				$enlace = '<a href="' . $info['url-content'] . '">' . $enlace . '</a>';
+		if (isset($listado['files'])) {
+			$totalfiles = count($listado['files']);
+			foreach ($listado['files'] as $ufilename => $info) {
+				// Listado de archivos
+				$enlace = $info['file'];
+				if ($info['url-content'] != '') {
+					// Enlace para visualizar contenido
+					$enlace = '<a href="' . $info['url-content'] . '">' . $enlace . '</a>';
+				}
+				if ($info['url'] != '') {
+					// Enlace para ejecutar el archivo en el navegador (follow-link)
+					$enlace .= ' <a href="' . $info['url'] . '" class="x-favlink" title="Ejecutar" target="_blank"><i class="bi bi-box-arrow-up-right"></i></a>';
+				}
+				if ($info['add-fav'] != '') {
+					$enlace .= ' <a href="' . $info['add-fav'] . '" class="x-favlink" title="Adicionar a favoritos"><i class="bi bi-plus-circle"></i></a>';
+				}
+				$file_class = 'bi-file';
+				if ($info['in-fav']) {
+					$file_class = 'bi-file-check';
+				}
+				elseif ($info['class'] != '') {
+					$file_class = 'bi-file-' . $info['class'];
+				}
+				$salida .= '<div class="x-file"><i class="bi ' . $file_class . '"></i> ' . $enlace . '</div>';
 			}
-			if ($info['url'] != '') {
-				// Enlace para ejecutar el archivo en el navegador (follow-link)
-				$enlace .= ' <a href="' . $info['url'] . '" class="x-favlink" title="Ejecutar" target="_blank"><i class="bi bi-box-arrow-up-right"></i></a>';
-			}
-			if ($info['add-fav'] != '') {
-				$enlace .= ' <a href="' . $info['add-fav'] . '" class="x-favlink" title="Adicionar a favoritos"><i class="bi bi-plus-circle"></i></a>';
-			}
-			$file_class = 'bi-file';
-			if ($info['in-fav']) {
-				$file_class = 'bi-file-check';
-			}
-			elseif ($info['class'] != '') {
-				$file_class = 'bi-file-' . $info['class'];
-			}
-			$salida .= '<div class="x-file"><i class="bi ' . $file_class . '"></i> ' . $enlace . '</div>';
+		}
+
+		// Valida error de no encontrado
+		$noencontrado = $this->resourceNotFound();
+		if (is_array($noencontrado)) {
+			$salida .= "<b class=\"x-error\">Referencia no encontrada</b>" .
+						"<p class=\"x-info\">{$noencontrado['param']} = {$noencontrado['value']}</p>" .
+						"<a href=\"{$noencontrado['main-url']}\">Volver al inicio</a>";
+						// ({$noencontrado['root']})
 		}
 
 		$salida .= '</div>';
 
 		// Total de elementos
-		$totaldirs = count($listado['dirs']);
-		$totalfiles = count($listado['files']);
-		$salida .= '<div class="x-totales">Encontrados ' . ($totaldirs + $totalfiles) . ' elemento(s)';
 		if ($totaldirs + $totalfiles > 0) {
+			$salida .= '<div class="x-totales">Encontrados ' . ($totaldirs + $totalfiles) . ' elemento(s)';
 			$salida .= ': ';
 			$conector = '';
 			if ($totaldirs > 0) {
@@ -135,17 +151,18 @@ class ExplorerHTML extends Explorer {
 			if ($totalfiles > 0) {
 				$salida .= $conector . $totalfiles . ' archivo(s)';
 			}
+			$salida .= '</div>';
 		}
-		$salida .= '</div>';
 
 		return $salida;
 	}
 
 	/**
-	 * Carga estilos.
+	 * Carga estilos CSS a usar.
 	 * Puede personalizarse los estilos usando $this->stylesCSS. Si emplea un archivo externo, use: "url:(path)".
 	 * Si incluye estilos CSS directamente, no debe usar el tag "<style>", solo el texto que iría dentro del tag.
 	 *
+	 * @param  bool   $return Fijar a true para retornar los estilos, false para generar link al archivo CSS.
 	 * @return string Estilos o link a usar.
 	 */
 	public function getStylesCSS(bool $return = false) {
@@ -167,12 +184,17 @@ class ExplorerHTML extends Explorer {
 				// Retorna contenido de archivo
 				$salida = '<style>' . PHP_EOL . file_get_contents($filename) . PHP_EOL . '</style>' . PHP_EOL;
 			}
+			// Actualiza para no repetir inclusión de estilos
 			$this->show_styles = false;
 		}
 
 		return $salida;
 	}
 
+	/**
+	 * Previene el uso de los estilos incluidos en esta librería.
+	 * Puede usarse cuando se define una hoja de estilos propia para su uso.
+	 */
 	public function dontShowStyles() {
 		$this->show_styles = false;
 	}

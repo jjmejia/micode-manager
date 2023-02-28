@@ -30,7 +30,7 @@ if ($this->config->checkformRequest('configok')) {
 			if ($desde_inicio) {
 				// Adiciona mensaje para recargar página
 				$this->config->setMessage($mensaje);
-				$enlace = $this->router->getFormAction('index.php');
+				$enlace = $this->router->getFormAction('index.php', true);
 				$mensaje = miframe_text('Recargue la página o <a href="$1">haga click aquí para continuar</a>.', $enlace);
 			}
 		}

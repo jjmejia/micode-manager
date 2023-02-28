@@ -16,6 +16,8 @@
  * facilitar su modificación sin necesidad de reescribir código cada que se ingresa una nueva funcionalidad
  * a la aplicación.
  *
+ * SUGERENCIA: Manejo de HTTPS y localhost
+ *
  * @micode-uses miframe/common/functions
  * @author John Mejia
  * @since Abril 2022
@@ -157,9 +159,10 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	/**
 	 * Asigna manualmente la base para evaluar el enrutamiento.
 	 * Si se asigna en blanco, autodetecta al ejecutar $this->bindPost().
+	 * IMPORTANTE: Este método no funciona cuando se usa el Servidor interno de PHP.
 	 *
 	 * @param string $method_bind Puede tomar valores: "post", "get", "request" (puede ser cualquiera POST o GET, esta
-	 *   es la opción por defecto), "uri" para evaluar el REQUEST_URI.
+	 *                            es la opción por defecto), "uri" para evaluar el REQUEST_URI.
 	 */
 	public function bindMethod(string $method_bind) {
 		$this->method_bind = strtolower(trim($method_bind));
@@ -172,6 +175,13 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 		$filename = $this->dir_temp . '/router-' . md5($reference) . '.data';
 		$validando = false;
 		$metodo = '';
+
+		// Valida si usa servidor interno PHP ya que no funciona para dicho servicio
+		// (No soporta consultas file_get_contents('http://...'), cURL ni similares).
+		if (php_sapi_name() === 'cli-server') {
+			return $metodo;
+		}
+
 
 		if (file_exists($filename) && filemtime($filename) > filemtime(__FILE__)) {
 			// Lee contenido del archivo (debe ser mas reciente que este script)
@@ -237,11 +247,11 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 * Captura valor de la referencia asociada al enrutamiento.
 	 * Sugerencia: Esta función debe ejecutarse después de $this->setURIbase(), especialmente cuando $this->method_bind = 'URI".
 	 *
-	 * @param string $name Nombre del parámetro REQUEST asociado. Cuando se usa método "uri", el $name es usado para guardar
-	 *       el valor capturado bajo ese nombre.
-	 * @param string $method_bind Restricción al origen del dato: "post", "get", "request" (POST o GET) o "uri". Si no se indica
-	 *      valor alguno, autodetecta el origen en el siguiente orden: uri, post/get, request.
-	 * @return bool TRUE si fue posible capturar el valor de referencia.
+	 * @param  string $name        Nombre del parámetro REQUEST asociado. Cuando se usa método "uri", el $name es usado para guardar
+	 *                             el valor capturado bajo ese nombre.
+	 * @param  string $method_bind Restricción al origen del dato: "post", "get", "request" (POST o GET) o "uri". Si no se indica
+	 *                             valor alguno, autodetecta el origen en el siguiente orden: uri, post/get, request.
+	 * @return bool                TRUE si fue posible capturar el valor de referencia.
 	 */
 	function bindPost(string $name) {
 
@@ -295,8 +305,8 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 *
 	 *
 	 * @param string $filename Nombre del archivo .ini a cargar,
-	 * @param bool $rewrite TRUE para remplazar enrutamientos existentes. FALSE adiciona a los ya registrados.
-	 * @param string $dirbase Path a usar para ubicar los scripts.
+	 * @param bool	 $rewrite  TRUE para remplazar enrutamientos existentes. FALSE adiciona a los ya registrados.
+	 * @param string $dirbase  Path a usar para ubicar los scripts.
 	*/
 	public function loadConfig(string $filename, bool $rewrite = false) {
 
@@ -372,10 +382,10 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 * - method: string. Puede ser "post", "get", "request" o "uri". Método usado para detectar el enrutamiento.
 	 * - uri-base: string. Definición del URI base esperado, especialmente requerido si el método de captura es "uri".
 	 *
-	 * @param string $type Elemento a asignar: "general" o "map".
-	 * @param array $data Arreglo de datos a cargar.
-	 * @param bool $rewrite TRUE para remplazar enrutamientos existentes. FALSE adiciona a los ya registrados.
-	 * @param bool TRUE si se pudo relacionar el arreglo, FALSE en otro caso.
+	 * @param string $type 	  Elemento a asignar: "general" o "map".
+	 * @param array  $data 	  Arreglo de datos a cargar.
+	 * @param bool   $rewrite TRUE para remplazar enrutamientos existentes. FALSE adiciona a los ya registrados.
+	 * @param bool  		  TRUE si se pudo relacionar el arreglo, FALSE en otro caso.
 	*/
 	private function loadConfigArray(string $type, array $data,  bool $rewrite = false) {
 
@@ -433,11 +443,12 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 * Consulte la función runOnce() para el detalle de cómo se determina el enrutamiento a partir del
 	 * path de referencia.
 	 *
-	 * @param string $type Elemento a asignar: "general" o "map".
-	 * @param string $reference Path de referencia para determinar el enrutamiento.
+	 * @param string $type 		  Elemento a asignar: "general" o "map".
+	 * @param string $reference   Path de referencia para determinar el enrutamiento.
 	 * @param string $description Descripción del elemento.
-	 * @param string $method Método asociado (POST, GET, etc.). En blanco, cualquiera (se ignora para $type = "general").
-	 * @param string $action Script y/o función a ejecutar.
+	 * @param string $method 	  Método asociado (POST, GET, etc.). En blanco, cualquiera (se ignora
+	 *      					  para $type = "general").
+	 * @param string $action 	  Script y/o función a ejecutar.
 	 */
 	public function addRoute(string $type, string $reference, string $action, string $description = '', string $method = '') {
 
@@ -577,9 +588,9 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 * En caso de declarar `$this->autoExport` = true, cargará los valores de $this->params en $_REQUEST (no modifica $_POST ni $_GET).
 	 * Si la accion asociada es vacio, busca archivo usando como patron el valor de $reference (adicionando extensión ".php").
 	 *
-	 * @param string $reference Path de referencia para determinar el enrutamiento.
-	 * @param string $action Script y/o función a ejecutar.
-	 * @return bool TRUE si encuentra un enrutamiento valido, FALSE en otro caso.
+	 * @param  string $reference Path de referencia para determinar el enrutamiento.
+	 * @param  string $action 	 Script y/o función a ejecutar.
+	 * @return bool 		 	 TRUE si encuentra un enrutamiento valido, FALSE en otro caso.
 	 */
 	public function runOnce(string $reference, string $action = '') {
 
@@ -995,10 +1006,16 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 	/**
 	 * Soporte para definición de enlaces y/o formularios.
-	 * Si el método de detección es "post", retorna un arreglo con los valores a usar para crear el formulario.
+	 * Si el método de detección es "POST" (ej. datos recibidos de un formulario), retorna un arreglo con los
+	 * valores a usar para crear un nuevo formulario.
 	 * En otro caso, retorna el enlace ya listo para su uso.
 	 *
-	 * @return mixed Enlace a usar o arreglo de datos (método de detección "post")
+	 * @param string $request_param  Valor del parámetro principal. Puede contener parámetros adicionales
+	 *                               conectados por "?" y con formato "[nombre1]=[valor1]&[nombre2]=[valor2]...".
+	 *                               Complementa el listado de parámetros recibido en el argumento $params (si alguno).
+	 * @param bool   $force_get_mode Obliga el uso del método GET al momento de crear el enlace.
+	 * @param mixed  $params		 Parámetros adicionales a incluir en el enlace.
+	 * @return mixed                 Enlace a usar o arreglo de datos (método de detección "post")
 	 */
 	public function getFormAction(string $request_param = null, bool $force_get_mode = false, mixed $params = false) {
 
@@ -1009,7 +1026,15 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 		if (is_array($params)) {
 			$params = http_build_query($params);
 		}
-
+		if ($request_param != '') {
+			// Valida si contiene "?"
+			$pos = strpos($request_param, '?');
+			if ($pos !== false) {
+				if ($params != '') { $params = '&' . $params; }
+				$params = substr($request_param, $pos + 1) . $params;
+				$request_param = substr($request_param, 0, $pos);
+			}
+		}
 		if ($this->method_bind == 'uri') {
 			$accion = $this->createURL($request_param);
 			if ($params != '') {

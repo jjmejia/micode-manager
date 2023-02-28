@@ -14,13 +14,21 @@
 
 namespace miFrame\Admin;
 
+// Adaptando a principios SOLID y mejores practicas...
+
+use \miFrame\Interface\Views 	  as miViews;
+use \miFrame\Interface\Request 	  as miRequest;
+use \miFrame\Interface\Router 	  as miRouter;
+use \miFrame\Interface\EditConfig as miEditConfig;
+
 class MiProyecto { // extends Router
 
-	public $view = false;			// Objeto interface/Views
-	public $post = false;			// Objeto interface/Request
-	public $router = false;			// Objeto interface/Router
-	public $config = false;			// Objeto interface/EditConfig
 	public $formAction = '';
+
+	private $view = false;			// Objeto interface/Views
+	private $post = false;			// Objeto interface/Request
+	private $router = false;		// Objeto interface/Router
+	private $config = false;		// Objeto interface/EditConfig
 
 	private $view_path_web = '';
 	private $view_path_json = '';
@@ -31,8 +39,11 @@ class MiProyecto { // extends Router
 	public function __construct() {
 
 		// Inicializa suplementos
-		$this->router = new \miFrame\Interface\Router();
-		$this->post = new \miFrame\Interface\Request();
+		// Por principios SOLID esto debiera declararse fuera de esta clase
+		// (no debe haber un new Class dentro de la clase) sin embargo lo mantenemos
+		// para efectos de facilitar el proceso.
+		$this->router = new miRouter();
+		$this->post = new miRequest();
 
 		// Exportar al REQUEST
 		$this->router->autoExport = true;
@@ -62,7 +73,7 @@ class MiProyecto { // extends Router
 				miframe_error('Vistas no configuradas');
 			}
 
-			$this->view = new \miFrame\Interface\Views();
+			$this->view = new miViews();
 
 			$this->view->debug = $this->router->debug;
 			$this->view->force_json = $this->router->force_json;
@@ -247,9 +258,26 @@ class MiProyecto { // extends Router
 
 	public function startEditConfig() {
 
-		$this->config = new \miFrame\Interface\EditConfig();
-		$this->config->debug = $this->router->debug;
+		if ($this->config === false) {
+			$this->config = new miEditConfig();
+			$this->config->debug = $this->router->debug;
+		}
+	}
 
+	public function __get(string $name) {
+		// Valida alguna de los objetos privados
+		// Se maneja de esta forma (y no declarando cada objeto como tipo publico) para prevenir que
+		// sea modificado el objeto como tal por accidente.
+		$validos = [ 'view', 'post', 'router', 'config' ];
+		if (in_array($name, $validos)) {
+			if ($this->$name === false) {
+				// Intenta acceder a un objeto no declarado aun
+				miframe_error('El elemento "$1" no ha sido aún instanciado en la clase $2', $name, get_class($this));
+			}
+			return $this->$name;
+		}
+		// Si llega a este punto, está intentando leer un item no valido
+		miframe_error('El elemento "$1" no existe en la clase $2', $name, get_class($this));
 	}
 
 	/*

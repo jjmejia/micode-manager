@@ -88,7 +88,7 @@ class DocSimple {
 			'no-spaces'			=> array('(', ')', ','),	// Remueve espacios antes de este caracter
 			'args-start'		=> '(',						// Marca inicio de argumentos en declaración de funciones
 			'args-end'			=> ')',
-			'eval-args'			=> '/\$([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)/',
+			'eval-args'			=> '\$([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)',
 															// regexp para validar variables dentro de los argumentos de la función
 			'ignore-functions'	=> array('__construct', '__isset', '__unset', '__call', '__get', '__put'),
 															// Funciones a ignorar al validar elementos requeridos para documentar
@@ -618,9 +618,9 @@ class DocSimple {
 				$pattern = $this->tags['eval-args'];
 				if ($pattern != '') {
 					// Los resultados quedan en $matches[0]
-					$result = preg_match_all($pattern, $args, $matches);
+					$result = preg_match_all("/$pattern/", $args, $matches);
 					if ($result > 0) {
-						foreach ($matches[0] as $k => $param) {
+						foreach ($matches[1] as $k => $param) {
 							if (!isset($info['param'][$param])) {
 								$info['param'][$param] = '?';
 							}
@@ -812,20 +812,30 @@ class DocSimple {
 		// Purga las líneas buscando aquellas que sean documentación
 		for ($i = 0; $i < $total_lineas; $i ++) {
 			$linea = trim($lineas[$i]);
-			if ($linea[0] === '@') {
+			// echo "$i . " . htmlspecialchars($linea) . "<hr>";
+			if (substr($linea, 0, 1) === '@') {
 				// Es un tag de documentacion
-				$arreglo = explode(' ', substr($linea, 1) . ' ', 2);
-				$tag_doc = strtolower(trim($arreglo[0]));
-				$arreglo[1] = trim($arreglo[1]);
+				$pattern = '/\@([a-zA-Z0-9\-]{1,})(\s{0,})(((.*)(\n{0,})(.*)){0,})/';
+				$result = preg_match_all($pattern, $linea, $matches);
+				$tag_doc = '';
+				$lineadata = '';
+				if (isset($matches[1][0])) { $tag_doc = strtolower($matches[1][0]); }
+				if (isset($matches[3][0])) { $lineadata = $matches[3][0]; }
 
 				// Casos especiales:
 				// @param (tipo) (variable) (descripcion)
 				// @return (tipo) (descripcion)
 				switch ($tag_doc) {
 					case 'param':
-						$arreglo = explode(' ', $arreglo[1] . '  ', 3);
-						$arreglo[1] = trim($arreglo[1]);
-						$arreglo[2] = trim($arreglo[2]);
+						// $arreglo[1] contiene de "@param" en adelante
+						$arreglo = array('', '', '');
+						$pattern = '/(\w{1,})(\s{1,})' . $this->tags['eval-args'] . '(\s{0,})(((.*)(\n{0,})(.*)){0,})/';
+						$result = preg_match_all($pattern, $lineadata, $matches);
+						// echo $tag_doc . ' / ' . $lineadata . '<br>' . $pattern . '<br>'; print_r($matches); echo "<hr>";
+						if (isset($matches[1][0])) { $arreglo[0] = strtolower($matches[1][0]); }
+						if (isset($matches[3][0])) { $arreglo[1] = $matches[3][0]; }
+						if (isset($matches[5][0])) { $arreglo[2] = $matches[5][0]; }
+
 						$bloquedoc[$tag_doc][$arreglo[1]] = array(
 								'type' => trim($arreglo[0]),
 								'description' => $arreglo[2]
@@ -833,7 +843,7 @@ class DocSimple {
 						break;
 
 					case 'return':
-						$arreglo = explode(' ', $arreglo[1] . ' ', 2);
+						$arreglo = explode(' ', $lineadata . ' ', 2);
 						$bloquedoc[$tag_doc] = array('type' => $arreglo[0], 'description' => trim($arreglo[1]));
 						break;
 
@@ -847,10 +857,10 @@ class DocSimple {
 							if (!is_array($bloquedoc[$tag_doc]) && $bloquedoc[$tag_doc] != '') {
 								$bloquedoc[$tag_doc] = array($bloquedoc[$tag_doc]);
 							}
-							$bloquedoc[$tag_doc][] = $arreglo[1];
+							$bloquedoc[$tag_doc][] = $lineadata;
 						}
 						else {
-							$bloquedoc[$tag_doc] = $arreglo[1];
+							$bloquedoc[$tag_doc] = $lineadata;
 						}
 						break;
 
@@ -859,19 +869,22 @@ class DocSimple {
 						if (isset($this->tags_fun[$tag_doc])) {
 							if (!isset($bloquedoc[$tag_doc])) { $bloquedoc[$tag_doc] = ''; }
 							$fun = $this->tags_fun[$tag_doc];
-							$fun($bloquedoc[$tag_doc], $arreglo[1]);
+							$fun($bloquedoc[$tag_doc], $lineadata);
 						}
 						// Los agrupa bajo "others"
 						elseif (isset($bloquedoc['others'][$tag_doc])) {
-							if (!is_array($bloquedoc['others'][$tag_doc])
-								&& $bloquedoc['others'][$tag_doc] != ''
-								) {
-								$bloquedoc['others'][$tag_doc] = array($bloquedoc['others'][$tag_doc]);
+							if (!is_array($bloquedoc['others'][$tag_doc])) {
+								if ($bloquedoc['others'][$tag_doc] != '') {
+									$bloquedoc['others'][$tag_doc] = array($bloquedoc['others'][$tag_doc]);
+								}
+								else {
+									$bloquedoc['others'][$tag_doc] = array();
+								}
 							}
-							$bloquedoc['others'][$tag_doc][] = $arreglo[1];
+							$bloquedoc['others'][$tag_doc][] = $lineadata;
 						}
 						else {
-							$bloquedoc['others'][$tag_doc] = $arreglo[1];
+							$bloquedoc['others'][$tag_doc] = $lineadata;
 						}
 					}
 			}
@@ -1105,6 +1118,7 @@ class DocSimple {
 						'since' => miframe_text('Desde'),
 						'last-modified' => miframe_text('Modificado en')
 					);
+
 		foreach ($comunes as $llave => $titulo) {
 			if (isset($main[$llave])) {
 				if (is_array($main[$llave])) { $main[$llave] = implode(', ', $main[$llave]); }

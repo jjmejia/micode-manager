@@ -273,7 +273,7 @@ class EvalMiCode {
 		if (isset($_REQUEST['depok'])) {
 			// echo "<pre>"; print_r($_REQUEST); echo "</pre>"; exit;
 			// NOTA: No generaliza $lroot en minúsculas en caso de ejecutar en Linux, donde los
-			// path si se afectan según sean en mayúsculas o minúsculas.4
+			// path si se afectan según sean en mayúsculas o minúsculas.
 			$lroot = str_replace("\\", '/', $_SERVER['DOCUMENT_ROOT']) . '/';
 			$len = strlen($lroot);
 			foreach ($repos_pendientes as $clase => $info) {
@@ -313,6 +313,8 @@ class EvalMiCode {
 
 				$filename = $this->dirbase . '/data/repositories.ini';
 				ksort($datarepos);
+				// Remueve path de "miframe" (se fija automáticamente)
+				unset($datarepos['miframe']['path']);
 				if (miframe_inifiles_save_data($filename, $datarepos)) {
 					$this->mensajes['ok'] = 'Listado de repositorios actualizados con éxito: ' . $clase;
 				}

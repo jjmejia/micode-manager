@@ -41,6 +41,9 @@ La siguiente documentación puede consultarse en el Blog asociado:
 
 * [Versión 1.0](https://micode-manager.blogspot.com/2023/01/micode-manager-version-10.html)
 
+* [Reportar bugs y/o sugerencias de mejora](https://github.com/jjmejia/micode-manager/issues) (Requiere tener una cuenta
+  activa en Github).
+
 ## Descargo
 
 Esta propuesta se realiza considerando que pueda ser de utilidad a los desarrolladores (particularmente aquellos _freelance_), de modo que les ayude a administrar los diferentes scripts y librerías, propias o externas, que usen
