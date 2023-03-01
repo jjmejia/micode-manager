@@ -9,14 +9,14 @@
  * Algunos tags a tener en cuenta:
  * (Referido de https://docs.phpdoc.org/guide/guides/docblocks.html)
  *
- * - author: Nombre del autor del elemento asociado.
- * - link: Relación entre el elemento asociado y una página web (referencias).
- * - param: (Sólo para funciones, métodos) Cada argumento de una función o método, uno por tag.
- * - return: (Sólo para funciones, métodos) Valor retornado por una función o método.
- * - since: Indica en qué versión el elemento asociado estuvo disponible.
- * - todo: Actividades o mejoras por realizar al elemento asociado.
- * - uses: Indica referencias a otros elementos.
- * - version: Versión actual del elemento estructural (a nivel de script más que de funciones o métodos).
+ * - @author: Nombre del autor del elemento asociado.
+ * - @link: Relación entre el elemento asociado y una página web (referencias).
+ * - @param: (Sólo para funciones, métodos) Cada argumento de una función o método, uno por tag.
+ * - @return: (Sólo para funciones, métodos) Valor retornado por una función o método.
+ * - @since: Indica en qué versión el elemento asociado estuvo disponible.
+ * - @todo: Actividades o mejoras por realizar al elemento asociado.
+ * - @uses: Indica referencias a otros elementos.
+ * - @version: Versión actual del elemento estructural (a nivel de script más que de funciones o métodos).
  *
  * Tener presente que En PHP el bloque documento va antes de la definición de la función/clase. En lenguajes como Python va después.
  *
@@ -28,7 +28,7 @@
  * @since Abril 2022
  */
 
-namespace miFrame\Utils;
+namespace miFrame\Utils\DocSimple;
 
 /**
  * Clase para obtener la documentación del código a partir de los bloques de comentarios.
@@ -38,29 +38,19 @@ namespace miFrame\Utils;
  * - $debug: boolean. TRUE para incluir mensajes de depuración.
  * - $evalRequiredItems: boolean. TRUE para evaluar elementos mínimos requeridos. Se reportan en el arreglo de salida agrupados
  * 		bajo el item "errors".
- * - $parserTextFunction: Función a usar para interpretar el texto (asumiendo formato Markdown). Retorna texto HTML. Ej:
- * 		function (text) { ... return $html; }
- * - $stylesCSS: string. Estilos CSS a usar. Si emplea un archivo externo, use: "url:(path)".
- * - $ignoreLocalStyles: boolean. Indica si debe ignorar estilos internos (automáticamente se fija a TRUE luego de imprimir estilos).
- * - $clickable: boolean. TRUE para hacer el documento navegable.
  */
 class DocSimple {
 
 	private $tipodoc = '';
 	private $interpreter = array();
 	private $cache = array();
-	private $tags = array();
+
+	protected $tags = array();
 	private $tags_fun = array();
-	private $tags_html_fun = array();
 
 	public $debug = false;
 	public $evalRequiredItems = true;
-	// public $usesFunction = false;
-	public $parserTextFunction = false;
-	public $stylesCSS = '';
-	public $ignoreLocalStyles = false;
 	public $pathCache = '';
-	public $clickable = false;
 
 	public function __construct() {
 
@@ -82,7 +72,7 @@ class DocSimple {
 			'comment-ml-end'	=> '*/',
 			'strings'			=> array('"', "'"),
 			'strings-escape'	=> '\\',					// Ignora siguiente caracter dentro de una cadena
-			'functions'			=> array('public function', 'private function', 'protected function', 'function', 'class', 'namespace'),
+			'functions'			=> array('public function', 'private function', 'protected function', 'function', 'class', 'namespace', 'trait'),
 															// Declaración de funciones/clases
 			'separators-end'	=> array('{', '}', ';'),
 			'no-spaces'			=> array('(', ')', ','),	// Remueve espacios antes de este caracter
@@ -92,7 +82,7 @@ class DocSimple {
 															// regexp para validar variables dentro de los argumentos de la función
 			'ignore-functions'	=> array('__construct', '__isset', '__unset', '__call', '__get', '__put'),
 															// Funciones a ignorar al validar elementos requeridos para documentar
-			'ignore-types'		=> array('namespace', 'class')
+			'ignore-types'		=> array('namespace', 'class', 'trait')
 															// Tipos a ignorar al validar elementos requeridos para documentar
 		);
 
@@ -150,28 +140,6 @@ class DocSimple {
 		$tag = strtolower(trim($tag));
 		if ($tag != '') {
 			$this->tags_fun[$tag] = $fun;
-		}
-	}
-
-	/**
-	 * Define función a usar para evaluar un tag particular y generar el HTML respectivo.
-	 * Ignora esta definición si el tag corresponde a alguno de los que son evaluados por defecto
-	 * (author, param, return, etc.).
-	 * La función recibe como argumentos el valor del tag, $clickable (TRUE/FALSE según el HTML sea navegable o no)
-	 * y debe retornar un arreglo con dos elementos:
-	 * "title" (título asociado al tag) y "html" (código HTML a mostrar). Es valido también que retorne
-	 * solamente una cadena texto con el HTML a mostrar. Por ejemplo:
-	 * function ($valor) { ... return array('title' => 'xxxx', 'html' => 'xxxx'); } o
-	 * function ($valor) { ... $html = 'xxxx'; return $html; }
-	 *
-	 * @param string $tag
-	 * @param callable $fun Función a ejecutar.
-	 */
-	public function setTagFunHTML(string $tag, callable $fun) {
-
-		$tag = strtolower(trim($tag));
-		if ($tag != '') {
-			$this->tags_html_fun[$tag] = $fun;
 		}
 	}
 
@@ -294,9 +262,7 @@ class DocSimple {
 	private function getDocumentationScript(string $filename, string $name_fun, bool $only_summary) {
 
 		$documento = array(
-			// 'module' => $modulo . '/' . $submodulo,
 			'file' 		=> $filename,
-			// 'namespace' => '',
 			'main' 		=> array(),
 			'docs'  	=> array(),
 			'errors'	=> array(),
@@ -324,22 +290,14 @@ class DocSimple {
 		else {
 			$documento['cache'] = 'no-cache';
 
-			$contenido = file_get_contents($filename);
+			$contenido = '';
 
-			// Valida que el contenido tenga alguno de los inicios declarados (no es estrictamente)
-			$inicio_full = ($this->tags['code-start-full'] != '' && strpos($contenido, $this->tags['code-start-full']) !== false);
-			$inicio_simple = ($this->tags['code-start'] != '' && strpos($contenido, $this->tags['code-start']) !== false);
-
-			if (!$inicio_full && !$inicio_simple) {
-				// No hay ninguno de los inicios reportados
-				$documento['errors'][] = miframe_text('No puede documentar el tipo de archivo indicado ($1). No se encuentra ninguno de los tags de inicio a buscar ($2)',
-					basename($filename),
-					implode(',', [ $this->tags['code-start-full'],  $this->tags['code-start'] ])
-					);
+			// Valida que el documento contenga alguno de los tags de inicio
+			$contenido = $this->docBlockCodeStart($filename, $documento['errors']);
+			if ($contenido == '') {
+				// Nada que procesar
 				return $documento;
 			}
-
-			$documento['file'] = $filename;
 
 			// Contenedores
 			$nuevo = array();
@@ -531,7 +489,7 @@ class DocSimple {
 			if (isset($nuevo['main'])) {
 				// Evalua requeridos
 				if (!$only_summary) {
-					$this->docblock_required_items($documento['errors'], $nuevo['main'], true);
+					$this->docBlockRequiredItems($documento['errors'], $nuevo['main'], true);
 				}
 				// Reasigna main
 				$documento['main'] = $nuevo['main'];
@@ -547,7 +505,7 @@ class DocSimple {
 					if (isset($info['name'])) { // function-name
 						$documento['index'][strtolower($info['name'])] = $k; // function-name
 						// Revisa requeridos
-						$this->docblock_required_items($documento['errors'], $info);
+						$this->docBlockRequiredItems($documento['errors'], $info);
 					}
 				}
 
@@ -578,21 +536,60 @@ class DocSimple {
 	}
 
 	/**
+	 * Valida que existan tags de inicio de documentación en el contenido del archivo.
+	 * Retorna vacio también si el tipo de archivo no tiene definidas tags de inicio.
+	 *
+	 * @param string $filename Nombre del script del que se va a recuperar la documentación.
+	 * @param array $errors Arreglo editable dónde serán registrados los mensajes de error.
+	 * @return string Contenido del archivo o vacio si no encuentra los tags de inicio.
+	 */
+	private function docBlockCodeStart(string $filename, array &$errors) {
+
+		$contenido = '';
+
+		if ($this->tags['code-start-full'] != '' || $this->tags['code-start'] != '') {
+			// Al menos uno de los tags de inicio no está en blanco
+			$contenido = file_get_contents($filename);
+			// Valida que el contenido tenga alguno de los inicios declarados (no es estrictamente)
+			$inicio_full = ($this->tags['code-start-full'] != '' && strpos($contenido, $this->tags['code-start-full']) !== false);
+			$inicio_simple = ($this->tags['code-start'] != '' && strpos($contenido, $this->tags['code-start']) !== false);
+
+			if (!$inicio_full && !$inicio_simple) {
+				// No hay ninguno de los inicios reportados
+				$errors[] = miframe_text('No puede documentar el tipo de archivo indicado ($1). No se encuentra ninguno de los tags de inicio a buscar ($2)',
+					basename($filename),
+					htmlspecialchars(implode(',', [ $this->tags['code-start-full'],  $this->tags['code-start'] ]))
+					);
+
+				$contenido = '';
+			}
+		}
+		else {
+			// No hay tags de inicio, no es error pero no puede garantizar documentación tampoco
+			$errors[] = miframe_text('No puede documentar el tipo de archivo indicado ($1). No se definieron tags de inicio a buscar.',
+				basename($filename)
+				);
+		}
+
+		return $contenido;
+	}
+
+	/**
 	 * Evalua elementos requeridos y genera mensajes de error.
 	 * Si $this->evalRequiredItems es false no realiza esta validación.
 	 *
 	 * @param array $errors Arreglo editable dónde serán registrados los mensajes de error.
 	 * @param array $info Bloque de documentación a revisar.
-	 * @param bool $is_main TRUE para indicar que $info corresponde al bloque principal (descripción del script).
+	 * @param bool  $is_main TRUE para indicar que $info corresponde al bloque principal (descripción del script).
 	 */
-	private function docblock_required_items(array &$errors, array $info, bool $is_main = false) {
+	private function docBlockRequiredItems(array &$errors, array $info, bool $is_main = false) {
 
 		if (!$this->evalRequiredItems) { return; }
 
 		$ignore_summary = false;
-		$origen = 'el script';
+		$origen = '';
 		if (isset($info['name'])) { // function-name
-			$origen = '<b>' . $info['name'] . '</b>'; // function-name
+			$origen = miframe_text('en la función **$1**', $info['name']); // function-name
 			$ignore_summary = (
 					// Ignora métodos "mágicos"
 					in_array($info['name'], $this->tags['ignore-functions']) // function-name
@@ -601,7 +598,7 @@ class DocSimple {
 		}
 
 		if ((!isset($info['summary']) || $info['summary'] == '') && !$ignore_summary) {
-			$errors[] = miframe_text('No se ha documentado resumen para $1', $origen);
+			$errors[] = miframe_text('No se ha documentado resumen $1', $origen);
 		}
 
 		if (!isset($info['author']) && $is_main) {
@@ -610,7 +607,7 @@ class DocSimple {
 
 		if ((isset($info['args']) && $info['args'] != '') && !$ignore_summary) { // function-args
 			if (!isset($info['param'])) {
-				$errors[] = miframe_text('No se ha documentado @param en $1', $origen);
+				$errors[] = miframe_text('No se ha documentado @param $1', $origen);
 			}
 			elseif ($info['args'] != '') { // function-args
 				$args = $info['args']; // function-args
@@ -629,7 +626,7 @@ class DocSimple {
 							}
 						}
 						if (count($info['param']) > 0) {
-							$errors[] = miframe_text('Hay argumentos @param no documentados en $1 ($2)', $origen, implode(', ', array_filter(array_keys($info['param']))));
+							$errors[] = miframe_text('Hay argumentos @param no documentados $1 ($2)', $origen, implode(', ', array_filter(array_keys($info['param']))));
 						}
 					}
 				}
@@ -668,7 +665,7 @@ class DocSimple {
 				if (count($matches) > 1) {
 					// [2] contiene la función y los argumentos
 					$args = '';
-					if ($matches[1] == 'class') {
+					if ($matches[1] == 'class' || $matches[1] == 'trait') {
 						$pos = strpos($matches[2], ' ');
 						if ($pos !== false ) {
 							$args = trim(substr($matches[2], $pos + 1));
@@ -747,7 +744,7 @@ class DocSimple {
 
 			if ($linea === '*') {
 				// Línea vacia
-				$this->docblock_newline($lineas, $n);
+				$this->docBlockNewLine($lineas, $n);
 				continue;
 			}
 			elseif (substr($linea, 0, 2) !== '* ') {
@@ -795,7 +792,7 @@ class DocSimple {
 					&& in_array(substr($linea, -1, 1), $finlinea)
 					) {
 					$lineas[$n] = $linea;
-					$this->docblock_newline($lineas, $n);
+					$this->docBlockNewLine($lineas, $n);
 				}
 				else {
 					$lineas[$n] = $linea;
@@ -908,7 +905,7 @@ class DocSimple {
 	 * @param array $lines Arreglo editable de líneas.
 	 * @param int $index Indice editable con la línea del arreglo $lines actualmente en revisión.
 	 */
-	private function docblock_newline(array &$lines, int &$index) {
+	private function docBlockNewLine(array &$lines, int &$index) {
 
 		if ($lines[$index] != '') {
 			$lines[$index] .= "\n";
@@ -917,482 +914,5 @@ class DocSimple {
 		elseif ($index > 0 && $lines[$index - 1] != '' && substr($lines[$index - 1], -1, 1) != "\n") {
 			$lines[$index - 1] .= "\n";
 		}
-	}
-
-	/**
-	 * Retorna la documentación encontrada en formato HTML.
-	 * Si se usa con $this->clickable = TRUE habilida las funciones como enlace usando el nombre "docfunction" para indicar
-	 * el nombre de la función invocada.
-	 * Intenta interpretar los textos asumiendo formato "Markdown" para generar un texto HTML equivalente. Si no se
-	 * define una función externa para este fin ($this->parserTextFunction) hace uso de la función interna
-	 * docblock_parserlocal().
-	 *
-	 * @param string $filename
-	 * @param bool $show_errors TRUE para incluir listado de errores encontrados. FALSE los omite.
-	 * @return string Texto HTML.
-	 */
-	public function getDocumentationHTML(string $filename, bool $show_errors = true) {
-
-		$funcion = '';
-		$titulo = htmlspecialchars(basename($filename));
-		if ($this->clickable && isset($_REQUEST['docfunction']) && $_REQUEST['docfunction'] != '') {
-			$funcion = trim($_REQUEST['docfunction']);
-			// Enlace de retorno
-			$titulo .= ' ' . $this->parserLink(miframe_text('Regresar a Descripción general'), '');
-		}
-
-		$documento = $this->getDocumentationScript($filename, $funcion, false);
-
-		$salida = $this->docblock_styles_css();
-
-		$salida .= '<div class="docblock"><div class="docfile">' . $titulo . '</div>' . PHP_EOL;
-
-		// Errores encontrados
-		if (count($documento['errors']) > 0 && $funcion == '' && $show_errors) {
-			$salida .= '<div class="docerrors"><ul><li>' .
-						implode('</li><li>', $documento['errors']) .
-						'</li></ul></div>' . PHP_EOL;
-		}
-
-		// Bloque principal
-		if (isset($documento['main']) && $funcion == '') {
-			$main = $documento['main'];
-			$main['last-modified'] = date('Y-m-d', filemtime($filename));
-			$salida .= $this->evalHTMLDoc($main, $documento['docs']) . PHP_EOL;
-		}
-		elseif (isset($documento['docfunction'])) {
-			// Publica descripción de función
-			$salida .= $this->evalHTMLDoc($documento['docfunction'], array()) . PHP_EOL;
-		}
-
-		if (!$this->clickable && count($documento['docs']) > 0) {
-			// Muestra todas las funciones en la misma vista
-			$salida .= '<div class="docnonav"><h1>' . miframe_text('Contenido') . '</h1>' . PHP_EOL;
-			foreach ($documento['docs'] as $k => $info) {
-				if ($info['type'] != 'namespace') {
-					$salida .= $this->evalHTMLDoc($info, array())  . PHP_EOL;
-				}
-			}
-			$salida .= '</div>' . PHP_EOL;
-		}
-		else {
-			$salida .= '&nbsp;' . PHP_EOL;
-		}
-
-		$salida .= '</div>' . PHP_EOL;
-
-		return $salida;
-	}
-
-	/**
-	 * Procesa contenido y genera texto HTML equivalente.
-	 *
-	 * @param array $main Bloque principal de documentación (summary, descripción, params, etc.).
-	 * @param array $contents Funciones/métodos asociadas.
-	 * @return string Texto HTML.
-	 */
-	private function evalHTMLDoc(array $main, array $contents = array()) {
-
-		$salida = '';
-
-		$sintaxis = '';
-
-		// Solo para funciones
-		if (isset($main['name']) && $main['name'] != '') { // function-name
-			$salida .= '<p class="docfunction">' . htmlspecialchars($main['name']) . '</p>'; // function-name
-			$sintaxis = '<pre class="docsintaxis">' . $main['type'] . ' ' . $main['name']; // function-name
-			if ($main['type'] != 'class') {
-				$sintaxis .= '(' . $main['args'] . ')' ; // function-args
-				if (isset($main['return'])) {
-					$sintaxis .= ' : ' . $main['return']['type'];
-				}
-			}
-			elseif (isset($main['args'])) {
-				$sintaxis .= ' ' . $main['args'];
-			}
-			$sintaxis .= '</pre>';
-		}
-
-		if (isset($main['summary']) && $main['summary'] != '') {
-			$salida .= '<div class="docsummary">' . $this->parserText($main['summary']) . '</div>';
-		}
-
-		$salida .= $sintaxis;
-
-		if (isset($main['description']) && $main['description'] != '') {
-			$salida .= '<div class="docdesc">' . $this->parserText($main['description']) . '</div>' . PHP_EOL;
-		}
-
-		if (count($contents) > 0) {
-			// Funciones y/o metodos
-			$arreglo = array();
-			$titulo = miframe_text('Funciones');
-			$summary = '';
-			$namespace = '';
-
-			foreach ($contents as $k => $info) {
-				if (isset($info['type']) && $info['type'] == 'namespace') {
-					$namespace = $info['name'] . '\\'; // function-name
-				}
-				elseif (isset($info['type']) && $info['type'] == 'class') {
-					// Información de clase
-					// Si hay datos previos en $arreglo, exporta antes de continuar
-					if (count($arreglo) > 0) {
-						ksort($arreglo);
-						$salida .= '<div class="docfun"><p><b>' . $titulo . '</b></p>' .
-									$summary .
-									'<ul><li>' . implode('</li><li>', $arreglo) . '</li></ul>' .
-									'</div>' . PHP_EOL;
-						$arreglo = array();
-					}
-
-					$titulo = 'Class ' . $namespace . $info['name']; // function-name
-					if (isset($info['summary']) && $info['summary'] != '') {
-						$summary = $this->parserText($info['summary']);
-					}
-					if ($this->clickable) {
-						$summary .= '<p>' . $this->parserLink(miframe_text('Ver detalles'), $info['name']) . '</p>'; // function-name
-					}
-				}
-				elseif (isset($info['name'])) { // function-name
-					$function = strtolower($info['name']); // function-name
-					if (!$this->clickable) {
-						$arreglo[$function] = '<b>' . htmlspecialchars($info['name']) . '</b>'; // function-name
-					}
-					else {
-						// Determinar si llega por GET o POST la data principal?
-						$arreglo[$function] = $this->parserLink($info['name'], $info['name']); // function-name
-					}
-					if ($info['type'] != 'public function' && $info['type'] != 'function') {
-						$arreglo[$function] .= ' (' . $info['type'] . ')';
-					}
-					if (isset($info['summary']) && $info['summary'] != '') {
-						$arreglo[$function] .= ' -- ' . $this->parserText($info['summary'], true);
-					}
-				}
-			}
-
-			if (count($arreglo) > 0) {
-				ksort($arreglo);
-				$salida .= '<div class="docfun"><h2>' . $titulo . '</h2>' .
-							$summary .
-							'<ul><li>' . implode('</li><li>', $arreglo) . '</li></ul>' .
-							'</div>' . PHP_EOL;
-			}
-		}
-
-		// Valida definiciones manuales
-		foreach ($this->tags_html_fun as $tag_doc => $fun) {
-			if (isset($main[$tag_doc])) {
-				$respuesta = $fun($main[$tag_doc], $this->clickable);
-				if (is_array($respuesta) && isset($respuesta['title']) && isset($respuesta['html'])) {
-					$salida .= '<div class="docuses"><h2>' . $respuesta['title'] . '</h2>' .
-					$respuesta['html'] .
-					'</div>' . PHP_EOL;
-				}
-				elseif ($respuesta != '') {
-					$salida .= '<p class="docinfo">' . $respuesta . '</p>';
-				}
-			}
-		}
-
-		if (isset($main['param'])) {
-			foreach ($main['param'] as $param => $info) {
-				$main['param'][$param] = '<b>' . $param . '</b> (' . $info['type'] . ') ' .
-										$this->parserText($info['description'], true);
-			}
-			$salida .= '<div class="docparam"><h2>' . miframe_text('Parámetros') . '</h2>' .
-						'<ul><li>' . implode('</li><li>', $main['param']) . '</li></ul>' .
-						'</div>' . PHP_EOL;
-		}
-
-		if (isset($main['return'])) {
-			$salida .= '<div class="docreturn"><h2>' . miframe_text('Valores retornados') . '</h2>' .
-						'<ul><li>' . $this->parserText($main['return']['description'], true) . '</li></ul>' .
-						'</div>' . PHP_EOL;
-		}
-
-		$comunes = array(
-						'version' => miframe_text('Versión'),
-						'author' => miframe_text('Autor'),
-						'since' => miframe_text('Desde'),
-						'last-modified' => miframe_text('Modificado en')
-					);
-
-		foreach ($comunes as $llave => $titulo) {
-			if (isset($main[$llave])) {
-				if (is_array($main[$llave])) { $main[$llave] = implode(', ', $main[$llave]); }
-				$salida .= '<p class="docinfo"><b>' . $titulo . ':</b> ' .
-							nl2br(htmlspecialchars($main[$llave])) .
-							'</p>';
-			}
-		}
-
-		return $salida;
-	}
-
-	/**
-	 * Genera enlace para navegación de funciones en documentación HTML.
-	 *
-	 * @param string $titulo Título del enlace.
-	 * @param string $function Nombre de la función a buscar.
-	 * @param string $param Nombre del parámetro que indica el nombre de la función a buscar. En blanco asume "docfunction".
-	 * @return string Enlace en formato HTML.
-	 */
-	public function parserLink(string $titulo, string $function, string $param = '') {
-
-		$data = array();
-		if (count($_GET) > 0) {
-			$data = $_GET;
-		}
-		elseif (count($_POST) > 0) {
-			$data = $_POST;
-		}
-		if ($param == '') { $param = 'docfunction'; }
-		$function = trim($function);
-		if ($function == '' && isset($data[$param])) {
-			unset($data[$param]);
-		}
-		else {
-			$data[$param] = strtolower($function);
-		}
-		$url = '?' . http_build_query($data);
-		$enlace = '<a href="' . $url . '">' . htmlspecialchars($titulo) . '</a>';
-
-		return $enlace;
-	}
-
-	/**
-	 * Interprete de texto Markdown.
-	 * Puede usar una función externa para interpretar el texto (se asume tiene formato "Markdown"). Si no se ha definido una función externa,
-	 * genera un texto HTML básico usando la función interna docblock_parserlocal().
-	 *
-	 * @param string $text Texto a formatear.
-	 * @param bool $remove_tag_p Remueve tag "<p>" incluido usualmente como apertura del texto HTML.
-	 * @return string Texto HTML equivalente.
-	 */
-	public function parserText(string $text, bool $remove_tag_p = false) {
-
-		$text = trim($text);
-		if ($text != '') {
-			if (is_callable($this->parserTextFunction)) {
-				$text = call_user_func($this->parserTextFunction, $text);
-			}
-			else {
-				$text = $this->docblock_parserlocal($text);
-			}
-			// Protege enlaces
-			$text = str_replace('<a href="', '<a target="doclink" href="', $text);
-			if ($remove_tag_p) {
-				// No lo hace si hay "<p>" en medio del texto, para prevenir tags incompletos.
-				if (substr($text, 0, 3) == '<p>' && strpos($text, '<p>', 3) === false) {
-					$text = substr($text, 3);
-					if (substr($text, -4, 4) == '</p>') { $text = substr($text, 0, -4); }
-				}
-			}
-		}
-
-		return $text;
-	}
-
-	/**
-	 * Envia estilos CSS a pantalla.
-	 * Puede personalizarse los estilos usando $this->stylesCSS. Si emplea un archivo externo, use: "url:(path)".
-	 * Si incluye estilos CSS directamente, no debe usar el tag "<style>", solo el texto que iría dentro del tag.
-	 *
-	 * @return string Estilos o link a usar.
-	 */
-	private function docblock_styles_css() {
-
-		$salida = '';
-		if ($this->ignoreLocalStyles) { return $salida; }
-		$this->ignoreLocalStyles = true;
-
-		if ($this->stylesCSS != '') {
-			$salida = trim($this->stylesCSS);
-			if (strtolower(substr($salida, 0, 4)) == 'url:') {
-				$salida = '<link rel="stylesheet" href="' . substr($salida, 4) . '">' . PHP_EOL;
-			}
-			else {
-				$salida = '<style>' . PHP_EOL . substr($salida, 4) . PHP_EOL . '</style>' . PHP_EOL;
-			}
-			$salida = $this->stylesCSS;
-		}
-		else {
-			$salida = '
-<style>
-.docblock { border:1px solid #d0d7de; border-radius:6px; font-family: "Segoe UI"; font-size:16px; margin:32px; padding-bottom:20px; }
-.docblock div { padding: 10px 20px; }
-.docblock p { padding: 5px 10px; margin:0; border-radius:6px; }
-.docblock pre { border:1px dashed #d0d7de; margin:10px 64px; padding:14px; background-color:#f6f8fa; }
-.docblock code { background-color:#f6f8fa; }
-.docblock pre code { padding:0; }
-.docblock ul { padding: 5px 10px 5px 32px; margin:0; }
-.docblock li { padding-bottom: 5px; }
-.docblock h2, .docblock .docnonav h1 { font-size:20px; margin-top:20px; border-bottom:none; }
-.docblock .docnonav h2 { font-size:16px; margin-top:10px; }
- .docblock blockquote { border-left: 10px solid #d0d7de; padding:14px 15px; margin: 10px 64px; }
-.docblock .docfile { background-color:#f6f8fa; padding-left:20px; margin-bottom:10px; border-bottom:1px solid #d0d7de; font-weight:600; }
-.docblock .docfile a { dislay:block; float:right; font-size:14px; }
-.docblock .docinfo { padding-left:20px; }
-.docblock .docfunction { border-bottom:1px solid #d0d7de; font-weight:600; padding-left:20px; font-size:20px; padding-bottom:14px; margin-bottom:20px; }
-.docblock .docerrors { border:1px solid darkred; color:darkred; font-size:14px; margin:20px 10px;}
-</style>' . PHP_EOL;
-		}
-
-		return $salida;
-	}
-
-	/**
-	 * Interprete de texto Markdown básico.
-	 * Esta función intenta generar un texto HTML compatible con las siguientes guías:
-	 *
-	 * - Genera un título si la línea empieza con "#", "##", "###", etc. (debe ir seguido de un espacio en blanco).
-	 * - Genera listas si la línea inicia con "-" o "*".
-	 * - Genera un bloque preformateado si lo empieza y termina con la línea "```".
-	 * - Detecta el fin de párrafo si una línea termina en "." o ":" o va seguida de una línea en blanco.
-	 *
-	 * @param string $text Texto a formatear.
-	 * @return string Texto HTML equivalente.
-	 */
-	private function docblock_parserlocal(string $text) {
-
-		$lineas = explode("\n", $text);
-		$text = '';
-		$es_pre = false;
-		$tags_acum = array();
-		$total_lineas = count($lineas);
-
-		for ($k = 0; $k < $total_lineas; $k ++) {
-
-			$linea = $lineas[$k];
-			if ($es_pre) {
-				// Está capturando texto preformateado. Continua mas adelante evaluación para
-				// detectar fin del bloque.
-				$text .= htmlspecialchars($linea) . PHP_EOL;
-				if ($linea === '```') {
-					// Toogle valor
-					$es_pre = !$es_pre;
-					$text .= $this->docblock_closetags($tags_acum, 'pre') . PHP_EOL;
-					continue;
-				}
-			}
-
-			$linea = trim($linea);
-			if ($linea === '') { continue; }
-
-			if (isset($lineas[$k +  1]) && $linea !== '```') {
-				// Lee siguiente linea
-				while (isset($lineas[$k + 1]) && !in_array(substr($linea, -1, 1), [ '.', ':' ])) {
-					$sgte = trim($lineas[$k + 1]);
-					if ($sgte == '') {
-						// Fin de parrafo (ignora la linea en blanco)
-						$k ++;
-						break;
-					}
-					elseif ($sgte == '```' || in_array($sgte[0], [ '-', '*', '>', '#'])) {
-						// Empieza item especial
-						break;
-					}
-
-					$k ++;
-					$linea .= ' ' . $sgte;
-				}
-			}
-
-			// Texto preformateado
-			if ($linea === '```') {
-				// Toogle valor
-				$es_pre = !$es_pre;
-				$text .= $this->docblock_opentags($tags_acum, 'pre');
-				$linea = '';
-			}
-			// Listas
-			elseif ($linea[0] == '-' || $linea[0] == '*') {
-				$text .= $this->docblock_opentags($tags_acum, 'ul');
-				$text .= '<li>' . htmlspecialchars(trim(substr($linea, 1))). '</li>';
-				$linea = '';
-			}
-			// Blockquote
-			elseif ($linea[0] == '>') {
-				$text .= $this->docblock_opentags($tags_acum, 'blockquote');
-				$text .= htmlspecialchars(trim(substr($linea, 1)));
-				$linea = '';
-			}
-			// Titulos
-			elseif ($linea[0] == '#') {
-				$pos = strpos($linea, ' ');
-				$tam = substr($linea, 0, $pos);
-				if (str_replace('#', '', $tam) == '') {
-					// Todos los items previos son "#"
-					$hx = 'h' . strlen($tam);
-					$text .= "<$hx>" . htmlspecialchars(trim(substr($linea, $pos + 1))) . "</$hx>" . PHP_EOL;
-					$linea = '';
-				}
-			}
-			else {
-				$text .= $this->docblock_closetags($tags_acum, '');
-			}
-
-			if ($linea != '') {
-				$text .= '<p>' . htmlspecialchars($linea) . '</p>' . PHP_EOL;
-			}
-		}
-
-		// Valida si terminó con un tabulado abierto
-		$text .= $this->docblock_closetags($tags_acum, '');
-
-		return $text;
-	}
-
-	/**
-	 * Soporte para docblock_parserlocal: Realiza apertura de tags HTML.
-	 * Si se ejecutan aperturas consecutivas del mismo tag, solo aplica la primera.
-	 *
-	 * @param array $tags_acum Arreglo editable con los tags abiertos (ul, blockquote).
-	 * @param string $tag Tag a evaluar.
-	 * @return string texto HTML con los tags abiertos (si alguno). Ej: "<ul>".
-	 */
-	private function docblock_opentags(array &$tags_acum, string $tag) {
-
-		$acum = '';
-		$i = count($tags_acum) - 1;
-		if ($i < 0 || (isset($tags_acum[$i]) && $tags_acum[$i] != $tag)) {
-			while ($i >= 0 && isset($tags_acum[$i]) && $tags_acum[$i] != $tag) {
-				// Cierra todo hasta encontrar uno igual o llegar a ceros
-				$acum .= '</' . $tags_acum[$i] . '>';
-				unset($tags_acum[$i]);
-				$i --;
-			}
-			$i++;
-			$tags_acum[$i] = $tag;
-			$acum .= '<' . $tag . '>';
-		}
-
-		return $acum;
-	}
-
-	/**
-	 * Soporte para docblock_parserlocal: Realiza cierre de tags HTML al evaluar texto.
-	 *
-	 * @param array $tags_acum Arreglo editable con los tags abiertos (ul, blockquote).
-	 * @param string $tag Tag a evaluar. En blanco cierra todo lo abierto.
-	 * @return string texto HTML con los tags cerrados (si alguno). Ej: "</ul>".
-	 */
-	private function docblock_closetags(array &$tags_acum, string $tag) {
-
-		$acum = '';
-		$i = count($tags_acum) - 1;
-		while ($i >= 0 && isset($tags_acum[$i])) {
-			$actual = $tags_acum[$i];
-			unset($tags_acum[$i]);
-			$acum .= '</' . $actual . '>';
-			if ($actual == $tag) {
-				break;
-			}
-			$i--;
-		}
-
-		return $acum;
 	}
 }

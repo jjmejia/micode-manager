@@ -26,7 +26,7 @@ class phpManager extends \miFrame\Manager\Shared\MiBaseManager {
 
 		if ($this->doc !== false) { return; }
 
-		$this->doc = new \miFrame\Utils\DocSimple();
+		$this->doc = new \miFrame\Utils\DocSimple\DocSimpleHTML();
 
 		// Función para mostrar @micode-uses con enlace
 
@@ -173,7 +173,7 @@ class phpManager extends \miFrame\Manager\Shared\MiBaseManager {
 					$namespace .=  '\\';
 				}
 			}
-			elseif ($info['type'] == 'class') {
+			elseif ($info['type'] == 'class' || $info['type'] == 'trait') {
 				// Hay al menos una clase y un namespace asociados
 				$sumario['php-namespaces'][$namespace . $info['name']] = $filename;
 			}
@@ -218,7 +218,7 @@ class phpManager extends \miFrame\Manager\Shared\MiBaseManager {
 		$this->initialize_doc();
 		$this->doc->ignoreLocalStyles = !$with_styles;
 		$this->doc->clickable = $clickable;
-		return $this->doc->getDocumentationHTML($filename, $show_errors);
+		return $this->doc->render($filename, $show_errors);
 	}
 
 }

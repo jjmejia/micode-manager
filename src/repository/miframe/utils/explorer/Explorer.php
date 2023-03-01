@@ -23,6 +23,7 @@
  * - 1: No pudo recuperar valor para DOCUMENT ROOT.
  * - 2: El path indicado para el directorio base (a partir del cual va a navegar) no es valido.
  * - 3: El directorio o archivo indicado en POST (dir/file) no existe. No genera interrupción, salta al directorio raíz.
+ * - 4: No pudo crear/actualizar archivo de favoritos.
  *
  * @author John Mejia
  * @since Julio 2022
@@ -74,6 +75,7 @@ class Explorer {
 			'md'   => 'text',
 			'ini'  => 'text',
 			'json' => 'text',
+			'css'  => 'text',
 			'jpg'  => 'image',
 			'jpeg' => 'image',
 			'gif'  => 'image',
@@ -299,13 +301,19 @@ class Explorer {
 						$this->arreglofav[] = $favorito;
 						if ($this->useFavorites && $this->fileFavorites != '') {
 							$resultado = @file_put_contents($this->fileFavorites, implode("\n", $this->arreglofav));
-							// Si $resultado === false no pudo guardar archivo, pero qué hacer?
+							// Si $resultado === false no pudo guardar archivo.
+							if (!$resultado) {
+								$this->error_data['code'] = 4;
+								// $this->error_data['details']['path'] = $this->fileFavorites;
+								$this->error_data['details']['param'] = 'favadd';
+								$this->error_data['details']['value'] = $favorito;
+							}
 						}
 					}
 				}
 			}
 			// Retirar favorito
-			if (isset($_REQUEST['favrem'])) {
+			if ($this->continue() && isset($_REQUEST['favrem'])) {
 				$favorito = strtolower(trim($_REQUEST['favrem']));
 				if ($favorito != '') {
 					$guardar = false;
@@ -323,12 +331,18 @@ class Explorer {
 					} while ($posfav != false);
 					// Guarda archivo
 					$resultado = @file_put_contents($this->fileFavorites, implode("\n", $this->arreglofav));
-					// Si $resultado === false no pudo guardar archivo, pero qué hacer?
+					// Si $resultado === false no pudo guardar archivo
+					if (!$resultado) {
+						$this->error_data['code'] = 4;
+						// $this->error_data['details']['path'] = $this->fileFavorites;
+						$this->error_data['details']['param'] = 'favrem';
+						$this->error_data['details']['value'] = $favorito;
+					}
 				}
 			}
 		}
 
-		if ($this->basedir != '') {
+		if ($this->continue() && $this->basedir != '') {
 			// Valida que pueda navegar localmente
 			$real = str_replace('\\', '/', realpath($this->root . $this->basedir));
 			$this->basedir = str_replace('\\', '/', $this->basedir);
@@ -349,9 +363,6 @@ class Explorer {
 				$this->error_data['details']['param'] = $post;
 				$this->error_data['details']['value'] = htmlspecialchars($_REQUEST[$post]);
 				$this->error_data['details']['path'] = $this->basedir;
-				// Elimina acceso
-				$this->basedir = '';
-				$this->filename = '';
 			}
 		}
 
@@ -368,6 +379,12 @@ class Explorer {
 				}
 			}
 			$salida['paths'][basename($this->basedir)] = '';
+		}
+
+		if (!$this->continue()) {
+			// Elimina acceso por precaución
+			$this->basedir = '';
+			$this->filename = '';
 		}
 
 		return $salida;
@@ -637,6 +654,7 @@ class Explorer {
 		$salida = '';
 		$contenido = @file_get_contents($this->root . $this->filename);
 		if ($contenido != '') {
+			$contenido = htmlspecialchars($contenido);
 			$salida = '<pre>' . $this->formatLinks($contenido) . '</pre>';
 		}
 
@@ -704,27 +722,6 @@ class Explorer {
 	}
 
 	/**
-	 * Da formato amigable al valor del tamaño de archivos.
-	 * Retorna valores formateados a bytes, KB, MB y GB.
-	 *
-	 * @param  int    $size Tamaño del archivo en bytes.
-	 * @return string Tamaño formateado.
-	 */
-	public function formatBytes(int $size) {
-
-		$num = 0;
-		$tipos = array('bytes', ' KB', ' MB', ' GB');
-		$ciclos = -1;
-		do {
-			$num = $size;
-			$ciclos ++;
-			$size = ($size / 1024);
-		} while ($size >= 1 && isset($tipos[$ciclos]));
-
-		return str_replace('.00', '', number_format($num, 2)) . ' ' . $tipos[$ciclos];
-	}
-
-	/**
 	 * Retorna arreglo con errores.
 	 * El arreglo contiene: "code" código de error y "details" arreglo con información del error.
 	 * Los códigos reportados son:
@@ -738,17 +735,13 @@ class Explorer {
 	 *                                 indica y existe el error asociado a ese código, retorna los detalles asociados.
 	 * @return bool/array              Arreglo de datos o FALSE si no aplica.
 	 */
-	public function getError(int $error_code = 0) {
+	public function getError() {
 
 		$retornar = false;
-		if ($error_code <= 0) {
-			// Retorna todo
+
+		if ($this->error_data['code'] > 0) {
+			// Retorna todo (si hay error)
 			$retornar = $this->error_data;
-		}
-		elseif ($this->error_data['code'] == $error_code) {
-			$retornar = $this->error_data['details'];
-		}
-		if (is_array($retornar)) {
 			// Complementa respuesta
 			$retornar['root'] = $this->root;
 			$retornar['favorites'] = $this->fileFavorites;
@@ -756,15 +749,6 @@ class Explorer {
 		}
 
 		return $retornar;
-	}
-
-	/**
-	 * Retorna detalles cuando se solicita un recurso que no existe.
-	 *
-	 * @return array/bool Detalles del error o FALSE si no se presentó error alguno.
-	 */
-	public function resourceNotFound() {
-		return $this->getError(3);
 	}
 
 	/**

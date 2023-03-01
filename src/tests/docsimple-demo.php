@@ -10,13 +10,17 @@ include_once __DIR__ . '/lib/testfunctions.php';
 
 $files = array(
 	// Archivos locales (si existen)
-	__DIR__ . '/../src/serialize.php',
-	__DIR__ . '/../src/docsimple.php',
-	__DIR__ . '/../src/functions.php',
+	__DIR__ . '/../src/miframe/common/shared/functions.php',
+	__DIR__ . '/../src/miframe/file/serialize.php',
+	__DIR__ . '/../src/miframe/utils/traits/HTMLSupportTrait.php',
+	__DIR__ . '/../src/miframe/utils/docsimple/docsimple.php',
+	__DIR__ . '/../src/miframe/utils/docsimple/docsimplehtml.php',
 	// Archivos del repositorio (si se invoca desde miCode-Manager)
+	__DIR__ . '/../repository/miframe/common/shared/functions.php',
 	__DIR__ . '/../repository/miframe/file/serialize.php',
-	__DIR__ . '/../repository/miframe/utils/docsimple.php',
-	__DIR__ . '/../repository/miframe/common/shared/functions.php'
+	__DIR__ . '/../repository/miframe/utils/traits/HTMLSupportTrait.php',
+	__DIR__ . '/../repository/miframe/utils/docsimple/docsimple.php',
+	__DIR__ . '/../repository/miframe/utils/docsimple/docsimplehtml.php'
 );
 
 // Carga archivos requeridos
@@ -40,7 +44,9 @@ if (isset($_REQUEST['doc'])) {
 }
 $navegable = (!isset($_REQUEST['nav']) || intval($_REQUEST['nav']) > 0);
 
-$doc = new \miFrame\Utils\DocSimple();
+$doc = new \miFrame\Utils\DocSimple\DocSimpleHTML();
+
+// Opcional: echo $doc->getStylesCSS();
 
 //////////////////////////////////////
 // TEMPORAL!
@@ -60,7 +66,7 @@ foreach ($files as $k => $file) {
 	if ($ejemplos != '') { $ejemplos .= ' | '; }
 	if ($k == $selecto) {
 		$doc->clickable = $navegable;
-		$documento = $doc->getDocumentationHTML($file);
+		$documento = $doc->render($file);
 		$ejemplos .= "<b>" . basename($file) . "</b> ";
 	}
 	else {
@@ -74,8 +80,8 @@ miframe_test_start('Test DocSimple');
 
 <p>Uso:</p`>
 <pre class="code">
-	$doc = new \miFrame\Utils\DocSimple();
-	$documento = $doc->getDocumentationHTML($file, true);
+	$doc = new \miFrame\Utils\DocSimple\DocSimpleHTML();
+	$documento = $doc->getDocumentationHTML($file);
 </pre>
 <p>
 	Explorar: <?= $ejemplos ?>

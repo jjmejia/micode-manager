@@ -29,7 +29,7 @@ if ($modulo != '') {
 		foreach ($requeridos as $modulo_req => $info_req) {
 			$enlace = false;
 			// if ($total_requeridos == 1) { $file = $modulo_req; }
-			if (isset($info_req['type'])) {
+			if (isset($info_req['linkeable']) && $info_req['linkeable'] !== false) {
 				if ($modulo_req != $file) {
 					$urlbase = "modules/detail?file={$modulo_req}&module={$modulo_padre}";
 					$enlace = $this->router->getFormAction($urlbase, true);

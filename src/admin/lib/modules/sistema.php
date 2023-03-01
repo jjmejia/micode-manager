@@ -109,7 +109,7 @@ function micode_modules_enlace(string $cfg_name, mixed $data_repo = false) {
 function micode_modules_explore(string $enlace, string $path_base) {
 
 	$explorer = new \miFrame\Utils\Explorer\ExplorerHTML();
-	$doc = new \miFrame\Utils\DocSimple();
+	$doc = new \miFrame\Utils\DocSimple\DocSimpleHTML();
 	// Función para realizar Parser
 	$parser = new \Parsedown();
 	// Escape HTML even in trusted input

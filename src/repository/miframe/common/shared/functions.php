@@ -506,3 +506,26 @@ function miframe_class_load($class, ...$args) {
 
 	return $clase_manejador;
 }
+
+/**
+ * Convierte valor en bytes a un texto con formato.
+ * Ej. 1024 se convierte en 1K o 1KB, este último cuando $fullsufix = true.
+ *
+ * @param int $size Tamaño en bytes a dar formato.
+ * @param bool $fullsufix TRUE retorna "KB", "MB" o "GB" como sufijo. De lo contrario retorna "K", "M" o "G".
+ * @return string Texto con formato
+ */
+function miframe_bytes2text(int $size, bool $fullsufix = false) {
+
+	$num = 0;
+	$tipos = array('', 'K', 'M', 'G');
+	if ($fullsufix) { $tipos = array(' bytes', ' KB', ' MB', ' GB'); }
+	$ciclos = -1;
+	do {
+		$num = $size;
+		$ciclos ++;
+		$size = ($size / 1024);
+	} while ($size >= 1 && isset($tipos[$ciclos]));
+
+	return str_replace('.00', '', number_format($num, 2)) . $tipos[$ciclos];
+}

@@ -553,6 +553,10 @@ class AdminModules {
 				$inifile = miframe_path($path, 'config', 'php-namespaces.ini');
 				ksort($namespaces);
 				miframe_inifiles_save_data($inifile, $namespaces);
+
+				// SUGERENCIA:
+				// Adicionar aquí proceso en phpManager asociado a acciones de soporte?
+				// Creación de autoload.php?
 			}
 		}
 
@@ -977,7 +981,8 @@ class AdminModules {
 						$extension = pathinfo($filename, PATHINFO_EXTENSION);
 						if ($full) {
 							// Valida archivos a ignorar (solo scripts)
-							if (micode_modules_types($extension) !== false) {
+							$navegable = (micode_modules_types($extension) !== false);
+							if ($navegable) {
 								$requeridos[$add_modulo] = $this->addItem($filename, $extension);
 							}
 							else {
@@ -985,13 +990,13 @@ class AdminModules {
 								$requeridos[$add_modulo] = array(
 									'type' => $extension,
 									'path' => $filename,
-									// 'basename' => $add_modulo,
 									'size' => filesize($filename),
 									'sha' => sha1_file($filename),
 									'datetime' => filemtime($filename)
 								);
 							}
 							$requeridos[$add_modulo]['require-id'] = $a;
+							$requeridos[$add_modulo]['linkeable'] = $navegable;
 						}
 						else {
 							$requeridos[$add_modulo] = $filename; // substr($filename, $len_repo);

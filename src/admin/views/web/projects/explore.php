@@ -11,5 +11,5 @@ if ($dirbase == '') {
 	// Intenta recuperar para proyectos
 	$dirbase = $this->view->param('mirepo->path:e');
 }
-echo '<p>' . $dirbase . '</p>';
+echo '<div class="x-explorer"><p class="x-info"><b>' . miframe_text('Directorio base') . ':</b> ' . $dirbase . '</p></div>';
 echo $this->view->param('html');
