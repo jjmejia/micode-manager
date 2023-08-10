@@ -37,7 +37,6 @@ include_once MIFRAME_LOCALMODULES_PATH . '/miframe/file/serialize.php';
 
 class AdminModules {
 
-	// private $documentar = false;
 	private $listado = false;
 	private $listabase = false;
 	private $locales = false;
@@ -232,7 +231,7 @@ class AdminModules {
 				'del' => array(),
 				'changes' => 0
 			);
-			$this->faltantes = array();
+
 			$this->app_name_local = $app_name;
 			$listado = $this->getAllModules();
 
