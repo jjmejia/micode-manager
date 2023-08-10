@@ -127,8 +127,9 @@ class EvalMiCode {
 
 			// Incluye manualmente librerá de documentación en caso que no se hayan creado las relaciones
 			// entre paths y clases (php-namespaces.ini)
-			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/utils/DocSimple.php';
-
+			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/utils/traits/HTMLSupportTrait.php';
+			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/utils/docsimple/DocSimple.php';
+			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/utils/docsimple/DocSimpleHTML.php';
 
 			// Recupera solo información del proyecto local
 			// $data_proyecto = micode_modules_proyecto_ini($this->app_name, $data_repo);
