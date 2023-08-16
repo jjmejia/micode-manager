@@ -13,13 +13,5 @@
  * @since Abril 2022
  */
 
-include_once __DIR__ . '/src/repository/miframe/common/functions.php';
-
-$location = 'src/index.php';
-$mensaje = "<script>window.location='{$location}';</script>" .
-	miframe_text("Esta página ha sido consultada de forma incorrecta.") .
-	"<a href=\"{$location}\">" . miframe_text('Favor consultar desde esta página') . "</a>.";
-if (!headers_sent()) {
-	header("Location: {$location}");
-}
-exit($mensaje);
+// Para consultar correctamente la aplicación, abrir desde "public/index.php".
+exit('Esta página ha sido consultada de forma incorrecta (E1041).');

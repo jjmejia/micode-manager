@@ -11,8 +11,10 @@
 if (!defined('MIFRAME_ROOT')) {
 	// El script principal no fue invocado desde "public/index.php"
 	exit('Esta página ha sido consultada de forma incorrecta (E1039).');
+
 	/*
 	NOTA: Como este script pudo ser invocado desde un script mal formateado, no se puede garantizar el path usado.
+	PENDIENTE: Función que detecte el path usado para incvocar el index.php correcto.
 	$location = '../index.php';
 	$mensaje = "<script>window.location='{$location}';</script>" .
 		"Esta página ha sido consultada de forma incorrecta." .
