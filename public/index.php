@@ -15,5 +15,6 @@
 
 // Raíz (solo para Administrador y proyectos)
 define('MIFRAME_ROOT', __DIR__ . '/../src');
+define('MIFRAME_DATA', __DIR__ . '/../data');
 
 include_once MIFRAME_ROOT . '/admin/index.php';

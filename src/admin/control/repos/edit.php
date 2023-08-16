@@ -89,7 +89,7 @@ if ($this->config->checkformRequest('configok') && ($clase != '' || $repo_nuevo)
 				$datarepos = $listado;
 				// Remueve path de "miframe" (se fija siempre automáticamente)
 				unset($datarepos['miframe']['path']);
-				$filename = miframe_path(MIFRAME_ROOT, 'data/repositories.ini');
+				$filename = miframe_path(MIFRAME_DATA, 'base', 'repositories.ini');
 				$resultado = miframe_inifiles_save_data($filename, $datarepos);
 				if ($resultado) {
 					$mensaje = miframe_text('Listado de repositorios actualizado con éxito.');

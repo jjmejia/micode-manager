@@ -27,11 +27,11 @@ try {
 	// $app->debug(true);
 
 	// Carga rutas (puede definir un archivo diferente por ejemplo si la consulta es para Web Services)
-	$app->loadRoutes(miframe_path(MIFRAME_ROOT, 'data', 'rutas.ini'), miframe_path(__DIR__, 'control'));
+	$app->loadRoutes(miframe_path(MIFRAME_DATA, 'base', 'rutas.ini'), miframe_path(__DIR__, 'control'));
 
 	// Configuración de vistas
 	// (si hay multiples directorios de vistas para Web, indicar el path a la vista deseada)
-	$app->loadView(miframe_path(MIFRAME_ROOT, 'data', 'vistas.ini'), miframe_path(__DIR__, 'views/web'), miframe_path(__DIR__, 'views/api'));
+	$app->loadView(miframe_path(MIFRAME_DATA, 'base', 'vistas.ini'), miframe_path(__DIR__, 'views/web'), miframe_path(__DIR__, 'views/api'));
 
 	// Se asegura que haya configurado "sistema.ini"
 	if ($app->userEmail() == '' || $app->userName() == '') {

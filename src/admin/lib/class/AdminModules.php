@@ -84,7 +84,7 @@ class AdminModules {
 	public function getAllRepos(string $name = '') {
 
 		if (!is_array($this->repositories)) {
-			$filename = miframe_path(MIFRAME_ROOT, 'data/repositories.ini');
+			$filename = miframe_path(MIFRAME_DATA, 'base', 'repositories.ini');
 			$this->repositories = miframe_inifiles_get_data($filename);
 			// Adiciona repositorio estándar
 			$spath = micode_modules_repository_path('miframe');

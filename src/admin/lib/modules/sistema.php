@@ -83,7 +83,7 @@ function micode_modules_repository_path(string $path = '') {
 
 function micode_modules_dataconfig_path(string $path) {
 
-	return miframe_path(MIFRAME_BASEDIR, 'dataconfig', $path);
+	return miframe_path(MIFRAME_DATA, 'config', $path);
 }
 
 function micode_modules_enlace(string $cfg_name, mixed $data_repo = false) {

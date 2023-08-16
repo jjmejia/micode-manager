@@ -278,7 +278,7 @@ function micode_modules_types(string $type = '') {
 	$type = strtolower(trim($type));
 	$listado = miframe_data_get('modules-types');
 	if (!is_array($listado)) {
-		$inifile = miframe_path(MIFRAME_ROOT, 'data/lib-managers.ini');
+		$inifile = miframe_path(MIFRAME_DATA, 'base', 'lib-managers.ini');
 		$listado = miframe_inifiles_get_data($inifile, false);
 		// Valida que existan los respectivos archivos
 		foreach ($listado as $tipo => $titulo) {
