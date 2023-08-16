@@ -2,18 +2,11 @@
 /**
  * miCode - Organizador de código para proyectos en PHP y otros lenguajes.
  *
- * Esta propuesta se realiza considerando que un desarrollador (particularmente aquellos freelance) puedan
- * manejar los diferentes bloques de código funcionales (librerías include con funciones y/o clases) que realizan
- * en su trabajo, de forma que puedan reusarlos en sus diferentes proyectos sin estar copiando los archivos una y
- * otra vez. Así mismo, las mejoras que realicen a futuro podrán beneficiar proyectos pasados. La aplicación
- * provee los medios para que una vez se tenga listo el proyecto se pueda generar un paquete que contenga todos
- * los archivos que necesite para su uso de forma independiente.
+ * Este script se incluye para prevenir consultas directas a este directorio desde el navegador.
+ * Para consultar correctamente la aplicación, consultar desde "public/index.php".
  *
  * @author John Mejia
- * @since Abril 2022
+ * @since Agosto 2023
  */
 
-// Raíz (solo para Administrador y proyectos)
-define('MIFRAME_ROOT', __DIR__);
-
-include_once __DIR__ . '/admin/index.php';
+ exit('Esta página ha sido consultada de forma incorrecta (E1040).');

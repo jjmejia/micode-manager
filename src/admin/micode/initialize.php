@@ -9,7 +9,10 @@
 
 // Raíz (solo para Administrador y proyectos) - Se declara MIFRAME_ROOT en el index.php principal
 if (!defined('MIFRAME_ROOT')) {
-	// miframe_redir('../index.php', 'Script no ejecutado correctamente.');
+	// El script principal no fue invocado desde "public/index.php"
+	exit('Esta página ha sido consultada de forma incorrecta (E1039).');
+	/*
+	NOTA: Como este script pudo ser invocado desde un script mal formateado, no se puede garantizar el path usado.
 	$location = '../index.php';
 	$mensaje = "<script>window.location='{$location}';</script>" .
 		"Esta página ha sido consultada de forma incorrecta." .
@@ -19,6 +22,7 @@ if (!defined('MIFRAME_ROOT')) {
 		header("Location: {$location}");
 	}
 	exit($mensaje);
+	*/
 }
 
 // Directorio para ubicar los módulos asociados al proyecto.

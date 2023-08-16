@@ -8,7 +8,7 @@
 
 ?>
 
-<link rel="stylesheet" href="<?= $this->view->createURL('/admin/public/css/forms.css') ?>">
+<link rel="stylesheet" href="<?= $this->view->createURL('/resources/css/forms.css') ?>">
 
 <?php
 

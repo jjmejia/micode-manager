@@ -17,7 +17,7 @@ $micode_logo = $this->view->createURL('favicon.png');
 <head>
 	<title>miCode - <?= $this->view->param('author:e') ?></title>
 	<link rel="icon" type="image/x-icon" href="<?= $micode_logo ?>">
-	<link rel="stylesheet" href="<?= str_replace('/tests/', '/', $this->view->createURL('/admin/public/css/micode.css')) ?>">
+	<link rel="stylesheet" href="<?= str_replace('/tests/', '/', $this->view->createURL('/resources/css/micode.css')) ?>">
 </head>
 
 

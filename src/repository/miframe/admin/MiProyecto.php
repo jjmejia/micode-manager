@@ -221,7 +221,7 @@ class MiProyecto { // extends Router
 		$salida = '';
 
 		if (!$this->framebox_css) {
-			$url_base = $this->router->createURL('/admin/public/css/miframebox.css');
+			$url_base = $this->router->createURL('/resources/css/miframebox.css');
 			$salida .= "<link rel=\"stylesheet\" href=\"$url_base\">";
 			$this->framebox_css = true; // No repite este bloque
 			}

@@ -1,0 +1,19 @@
+## Adaptado de https://stackoverflow.com/questions/29871378/apache-mod-rewrite-restful-api
+
+DirectoryIndex index.php index.html
+# Options +FollowSymLinks
+RewriteEngine on
+
+# If the request is a file, folder or symlink that exists, serve it up
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# redirect all api calls to /index.php
+RewriteRule ^((?!(.*)\.php$).+)$ index.php [L,NC]
+
+# otherwise, serve your index.html app
+# RewriteRule ^(.+)$ index.html [L]
+
+# https://www.brontobytes.com/knowledgebase/149/htaccess-RewriteRule-Examples.html
+# RewriteRule ^/api/([^/]*)/([^/]*)/([^/]*)\.php$ /cgi-bin/shop.php?cmd=$1&category=$2&product=$3 [L]

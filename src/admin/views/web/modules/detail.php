@@ -73,7 +73,7 @@ if ($total_requeridos > 0 && !isset($_REQUEST['docfunction'])) {
 
 ?>
 
-<link rel="stylesheet" href="<?= $this->view->createURL('/admin/public/css/docblock.css') ?>">
+<link rel="stylesheet" href="<?= $this->view->createURL('/resources/css/docblock.css') ?>">
 
 <?= $this->view->param('mensajes:implode', '', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
 
