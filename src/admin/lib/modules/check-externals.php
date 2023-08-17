@@ -29,12 +29,14 @@ class EvalMiCode {
 
 	private $dirbase = '';
 	private $diradmin = '';
+	private $dirdata = '';
 	private $app_name = '';
 	private $mensajes = array();
 
 	public function __construct() {
 
 		$this->dirbase = realpath(__DIR__ . '/../../..');
+		$this->dirdata = realpath($this->dirbase . '/../data');
 		$this->diradmin = realpath($this->dirbase . '/admin');
 		$this->app_name = 'micode-admin';
 		$this->checkLocalPath();
@@ -104,6 +106,7 @@ class EvalMiCode {
 		// Carga definiciones, incluidas en uno de los templates del sistema
 		$filename = $this->dirbase . '/repository/templates/startup/micode-admin/tpl-config.ini';
 		// echo "!$inifile_modulos = " . file_exists($inifile_modulos) . " || !$inifile_namespaces = " . file_exists($inifile_namespaces) . "<hr>"; exit;
+
 		// Procesa si no existe alguno de los archivos indicados o si el archivo de instalados es mas antiguo
 		// que  el archivo guia (template).
 		if (!file_exists($inifile_modulos)
@@ -131,15 +134,10 @@ class EvalMiCode {
 			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/utils/docsimple/DocSimple.php';
 			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/utils/docsimple/DocSimpleHTML.php';
 
-			// Recupera solo información del proyecto local
-			// $data_proyecto = micode_modules_proyecto_ini($this->app_name, $data_repo);
-
 			$m = new \miFrame\Local\AdminModules(true);
 			// Obtiene modulos disponibles (esto requiere que existan los archivos de referencia en "micode")
 			// Usar una lista predefinida para crear los archivos de arranque! Validar que el listado de modulos
 			// instalados tenga una fecha > a la de dicho archivo para que refresque si es necesario!
-
-			// $listado = $m->getAllModules('', $startup_info['modules']);
 
 			$startup = 'micode-admin';
 
@@ -179,14 +177,14 @@ class EvalMiCode {
 		$datarepos = array();
 		$repos_pendientes = array();
 		// Captura listado de archivos básicos
-		$filename = $this->dirbase . '/data/repositories.ini';
+		$filename = $this->dirdata . '/base/repositories.ini';
 		if (file_exists($filename)) {
 			$datarepos = parse_ini_file($filename, true, INI_SCANNER_TYPED);
 		}
 		// Adiciona repositorio incluido
 		$datarepos['miframe'] = array('path' => $this->dirbase . '/repository/miframe');
 		// Captura listado de archivos básicos
-		$filename = $this->dirbase . '/data/lib-externals.ini';
+		$filename = $this->dirdata . '/base/lib-externals.ini';
 		if (!file_exists($filename)) {
 			// exit('ERROR/CHECK: No se encuentra archivo ' . str_replace("\\", '/', $filename));
 			// Nada qué hacer
@@ -222,7 +220,6 @@ class EvalMiCode {
 					continue;
 				}
 				else {
-					// $filelocal = $this->dirbase . '/repository/data/lib-'. $clase . '.ini';
 					$filelocal = $this->getRepositoriesIni($datarepos[$clase]['path']);
 					if (file_exists($filelocal)) {
 						$locales[$clase] = parse_ini_file($filelocal, true, INI_SCANNER_TYPED);
@@ -259,7 +256,6 @@ class EvalMiCode {
 			$this->checkRepositoriesShow($datarepos, $repos_pendientes);
 		}
 
-		// echo "<pre>"; print_r($dataini); exit;
 		// En $dataini quedan los locales pendientes por definir
 		if ($total_pendientes > 0) {
 			$this->updateExternals($dataini, $locales, $datarepos);
@@ -312,7 +308,7 @@ class EvalMiCode {
 
 				include_once $this->dirbase . '/repository/miframe/file/inifiles.php';
 
-				$filename = $this->dirbase . '/data/repositories.ini';
+				$filename = $this->dirdata . '/base/repositories.ini';
 				ksort($datarepos);
 				// Remueve path de "miframe" (se fija automáticamente)
 				unset($datarepos['miframe']['path']);

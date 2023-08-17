@@ -31,6 +31,14 @@ Una vez terminados los procesos de configuración inicial, podrás usar **miCode
 
 Más información sobre esta primera versión puedes encontrarla en [el Blog](https://micode-manager.blogspot.com/2023/01/micode-manager-version-10.html).
 
+## Estructura básica de directorios
+
+Se diferencian los siguientes directorios para uso de **miCode-Manager**:
+
+* src: Contiene scripts básicos para uso del sistema. Por precaución, estos scripts no deberían tener acceso directo desde el navegador. Este directorio puede moverse a otra ubicación (modificando las rutas de consulta en el archivo ´public/index.php´) o bloquear el acceso mediante configuración del servidor web. No debe tener permisos de escritura por seguridad.
+* data: Archivos de datos y configuración del sistema. Por precaución, estos scripts no deberían tener acceso directo desde el navegador pero si acceso de escritura/lectura desde los scripts PHP ejecutados. Este directorio puede moverse a otra ubicación (modificando las rutas de consulta en el archivo ´public/index.php´) o bloquear el acceso mediante configuración del servidor web.
+* public: Scripts de acceso directo desde el navegador.
+
 ## Documentación
 
 La siguiente documentación puede consultarse en el Blog asociado:
