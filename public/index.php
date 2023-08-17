@@ -13,8 +13,11 @@
  * @since Abril 2022
  */
 
-// Raíz (solo para Administrador y proyectos)
+// Directorio con los scripts del sistema (de preferencia sin acceso web)
 define('MIFRAME_ROOT', __DIR__ . '/../src');
+
+// Directorio con los archivos de configuración del sistema (de preferencia sin acceso web)
 define('MIFRAME_DATA', __DIR__ . '/../data');
 
+// Consulta script principal
 include_once MIFRAME_ROOT . '/admin/index.php';

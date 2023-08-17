@@ -14,4 +14,12 @@
  */
 
 // Para consultar correctamente la aplicación, abrir desde "public/index.php".
-exit('Esta página ha sido consultada de forma incorrecta (E1041).');
+$location = 'public/index.php';
+$mensaje = "<script>window.location='{$location}';</script>" .
+	"Esta página ha sido consultada de forma incorrecta (E1041)." .
+	"<a href=\"{$location}\">Favor consultar desde esta página</a>.";
+if (!headers_sent()) {
+	header("HTTP/1.1 301 Moved Permanently");
+	header("Location: {$location}");
+}
+exit($mensaje);
