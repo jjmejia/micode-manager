@@ -9,6 +9,18 @@
  * @since Abril 2022
  */
 
+// Directorio base del proyecto actual "src/admin"
+define('MIFRAME_BASEDIR', __DIR__);
+
+// Directorio con los scripts del sistema "src" (de preferencia sin acceso web)
+define('MIFRAME_ROOT', dirname(MIFRAME_BASEDIR));
+
+// Directorio con los archivos de configuración del sistema "data" (de preferencia sin acceso web)
+define('MIFRAME_DATA', dirname(MIFRAME_ROOT) . DIRECTORY_SEPARATOR . 'data');
+
+// Path para registro local de proyectos
+define('MIFRAME_PROJECTS_REPO', MIFRAME_DATA . DIRECTORY_SEPARATOR . 'projects');
+
 // Valida librerias externas y otros valores de inicio requeridos para que funcione este proyecto.
 include_once __DIR__ . '/lib/modules/check-externals.php';
 
@@ -17,6 +29,7 @@ include_once __DIR__ . '/micode/initialize.php';
 
 // Funciones exclusivas del administrador web.
 include_once __DIR__ . '/lib/modules/admin.php';
+
 
 micode_modules_sistema_ini(true);
 

@@ -1,0 +1,5 @@
+*.zip
+*-installed.ini
+data/base/repositories.ini
+data/projects/*
+soporte

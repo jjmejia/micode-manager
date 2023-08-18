@@ -24,12 +24,12 @@ function micode_modules_sistema_ini(bool $process = false) {
 		$filename = MIFRAME_LOCALCONFIG_PATH . '/sistema.ini';
 
 		if (file_exists($filename)) {
-			$datasys = miframe_define_config('sistema', 'php');
+			$datasys = micode_modules_load_cfgs('sistema', 'php');
 			$sistema = parse_ini_file($filename, false, INI_SCANNER_TYPED) + $datasys;
 		}
 	}
 
-	if ($process) {
+	if ($process && count($sistema) > 0) {
 		foreach ($sistema as $k => $v) {
 			$k = strtolower($k);
 			if ($k == 'debug') {
@@ -44,7 +44,7 @@ function micode_modules_sistema_ini(bool $process = false) {
 	return $sistema;
 }
 
-function miframe_define_config(string $group = '', string $type = '') {
+function micode_modules_load_cfgs(string $group = '', string $type = '') {
 
 	$retornar = array();
 	$group = strtolower(trim($group));
@@ -124,4 +124,27 @@ function micode_modules_explore(string $enlace, string $path_base) {
 	$explorer->setRoot($path_base);
 
 	return $explorer->render($enlace);
+}
+
+/**
+ * Remueve DOCUMENT_ROOT del path indicado.
+ * Si el path indicado no contiene DOCUMENT_ROOT, lo retorna tal cual.
+ *
+ * @param string $path Path a revisar.
+ * @return string Path.
+ */
+function micode_modules_remove_root(string $path) {
+
+	$path = str_replace("\\", '/', trim($path));
+	if ($path !== '') {
+		// Remueve el document-root
+		$root = str_replace("\\", '/', $_SERVER['DOCUMENT_ROOT']) . '/';
+		$len = strlen($root);
+		$lpath = strtolower($path) . '/';
+		if (substr($lpath, 0, $len) === strtolower($root)) {
+			$path = substr($lpath, $len);
+		}
+	}
+
+	return $path;
 }

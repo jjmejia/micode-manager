@@ -27,30 +27,26 @@ if (count($_REQUEST) <= 0 || isset($_REQUEST['depok'])) {
  */
 class EvalMiCode {
 
-	private $dirbase = '';
-	private $diradmin = '';
-	private $dirdata = '';
 	private $app_name = '';
 	private $mensajes = array();
 
 	public function __construct() {
 
-		$this->dirbase = realpath(__DIR__ . '/../../..');
-		$this->dirdata = realpath($this->dirbase . '/../data');
-		$this->diradmin = realpath($this->dirbase . '/admin');
 		$this->app_name = 'micode-admin';
 		$this->checkLocalPath();
 	}
 
 	private function checkLocalPath() {
 
-		$inifile = str_replace(DIRECTORY_SEPARATOR, '/', $this->dirbase) . '/projects/micode-admin.path';
+		$inifile = str_replace(DIRECTORY_SEPARATOR, '/', MIFRAME_DATA) . '/projects/micode-admin.path';
 		$local = '';
+		$mensaje = '';
+
 		if (file_exists($inifile)) {
 			// Valida que apunte a un directorio valido
 			$contenido = str_replace('..', '_', file_get_contents($inifile));
 			$local = $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . $contenido;
-			if ($contenido == '' || realpath($local) !== $this->diradmin) {
+			if ($contenido == '' || realpath($local) !== MIFRAME_BASEDIR) {
 				$local = '';
 			}
 		}
@@ -58,25 +54,30 @@ class EvalMiCode {
 			// Crea archivo con el path actual
 			$root = realpath($_SERVER['DOCUMENT_ROOT']) . DIRECTORY_SEPARATOR;
 			$len = strlen($root);
-			if (substr($this->diradmin, 0, $len) == $root) {
-				$local = str_replace('/', DIRECTORY_SEPARATOR, substr($this->diradmin, $len));
+			if (substr(MIFRAME_BASEDIR, 0, $len) == $root) {
+				$local = str_replace('/', DIRECTORY_SEPARATOR, substr(MIFRAME_BASEDIR, $len));
 				$dirname = dirname($inifile);
-				if (!is_dir($dirname)) { @mkdir($dirname); }
-				$contenido = '';
+				if (!is_dir($dirname)) {
+					@mkdir($dirname);
+				}
 				if (!@file_put_contents($inifile, $local)) {
-					$contenido = "<p>No pudo crear archivo requerido ($inifile).</p>" .
+					$mensaje .= "<p>No pudo crear archivo requerido ($inifile).</p>" .
 						"<p>Compruebe que el directorio existe y que se tienen los permisos necesarios para crear directorios/archivos.</p>";
 				}
 				else {
 					$this->mensajes['ok'] = "Creado archivo requerido por el sistema ($inifile)";
-					$contenido = "<p>Referencia asociada al path <b>{$local}</b></p>";
+					$mensaje .= "<p>Referencia asociada al path <b>{$local}</b></p>";
 				}
-				// Salida a pantalla
-				$this->openHTML('miCode - Path local micode-admin');
-				echo $contenido;
-				$this->closeHTML();
 			}
-			exit;
+			else {
+				$mensaje = "<p>El directorio destino ({MIFRAME_BASEDIR}) no está dentro del directorio base ($root)</p>";
+			}
+		}
+		if ($mensaje != '') {
+			// Salida a pantalla
+			$this->openHTML('miCode - Path local micode-admin');
+			echo $mensaje;
+			$this->closeHTML();
 		}
 	}
 
@@ -101,10 +102,10 @@ class EvalMiCode {
 	public function checkMiCode() {
 
 		// Valida que exista php-namespaces.ini y modules-installed.ini
-		$inifile_modulos = $this->dirbase . '/admin/micode.private/modules-installed.ini';
-		$inifile_namespaces = $this->diradmin . '/micode/config/php-namespaces.ini';
+		$inifile_modulos = MIFRAME_BASEDIR . '/micode.private/modules-installed.ini';
+		$inifile_namespaces = MIFRAME_BASEDIR . '/micode/config/php-namespaces.ini';
 		// Carga definiciones, incluidas en uno de los templates del sistema
-		$filename = $this->dirbase . '/repository/templates/startup/micode-admin/tpl-config.ini';
+		$filename = MIFRAME_ROOT . '/repository/templates/startup/micode-admin/tpl-config.ini';
 		// echo "!$inifile_modulos = " . file_exists($inifile_modulos) . " || !$inifile_namespaces = " . file_exists($inifile_namespaces) . "<hr>"; exit;
 
 		// Procesa si no existe alguno de los archivos indicados o si el archivo de instalados es mas antiguo
@@ -121,12 +122,12 @@ class EvalMiCode {
 			// existe "modules-installed.ini", debe apuntar directamente al repositorio
 
 			// Directorio para ubicar los módulos asociados al proyecto
-			define('MIFRAME_LOCALMODULES_PATH', $this->dirbase . '/repository');
+			define('MIFRAME_LOCALMODULES_PATH', MIFRAME_ROOT . '/repository');
 
 			// Carga el resto de las librerías
-			include_once $this->diradmin . '/micode/initialize.php';
-			include_once $this->diradmin . '/lib/modules/admin.php';
-			include_once $this->diradmin . '/lib/class/AdminModules.php';
+			include_once MIFRAME_BASEDIR . '/micode/initialize.php';
+			include_once MIFRAME_BASEDIR . '/lib/modules/admin.php';
+			include_once MIFRAME_BASEDIR . '/lib/class/AdminModules.php';
 
 			// Incluye manualmente librerá de documentación en caso que no se hayan creado las relaciones
 			// entre paths y clases (php-namespaces.ini)
@@ -177,14 +178,14 @@ class EvalMiCode {
 		$datarepos = array();
 		$repos_pendientes = array();
 		// Captura listado de archivos básicos
-		$filename = $this->dirdata . '/base/repositories.ini';
+		$filename = MIFRAME_DATA . '/base/repositories.ini';
 		if (file_exists($filename)) {
 			$datarepos = parse_ini_file($filename, true, INI_SCANNER_TYPED);
 		}
 		// Adiciona repositorio incluido
-		$datarepos['miframe'] = array('path' => $this->dirbase . '/repository/miframe');
+		$datarepos['miframe'] = array('path' => MIFRAME_ROOT . '/repository/miframe');
 		// Captura listado de archivos básicos
-		$filename = $this->dirdata . '/base/lib-externals.ini';
+		$filename = MIFRAME_DATA . '/base/lib-externals.ini';
 		if (!file_exists($filename)) {
 			// exit('ERROR/CHECK: No se encuentra archivo ' . str_replace("\\", '/', $filename));
 			// Nada qué hacer
@@ -306,9 +307,9 @@ class EvalMiCode {
 			// Valida si debe guardar archivo
 			if ($guardar) {
 
-				include_once $this->dirbase . '/repository/miframe/file/inifiles.php';
+				include_once MIFRAME_ROOT . '/repository/miframe/file/inifiles.php';
 
-				$filename = $this->dirdata . '/base/repositories.ini';
+				$filename = MIFRAME_DATA . '/base/repositories.ini';
 				ksort($datarepos);
 				// Remueve path de "miframe" (se fija automáticamente)
 				unset($datarepos['miframe']['path']);
@@ -431,7 +432,7 @@ class EvalMiCode {
 			// Valida si debe guardar archivo
 			if ($guardar) {
 
-				include_once $this->dirbase . '/repository/miframe/file/inifiles.php';
+				include_once MIFRAME_ROOT . '/repository/miframe/file/inifiles.php';
 
 				foreach ($locales as $clase => $infoclase) {
 					$filename = $this->getRepositoriesIni($datarepos[$clase]['path']);
@@ -543,7 +544,7 @@ class EvalMiCode {
 
 	private function openHTML(string $titulo) {
 
-		include_once $this->dirbase . '/tests/lib/testfunctions.php';
+		include_once MIFRAME_ROOT . '/tests/lib/testfunctions.php';
 
 		miframe_test_start($titulo);
 
@@ -572,7 +573,6 @@ class EvalMiCode {
 		echo "<b>miFrame</b> &copy; " .  date('Y');
 		echo "</div></body></html>";
 		exit;
-
 	}
 
 	private function getRepositoriesIni(string $local) {

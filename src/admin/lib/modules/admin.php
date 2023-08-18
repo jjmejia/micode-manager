@@ -6,12 +6,9 @@
  * @since Abril 2022
  */
 
-// Patrón para obtener modulos en directorio de proyectos
-define('MIFRAME_APPMODULES_SUB', 'src/micode/modules');
-// El contenedor de este directorio
+// El contenedor de este directorio (usado también en algunas librerias "admin")
 define('MIFRAME_LIBADMIN_PATH', dirname(__DIR__));
-// Repositorio (solo para Desarrollo)
-// define('MIFRAME_REPOSITORY', MIFRAME_ROOT . '/repository');
+
 // Librerías de soporte
 include_once MIFRAME_LIBADMIN_PATH . '/modules/sistema.php';
 include_once MIFRAME_LOCALMODULES_PATH . '/miframe/file/inifiles.php';
@@ -155,7 +152,7 @@ function micode_modules_readme(string $path) {
 
 function micode_modules_project_new() {
 
-	$data_proyecto = miframe_define_config('miproyecto');
+	$data_proyecto = micode_modules_load_cfgs('miproyecto');
 	// Adiciona fecha de creación
 	$data_proyecto['since'] = date('Y/m/d');
 	$sistema = micode_modules_sistema_ini();
@@ -340,7 +337,7 @@ function micode_modules_proyecto_ini(string $app_name, array $data_repo) {
 	$path_modulos = micode_modules_path($app_name, false, $data_repo);
 
 	// Datos esperados del bloque proyecto
-	$data = miframe_define_config('miproyecto', $data_repo['type']);
+	$data = micode_modules_load_cfgs('miproyecto', $data_repo['type']);
 
 	$filename = miframe_path($path_modulos, 'config', 'miproyecto.ini');
 	if (!file_exists($filename)) {

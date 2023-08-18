@@ -88,16 +88,9 @@ class AdminModules {
 			$this->repositories = miframe_inifiles_get_data($filename);
 			// Adiciona repositorio estándar
 			$spath = micode_modules_repository_path('miframe');
-			// Remueve el document-root
-			$lpath = strtolower(str_replace("\\", '/', $spath)) . '/';
-			$root = str_replace("\\", '/', $_SERVER['DOCUMENT_ROOT']) . '/';
-			$len = strlen($root);
-			if (substr($lpath, 0, $len) === strtolower($root)) {
-				$spath = substr($spath, $len);
-			}
 			$this->repositories['miframe'] = array(
 				'description' => miframe_text('Repositorio para módulos incluídos con miCode'),
-				'path' => $spath
+				'path' => micode_modules_remove_root($spath)
 				);
 			// Ordena repositorios
 			ksort($this->repositories);
@@ -267,7 +260,6 @@ class AdminModules {
 					$this->locales['pre'][$modulo]['uses'] = array();
 					$this->locales['pre'][$modulo]['require-total'] = $info['require-total'];
 					$this->locales['pre'][$modulo]['sysdata'] = array(
-						// 'path' => $info['path'],
 						'datetime' => $info['datetime'],
 						'size' => $info['size'],
 						'sha' => $info['sha']
@@ -523,7 +515,7 @@ class AdminModules {
 			}
 
 			// Elementos a remover
-			$mantener = array('datetime', 'size', 'sha', 'require-total'); // 'path', 'files'
+			$mantener = array('datetime', 'size', 'sha', 'require-total');
 			foreach ($data as $modulo => $info) {
 				if (!is_array($info)) { continue; }
 				// Se asegura que existan los valores minimos y remueve el resto
@@ -577,7 +569,6 @@ class AdminModules {
 				) {
 				// Para adicionar
 				$nuevos[$modulo] = array(
-					// 'path' => $info['path'],
 					'description' => $info['description'],
 					'datetime' => $info['datetime'],
 					'size' => $info['size'],
@@ -834,15 +825,13 @@ class AdminModules {
 		$listado = array(
 			'type' => $extension,
 			'path' => $filename, // Path local, si existe
-			// 'basename' => '',
 			'description' => '',
 			'author' => '',
 			'since' => '',
 			'datetime' => filemtime($filename),
 			'size' => filesize($filename),
 			'sha' => sha1_file($filename),
-			'uses' => array(),
-			// 'require-total' => 0
+			'uses' => array()
 			);
 
 		$info = $this->readCacheModule($filename, $listado['type']);

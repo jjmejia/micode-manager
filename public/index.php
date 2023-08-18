@@ -13,11 +13,5 @@
  * @since Abril 2022
  */
 
-// Directorio con los scripts del sistema (de preferencia sin acceso web)
-define('MIFRAME_ROOT', __DIR__ . '/../src');
-
-// Directorio con los archivos de configuración del sistema (de preferencia sin acceso web)
-define('MIFRAME_DATA', __DIR__ . '/../data');
-
 // Consulta script principal
-include_once MIFRAME_ROOT . '/admin/index.php';
+include_once __DIR__ . '/../src/admin/index.php';

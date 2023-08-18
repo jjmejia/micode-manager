@@ -4,6 +4,7 @@
  *
  * @micode-uses miframe/common/functions
  * @micode-uses miframe/common/debug
+ * @micode-uses miframe/common/phpsettings
  * @author John Mejia
  * @since Abril 2022.
  */
@@ -39,16 +40,8 @@ function miframe_get_proyecto_ini() {
 	return $data;
 }
 
-// Previene se sobreescriban variables de la función que invoca
-function miframe_include_module($modulo) {
+// Carga datos de .ini (asociado a miframe/common/modules.php)
+miframe_get_proyecto_ini();
 
-	// Nota: No usa miframe_path() para poder usar esta función aunque no haya incluido functions.php
-	$filename = MIFRAME_LOCALMODULES_PATH . DIRECTORY_SEPARATOR . $modulo;
-	if (file_exists($filename)) {
-		include_once $filename;
-		return true;
-	}
-
-	// Si llega aquí es porque no encontró el archivo a incluir
-	return false;
-}
+// Luego de cargar atributos, inicializa valores PHP (log errores, etc.)
+phpsettings_load();

@@ -244,6 +244,7 @@ if (!$proyecto_nuevo) {
 	// Campos de configuración propios de cada proyecto (si aplican)
 	$inifile = miframe_path($path_modulos, 'data', 'localconfig-cfg.ini');
 	$this->config->addConfigFile('miproyecto', $inifile);
+	$this->config->setDataValue('path', micode_modules_remove_root($data_repo['path']), true);
 }
 
 // Configuración de campos asociados a tipo del proyecto (si hay tipo selecto)
