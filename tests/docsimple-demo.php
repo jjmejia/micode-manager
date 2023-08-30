@@ -9,18 +9,11 @@
 include_once __DIR__ . '/lib/testfunctions.php';
 
 $files = array(
-	// Archivos locales (si existen)
-	__DIR__ . '/../src/miframe/common/shared/functions.php',
-	__DIR__ . '/../src/miframe/file/serialize.php',
-	__DIR__ . '/../src/miframe/utils/traits/HTMLSupportTrait.php',
-	__DIR__ . '/../src/miframe/utils/docsimple/docsimple.php',
-	__DIR__ . '/../src/miframe/utils/docsimple/docsimplehtml.php',
-	// Archivos del repositorio (si se invoca desde miCode-Manager)
-	__DIR__ . '/../repository/miframe/common/shared/functions.php',
-	__DIR__ . '/../repository/miframe/file/serialize.php',
-	__DIR__ . '/../repository/miframe/utils/traits/HTMLSupportTrait.php',
-	__DIR__ . '/../repository/miframe/utils/docsimple/docsimple.php',
-	__DIR__ . '/../repository/miframe/utils/docsimple/docsimplehtml.php'
+	'/miframe/common/shared/functions.php',
+	'/miframe/file/serialize.php',
+	'/miframe/utils/traits/HTMLSupportTrait.php',
+	'/miframe/utils/docsimple/docsimple.php',
+	'/miframe/utils/docsimple/docsimplehtml.php',
 );
 
 // Carga archivos requeridos

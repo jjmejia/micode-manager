@@ -6,13 +6,13 @@
  * @since Abril 2022
  */
 
-include_once __DIR__ . '/../repository/miframe/common/debug.php';
-include_once __DIR__ . '/../repository/miframe/common/functions.php';
 include_once __DIR__ . '/lib/testfunctions.php';
+include_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/debug.php';
+include_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/functions.php';
 
 // Valida carga de librería para formato de errores
 if (array_key_exists('errorson', $_REQUEST)) {
-	include_once dirname(__DIR__) . '/repository/miframe/common/errors.php';
+	include_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/errors.php';
 }
 
 miframe_test_start('Test Framebox');

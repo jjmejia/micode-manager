@@ -56,7 +56,7 @@ function miframe_error_info(mixed $e) {
 	// print_r($e); echo "<hr>";
 	$mensaje = $e->getMessage();
 	$texto = strip_tags($mensaje) . ' (' . $trace[0]['file'] . " línea " . $trace[0]['line'] . ')';
-	$track_cadena = "Reportado en <b>" . basename($trace[0]['file']) . "</b> Línea " . $trace[0]['line'];
+	$track_cadena = "<b>" . basename($trace[0]['file']) . "</b> Línea " . $trace[0]['line'];
 
 	if (miframe_is_debug_on()) {
 		$infotrace = miframe_data_get('error-backtrace');

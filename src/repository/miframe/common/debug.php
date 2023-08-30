@@ -9,8 +9,8 @@
  * @since Abril 2022
  */
 
- // Funciones debug compartidas con otras aplicaciones
- include_once __DIR__ . '/shared/debug.php';
+// Funciones debug compartidas con otras aplicaciones
+include_once __DIR__ . '/shared/debug.php';
 
 /**
  * Presenta en pantalla una ventana HTML con la descripción (contenido) de la expresión indicada.
@@ -22,19 +22,19 @@
  * @param int $ignore_first Indica cuantos elementos del trace ignorar. El primer elemento corresponde a este archivo.
  * @param bool $limited TRUE para restringir la altura de la ventana con la información (si el contenido es mayor se habilitan scrolls
  *			en la ventana para permitir su visualización), FALSE para presentar el contenido sin restricción de altura (sin scrolls).
+ * @param bool $force TRUE habilita uso aunque miframe_is_debug_on() retorne false.
  */
-function miframe_debug_box(mixed $expression, string $title = '', bool $limited = true) {
+function miframe_debug_box(mixed $expression, string $title = '', bool $limited = true, bool $force = false) {
 
-	// Habilitar un modo "force_debug_box" que permita el uso de esta función SIN habilitar debug
-	// if (!miframe_is_debug_on()) { return ''; }
+	if ($force || miframe_is_debug_on()) {
+		$title = trim("DEBUG $title");
+		$track_cadena = miframe_debug_backtrace_info();
+		$salida = '<pre>' .
+			htmlspecialchars(miframe_debug_dump($expression, true)) .
+			'</pre>';
 
-	$title = trim("DEBUG $title");
-	$track_cadena = miframe_debug_backtrace_info();
-	$salida = '<pre>' .
-		htmlspecialchars(miframe_debug_dump($expression, true)) .
-		'</pre>';
-
-	echo miframe_box($title, $salida, 'mute', $track_cadena, $limited);
+		echo miframe_box($title, $salida, 'mute', $track_cadena, $limited);
+	}
 }
 
 function debug_warning(string $text, string $function) {

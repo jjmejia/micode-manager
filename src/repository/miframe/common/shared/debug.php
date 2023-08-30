@@ -66,6 +66,7 @@ function miframe_debug_backtrace_info(array $track = null, string $function = ''
  * Retorna contenido de una variable en formato texto para visualización.
  *
  * @param mixed $data Variable a mostrar.
+ * @param bool $force TRUE habilita uso aunque miframe_is_debug_on() retorne false.
  * @return string Contenido de la variable en formato texto.
  */
 function miframe_debug_dump(mixed $data, bool $force = false) {

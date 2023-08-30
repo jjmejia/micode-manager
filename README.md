@@ -35,9 +35,25 @@ Más información sobre esta primera versión puedes encontrarla en [el Blog](ht
 
 Se diferencian los siguientes directorios para uso de **miCode-Manager**:
 
-* src: Contiene scripts básicos para uso del sistema. Por precaución, estos scripts no deberían tener acceso directo desde el navegador. Este directorio puede moverse a otra ubicación (modificando las rutas de consulta en el archivo ´public/index.php´) o bloquear el acceso mediante configuración del servidor web. No debe tener permisos de escritura por seguridad.
-* data: Archivos de datos y configuración del sistema. Por precaución, estos scripts no deberían tener acceso directo desde el navegador pero si acceso de escritura/lectura desde los scripts PHP ejecutados. Este directorio puede moverse a otra ubicación (modificando las rutas de consulta en el archivo ´public/index.php´) o bloquear el acceso mediante configuración del servidor web.
-* public: Scripts de acceso directo desde el navegador.
+* `src`: Contiene scripts básicos para uso del sistema.
+* `data`: Archivos de datos y configuración del sistema.
+* `public`: Scripts del sistema.
+* `tests`: Scripts de pruebas a librerías del sistema.
+
+Por precaución y seguridad, estos son los permisos recomendados para cada uno de estos directorios, sean de acceso directo desde el navegador (A), lectura (L), escritura (E) y/o ejecución (X):
+
+    +------------+----------+
+    | Directorio | Permisos |
+    +------------+----------+
+    | src        | L/X      |
+    +------------+----------+
+    | data       | L/E      |
+    +------------+----------+
+    | public     | A/L/X    |
+    +------------+----------+
+    | tests      | A/L/X    |
+    +------------+----------+
+
 
 ## Documentación
 

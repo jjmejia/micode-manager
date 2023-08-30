@@ -5,4 +5,4 @@ DirectoryIndex index.php
 RewriteEngine on
 
 # otherwise, serve your index.html app
-RewriteRule ^(.+)$ index.php [L]
+RewriteRule ^(.+)$ - [F,L]

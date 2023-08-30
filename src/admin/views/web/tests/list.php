@@ -6,7 +6,7 @@
  * @since Mayo 2022
  */
 
-$this->view->setParam('page-buttons', [ 'tests/create' => miframe_text('Nuevo test') ]);
+// $this->view->setParam('page-buttons', [ 'tests/create' => miframe_text('Nuevo test') ]);
 
 ?>
 
@@ -23,7 +23,7 @@ else {
 		// Busca información del proyecto listado
 		// $uname = urlencode($name);
 		$uname = htmlspecialchars($name);
-		$enlace_url = $this->view->createURL('tests/' . $name);
+		$enlace_url = $this->view->createURL('../tests/' . $name);
 		$pos = strpos($name, ':');
 		if ($pos !== false) {
 			$type = trim(substr($name, 0, $pos));

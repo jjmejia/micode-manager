@@ -6,11 +6,12 @@
  * @since Mayo 2022
  */
 
+define('MIFRAME_LOCALMODULES_PATH', realpath(__DIR__ . '/../../src/repository'));
+
 function miframe_test_start(string $title) {
 
 	$tipo = 'php';
-	$estilos = dirname(dirname($_SERVER['SCRIPT_NAME'])) . '/resources/css/tests.css';
-
+	$estilos = dirname(dirname($_SERVER['SCRIPT_NAME'])) . '/public/resources/css/tests.css';
 ?>
 <!DOCTYPE html>
 <html>
@@ -39,13 +40,23 @@ function miframe_test_end() {
 
 function miframe_test_include(array &$files) {
 
-	// Carga archivos requeridos
+	// Carga archivos requeridos.
 	foreach ($files as $k => $filename) {
-		if (!file_exists($filename)) {
+		$path = '';
+		if (file_exists(__DIR__ . '/../' . $filename)) {
+			// Copias en el repositorio local del test
+			$path = __DIR__ . '/../' . $filename;
+		}
+		elseif (file_exists(MIFRAME_LOCALMODULES_PATH . $filename)) {
+			// Repositorio del sistema
+			$path = MIFRAME_LOCALMODULES_PATH . $filename;
+		}
+		if ($path == '') {
 			unset($files[$k]);
 		}
 		else {
-			include_once $filename;
+			$files[$k] = $path;
+			include_once $path;
 		}
 	}
 }

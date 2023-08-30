@@ -23,7 +23,7 @@ function micode_modules_tests(string $type) {
 
 	// Modulos existentes en admin por defecto (Sistema)
 	// $path = miframe_path($repositorio, $type, 'tests', '*' . $extension);
-	$path = MIFRAME_ROOT . "/tests/*." . $type;
+	$path = dirname(MIFRAME_ROOT) . "/tests/*." . $type;
 
 	$fileList = glob($path, GLOB_NOSORT);
 
