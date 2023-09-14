@@ -39,6 +39,7 @@ Se diferencian los siguientes directorios para uso de **miCode-Manager**:
 * `data`: Archivos de datos y configuración del sistema.
 * `public`: Scripts del sistema.
 * `tests`: Scripts de pruebas a librerías del sistema.
+* `cmd`: Contiene scripts de soporte para uso del servidor web nativo de PHP.
 
 Por precaución y seguridad, estos son los permisos recomendados para cada uno de estos directorios, sean de acceso directo desde el navegador (A), lectura (L), escritura (E) y/o ejecución (X):
 
@@ -54,6 +55,25 @@ Por precaución y seguridad, estos son los permisos recomendados para cada uno d
     | tests      | A/L/X    |
     +------------+----------+
 
+## Soporte para servidor web nativo de PHP
+
+Para sistemas operativos Windows, en el directorio `cmd` se incluye el archivo por lotes `micode-server.bat` que al ejecutarse inicia una sesión de servidor web usando el servidor nativo de PHP, que puede usarse para consultar esta aplicación sin requerir de un servidor externo. Para que funcione, es necesario declarar en el entorno del sistema, los siguientes valores:
+
+- `PHPPATH`: Path de PHP.EXE.
+- `PHPSERVERPORT`: Puerto a usar para el servidor web (por ejemplo, "8080").
+
+Esto puede hacerse por cualquiera de estos métodos:
+
+- Modificando agregando estos valores a las variables de entorno de Windows.
+- Fijando las variables de entorno usando el comando `SET` y luego invocando `micode-server.bat`. Por ejemplo:
+````
+set PHPPATH=C:\php\php.exe
+set PHPSERVERPORT=8080
+micode-server.bat
+````
+- Haciendo una copia de `micode-server.bat` e incluir en el nuevo archivo la declaración de valores usando el comando `SET`.
+
+Al ejecutar, abrirá la ventana del navegador web por defecto en la URL `http://localhost:8080`, donde se visualizará la interfaz de **miCode-Manager**.
 
 ## Documentación
 
