@@ -13,13 +13,8 @@
  * @since Abril 2022
  */
 
-// Para consultar correctamente la aplicación, abrir desde "public/index.php".
-$location = 'public/index.php';
-$mensaje = "<script>window.location='{$location}';</script>" .
-	"Esta página ha sido consultada de forma incorrecta (E1041)." .
-	"<a href=\"{$location}\">Favor consultar desde esta página</a>.";
-if (!headers_sent()) {
-	header("HTTP/1.1 301 Moved Permanently");
-	header("Location: {$location}");
-}
-exit($mensaje);
+// Directorio principal
+define('MIFRAME_ROOT', __DIR__);
+
+// Consulta script principal
+include_once __DIR__ . '/src/admin/index.php';

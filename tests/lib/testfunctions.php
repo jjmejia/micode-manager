@@ -6,7 +6,9 @@
  * @since Mayo 2022
  */
 
-define('MIFRAME_LOCALMODULES_PATH', realpath(__DIR__ . '/../../src/repository'));
+if (!defined('MIFRAME_LOCALMODULES_PATH')) {
+	define('MIFRAME_LOCALMODULES_PATH', realpath(__DIR__ . '/../../src/repository'));
+}
 
 function miframe_test_start(string $title) {
 

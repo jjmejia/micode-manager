@@ -16,11 +16,19 @@ namespace miFrame\Check;
 // Ej. @check=xxxx
 // Esto para reducir dependencia del autoload a constantes externas.
 
-if (count($_REQUEST) <= 0 || isset($_REQUEST['depok'])) {
-	$check = new EvalMiCode();
-	$check->checkExternals();
-	$check->checkMiCode();
-}
+$e = function() {
+	if (count($_REQUEST) <= 0 || isset($_REQUEST['check-externals-update'])) {
+		$check = new EvalMiCode();
+		$check->checkExternals();
+		$check->checkMiCode();
+	}
+};
+
+// Ejecuta función temporal
+$e();
+
+// Remueve para no afectar el resto del sistema
+unset($e);
 
 /**
  * Clase para evaluar instalación actual de "miCode".
@@ -44,18 +52,21 @@ class EvalMiCode {
 
 		if (file_exists($inifile)) {
 			// Valida que apunte a un directorio valido
-			$contenido = str_replace('..', '_', file_get_contents($inifile));
-			$local = $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . $contenido;
-			if ($contenido == '' || realpath($local) !== MIFRAME_BASEDIR) {
+			$local = str_replace('..', '_', file_get_contents($inifile));
+			// $local = $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . $contenido;
+			if ($local == '' || $local !== MIFRAME_BASEDIR) {
 				$local = '';
 			}
 		}
 		if ($local == '') {
 			// Crea archivo con el path actual
+			/* ALMACENA FULL PATH
 			$root = realpath($_SERVER['DOCUMENT_ROOT']) . DIRECTORY_SEPARATOR;
 			$len = strlen($root);
 			if (substr(MIFRAME_BASEDIR, 0, $len) == $root) {
 				$local = str_replace('/', DIRECTORY_SEPARATOR, substr(MIFRAME_BASEDIR, $len));
+			*/
+				$local = str_replace('/', DIRECTORY_SEPARATOR, MIFRAME_BASEDIR);
 				$dirname = dirname($inifile);
 				if (!is_dir($dirname)) {
 					@mkdir($dirname);
@@ -68,10 +79,12 @@ class EvalMiCode {
 					$this->mensajes['ok'] = "Creado archivo requerido por el sistema ($inifile)";
 					$mensaje .= "<p>Referencia asociada al path <b>{$local}</b></p>";
 				}
+			/*
 			}
 			else {
 				$mensaje = "<p>El directorio destino ({MIFRAME_BASEDIR}) no está dentro del directorio base ($root)</p>";
 			}
+			*/
 		}
 		if ($mensaje != '') {
 			// Salida a pantalla
@@ -102,10 +115,11 @@ class EvalMiCode {
 	public function checkMiCode() {
 
 		// Valida que exista php-namespaces.ini y modules-installed.ini
+		$inifile_path = MIFRAME_DATA . '/projects/micode-admin.path';
 		$inifile_modulos = MIFRAME_BASEDIR . '/micode.private/modules-installed.ini';
 		$inifile_namespaces = MIFRAME_BASEDIR . '/micode/config/php-namespaces.ini';
 		// Carga definiciones, incluidas en uno de los templates del sistema
-		$filename = MIFRAME_ROOT . '/repository/templates/startup/micode-admin/tpl-config.ini';
+		$filename = MIFRAME_SRC . '/repository/templates/startup/micode-admin/tpl-config.ini';
 		// echo "!$inifile_modulos = " . file_exists($inifile_modulos) . " || !$inifile_namespaces = " . file_exists($inifile_namespaces) . "<hr>"; exit;
 
 		// Procesa si no existe alguno de los archivos indicados o si el archivo de instalados es mas antiguo
@@ -114,6 +128,7 @@ class EvalMiCode {
 			|| !file_exists($inifile_namespaces)
 			|| (file_exists($inifile_modulos) && filemtime($inifile_modulos) < filemtime($filename))
 			|| !$this->checkInstalledIni($inifile_modulos, $filename)
+			|| filemtime($inifile_path) > filemtime($inifile_modulos)
 			) {
 
 			$startup_info = parse_ini_file($filename, true, INI_SCANNER_TYPED);
@@ -122,7 +137,7 @@ class EvalMiCode {
 			// existe "modules-installed.ini", debe apuntar directamente al repositorio
 
 			// Directorio para ubicar los módulos asociados al proyecto
-			define('MIFRAME_LOCALMODULES_PATH', MIFRAME_ROOT . '/repository');
+			define('MIFRAME_LOCALMODULES_PATH', MIFRAME_SRC . '/repository');
 
 			// Carga el resto de las librerías
 			include_once MIFRAME_BASEDIR . '/micode/initialize.php';
@@ -183,7 +198,10 @@ class EvalMiCode {
 			$datarepos = parse_ini_file($filename, true, INI_SCANNER_TYPED);
 		}
 		// Adiciona repositorio incluido
-		$datarepos['miframe'] = array('path' => MIFRAME_ROOT . '/repository/miframe');
+		$datarepos['miframe'] = array('path' => realpath(MIFRAME_SRC . '/repository/miframe'));
+
+		// echo "<pre>"; print_r($datarepos); echo "</pre>";
+
 		// Captura listado de archivos básicos
 		$filename = MIFRAME_DATA . '/base/lib-externals.ini';
 		if (!file_exists($filename)) {
@@ -198,15 +216,25 @@ class EvalMiCode {
 		$total_pendientes = 0;
 		$root = $_SERVER['DOCUMENT_ROOT'] . '/';
 
+		// echo "<pre>"; print_r($dataini); echo "</pre>";
+
 		foreach ($dataini as $modulo => $info) {
 			$arreglo = explode('/', $modulo, 2);
 			if (!isset($arreglo[1])) { continue; }
-			$arreglo[0] = trim($arreglo[0]);
-			$arreglo[1] = trim($arreglo[1]);
+			$arreglo[0] = trim($arreglo[0]); // Clase
+			$arreglo[1] = trim($arreglo[1]); // Modulo asociado
 			// El primer elemento es la clase
 			if ($arreglo[0] != $clase) {
 				$clase = $arreglo[0];
-				if (!isset($datarepos[$arreglo[0]])) {
+				$registrar_clase = true;
+				if (isset($datarepos[$clase])) {
+					$filelocal = $this->getRepositoriesIni($datarepos[$clase]['path']);
+					if (file_exists($filelocal)) {
+						$locales[$clase] = parse_ini_file($filelocal, true, INI_SCANNER_TYPED);
+						$registrar_clase = false;
+					}
+				}
+				if ($registrar_clase) {
 					$inforepo = '';
 					if (isset($info[$clase . '-info'])) {
 						$inforepo = trim($info[$clase . '-info']);
@@ -220,14 +248,9 @@ class EvalMiCode {
 					}
 					continue;
 				}
-				else {
-					$filelocal = $this->getRepositoriesIni($datarepos[$clase]['path']);
-					if (file_exists($filelocal)) {
-						$locales[$clase] = parse_ini_file($filelocal, true, INI_SCANNER_TYPED);
-					}
-				}
 				// echo "<pre>"; print_r($locales[$clase]); exit;
 			}
+
 			$pendiente = true;
 			$info['dirbase'] = '';
 			if (isset($locales[$clase][$arreglo[1]])) {
@@ -236,7 +259,10 @@ class EvalMiCode {
 				$infolocal = $locales[$clase][$arreglo[1]];
 				if (isset($infolocal['dirbase'])) {
 					$info['dirbase'] = trim($infolocal['dirbase']);
-					if ($info['dirbase'] != '' && is_dir($root . $datarepos[$clase]['path'] . DIRECTORY_SEPARATOR . $info['dirbase'])) {
+					if ($info['dirbase'] != ''
+						// && is_dir($root . $datarepos[$clase]['path'] . DIRECTORY_SEPARATOR . $info['dirbase'])
+						&& is_dir($datarepos[$clase]['path'] . DIRECTORY_SEPARATOR . $info['dirbase'])
+						) {
 						$pendiente = false;
 					}
 				}
@@ -268,12 +294,16 @@ class EvalMiCode {
 
 		$guardar = false;
 
-		if (isset($_REQUEST['depok'])) {
+		if (isset($_REQUEST['check-externals-update'])) {
 			// echo "<pre>"; print_r($_REQUEST); echo "</pre>"; exit;
 			// NOTA: No generaliza $lroot en minúsculas en caso de ejecutar en Linux, donde los
 			// path si se afectan según sean en mayúsculas o minúsculas.
+			/* REMOVIDA VALIDACION DE DOCUMENT_ROOT!
+			Dificulta proceso de adaptación al cambiar el DOCUMENT_ROOT de miCode pero
+			no el de los demás scripts.
 			$lroot = str_replace("\\", '/', $_SERVER['DOCUMENT_ROOT']) . '/';
 			$len = strlen($lroot);
+			*/
 			foreach ($repos_pendientes as $clase => $info) {
 				if (!$info['pendiente']) { continue; }
 				$valor = '';
@@ -284,13 +314,16 @@ class EvalMiCode {
 				if ($valor != '') {
 					$repos_pendientes[$clase]['valor'] = $valor;
 					$valor = str_replace("\\", '/', $valor);
+					/*
 					$lvalor = strtolower($valor);
 					// El directorio recibido DEBE estar contenido en $_SERVER['DOCUMENT_ROOT']
 					if (substr($lvalor, 0, $len) === strtolower($lroot)) {
 						$valor = substr($valor, $len);
 					}
 					if ($valor == '' || !is_dir($lroot . $valor)) {
-						$repos_pendientes[$modulo]['error'] = 'Directorio no valido';
+					*/
+					if ($valor == '' || !is_dir($valor)) {
+						$repos_pendientes[$clase]['error'] = 'Directorio no valido';
 					}
 					else {
 						$repos_pendientes[$clase]['pendiente'] = false;
@@ -307,7 +340,7 @@ class EvalMiCode {
 			// Valida si debe guardar archivo
 			if ($guardar) {
 
-				include_once MIFRAME_ROOT . '/repository/miframe/file/inifiles.php';
+				include_once MIFRAME_SRC . '/repository/miframe/file/inifiles.php';
 
 				$filename = MIFRAME_DATA . '/base/repositories.ini';
 				ksort($datarepos);
@@ -330,8 +363,9 @@ class EvalMiCode {
 
 		$this->openHTML('miCode - Dependencias');
 
-		echo "<p>Algunos directorios son requeridos para poder continuar.</p>".
-			"Tenga presente que todos los directorios indicados <b>deben</b> ser subdirectorios de <i>{$_SERVER['DOCUMENT_ROOT']}</i>.</p>" .
+		echo "<p>Algunos directorios usados como repositorios de código y/o recursos son requeridos para poder continuar.</p>".
+			// "Tenga presente que todos los directorios indicados <b>deben</b> ser subdirectorios de <i>{$_SERVER['DOCUMENT_ROOT']}</i>.</p>" .
+			"<p>Favor indicar el path completo para prevenir posibles interpretaciones erroneas, ejemplo: <i>C:\\subdir1\\subdir2</i>.</p>" .
 			"<form method=\"POST\"><ul>";
 
 		$total_pendientes = 0;
@@ -368,7 +402,7 @@ class EvalMiCode {
 		echo "</ul>";
 
 		if ($total_pendientes > 0) {
-			echo "<p style=\"margin-top:20px\"><input type=\"submit\" name=\"depok\" value=\"Actualizar repositorios\" style=\"padding:5px 10px\"></p>";
+			echo "<p style=\"margin-top:20px\"><input type=\"submit\" name=\"check-externals-update\" value=\"Actualizar repositorios\" style=\"padding:5px 10px\"></p>";
 		}
 		echo "</form>";
 
@@ -379,42 +413,35 @@ class EvalMiCode {
 
 		$guardar = false;
 
-		if (isset($_REQUEST['depok'])) {
-			// echo "<pre>"; print_r($_REQUEST); echo "</pre>";
-			// NOTA: No generaliza $lroot en minúsculas en caso de ejecutar en Linux, donde los
-			// path si se afectan según sean en mayúsculas o minúsculas.
-			$lroot = str_replace("\\", '/', $_SERVER['DOCUMENT_ROOT']) . '/';
-			$len = strlen($lroot);
+		if (isset($_REQUEST['check-externals-update'])) {
 			foreach ($dataini as $modulo => $info) {
 				if (!$info['pendiente']) { continue; }
 				$valor = '';
 				if (isset($_REQUEST[$info['ctl']])) {
 					$valor = str_replace(array('..', '<', '#'), '_', trim($_REQUEST[$info['ctl']]));
 				}
-				// Valida que $valor contenga DOCUMENT_ROOT
+
 				if ($valor != '') {
 					$dataini[$modulo]['valor'] = $valor;
 					$valor = str_replace("\\", '/', $valor);
 					$lvalor = strtolower($valor);
-					// El directorio recibido DEBE estar contenido en $_SERVER['DOCUMENT_ROOT']
-					if (substr($lvalor, 0, $len) === strtolower($lroot)) {
-						$valor = substr($valor, $len);
-						$lvalor = substr($lvalor, $len);
-					}
 					// Valida si contiene el directorio indicado para esta clase
 					$lclase = str_replace("\\", '/', $datarepos[$info['clase']]['path']) . '/';
 					$lenc = strlen($lclase);
-					// El directorio recibido DEBE estar contenido en $_SERVER['DOCUMENT_ROOT']
+					// El directorio recibido DEBE estar contenido en el directorio asociado a la clase
 					if (substr($lvalor, 0, $lenc) === strtolower($lclase)) {
 						$valor = substr($valor, $lenc);
 					}
-					if ($valor == '' || !is_dir($lroot . $lclase . $valor)) {
+					if ($valor == '' || !is_dir($lclase . $valor)) {
 						$dataini[$modulo]['error'] = 'Directorio no valido';
 					}
 					else {
 						// Valida archivo dependencia
+						if (!is_array($info['require'])) {
+							$info['require'] = explode("\n", str_replace("\r", '', $info['require']));
+						}
 						$archivo = array_shift($info['require']);
-						if (!file_exists($lroot . $lclase . $valor . '/' . $archivo)) {
+						if (!file_exists($lclase . $valor . '/' . $archivo)) {
 							$dataini[$modulo]['error'] = "El archivo de referencia ({$archivo}) no fue encontrado";
 						}
 						else {
@@ -432,7 +459,7 @@ class EvalMiCode {
 			// Valida si debe guardar archivo
 			if ($guardar) {
 
-				include_once MIFRAME_ROOT . '/repository/miframe/file/inifiles.php';
+				include_once MIFRAME_SRC . '/repository/miframe/file/inifiles.php';
 
 				foreach ($locales as $clase => $infoclase) {
 					$filename = $this->getRepositoriesIni($datarepos[$clase]['path']);
@@ -461,7 +488,7 @@ class EvalMiCode {
 
 		$this->openHTML('miCode - Dependencias');
 
-		echo "<p>Algunas librerías son requeridas para poder continuar.</p>".
+		echo "<p>Algunas librerías especializadas son requeridas para poder continuar.</p>".
 			"<p>Descargue los scripts del repositorio indicado, instalelos en su equipo e indique la ruta del " .
 			"archivo de referencia indicado en cada caso.<br />" .
 			// "Tenga presente que todos los directorios indicados <b>deben</b> ser subdirectorios de <i>{$_SERVER['DOCUMENT_ROOT']}</i>.</p>" .
@@ -499,7 +526,7 @@ class EvalMiCode {
 					$mensaje = trim($info['error']);
 				}
 				echo "<input type=\"text\" size=\"50\" value=\"{$valor}\" name=\"{$info['ctl']}\"> <b class=\"check-error\">&lt; {$mensaje}</b>";
-				echo "<div><small>Debe ser un subdirectorio de <i>" . str_replace('/', DIRECTORY_SEPARATOR, $_SERVER['DOCUMENT_ROOT'] . '/' . $datarepos[$info['clase']]['path']) . "</i>";
+				echo "<div><small>Debe ser un subdirectorio de <i>" . $datarepos[$info['clase']]['path'] . "</i>";
 				if (isset($info['help']) && $info['help'] != '') {
 					echo "<br />{$info['help']}";
 				}
@@ -513,7 +540,7 @@ class EvalMiCode {
 		echo "</ul>";
 
 		if ($total_pendientes > 0) {
-			echo "<p style=\"margin-top:20px\"><input type=\"submit\" name=\"depok\" value=\"Actualizar dependencias\" style=\"padding:5px 10px\"></p>";
+			echo "<p style=\"margin-top:20px\"><input type=\"submit\" name=\"check-externals-update\" value=\"Actualizar dependencias\" style=\"padding:5px 10px\"></p>";
 		}
 		echo "</form>";
 
@@ -524,20 +551,23 @@ class EvalMiCode {
 
 		$this->openHTML('miCode - Módulos iniciales de proyecto');
 
-		echo "<p>Los siguientes módulos han sido encontrados:</p><ul>";
-
-		foreach ($listado as $modulo => $subtotal) {
-			$mensajes = '';
-			if ($subtotal > 1) {
-				$mensajes = miframe_text('Módulo **$1** instalado con éxito ($2 archivos)', $modulo, $subtotal);
+		if (count($listado) > 0) {
+			echo "<p>Los siguientes módulos han sido encontrados:</p><ul>";
+			foreach ($listado as $modulo => $subtotal) {
+				$mensajes = '';
+				if ($subtotal > 1) {
+					$mensajes = miframe_text('Módulo **$1** instalado con éxito ($2 archivos)', $modulo, $subtotal);
+				}
+				else {
+					$mensajes = miframe_text('Módulo **$1** instalado con éxito (1 archivo)', $modulo);
+				}
+				echo "<li>$mensajes</li>";
 			}
-			else {
-				$mensajes = miframe_text('Módulo **$1** instalado con éxito (1 archivo)', $modulo);
-			}
-			echo "<li>$mensajes</li>";
+			echo "</ul>";
 		}
-
-		echo "</ul>";
+		else {
+			echo "<p>No se han podido evaluar los módulos iniciales requeridos por este proyecto.</p>";
+		}
 
 		$this->closeHTML();
 	}
@@ -577,6 +607,7 @@ class EvalMiCode {
 
 	private function getRepositoriesIni(string $local) {
 
-		return $filename = $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . $local . DIRECTORY_SEPARATOR . 'micode-repository.ini';
+		// return $filename = $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . $local . DIRECTORY_SEPARATOR . 'micode-repository.ini';
+		return $filename = $local . DIRECTORY_SEPARATOR . 'micode-repository.ini';
 	}
 }

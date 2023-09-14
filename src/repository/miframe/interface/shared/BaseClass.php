@@ -132,14 +132,14 @@ class BaseClass {
 	 */
 	private function setURIbase() {
 
+		$this->uri_base = '/';
 		// Nombre de quien se invoca como el script base.
 		$script_name = strtolower(miframe_server_get('SCRIPT_NAME'));
-		$url_base = dirname($script_name) . '/';
+		$dirbase = dirname($script_name);
+		// Si no hay subdirectorios (ej. '/index.php'), dirbase() retorna "\". Lo ignora en ese caso.
+		if ($dirbase !== '\\') { $this->uri_base = $dirbase . '/'; }
 		// Asegura formato
-		if (substr($url_base, 0, 1) != '/') { $url_base = '/' . $url_base; }
-		if (substr($url_base, -1, 1) != '/') { $url_base .= '/'; }
-
-		$this->uri_base = $url_base;
+		if (substr($this->uri_base, 0, 1) != '/') { $this->uri_base = '/' . $this->uri_base; }
 	}
 
 	/**

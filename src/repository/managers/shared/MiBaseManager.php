@@ -11,6 +11,7 @@ namespace miFrame\Manager\Shared;
 class MiBaseManager {
 
 	private $last_error = '';
+
 	protected $doc = false;
 	protected $type = '';
 
@@ -38,11 +39,20 @@ class MiBaseManager {
 	 * Acción particular al copiar un archivo local a la copia de trabajo.
 	 * Esta función se invoca luego de validar que los valores de origen y destino son correctos,
 	 * por tanto no requieren ser validados nuevamente.
+	 * Si el archivo destino ya existe, no realiza nueva copia si son identicos.
 	 * Esta es la función a redefinir en cada clase Manager personalizada.
 	 */
 	protected function exportWorkCopyLocal(string $module, string $src, string $dest) {
-		// echo "COPIA $src a $dest<hr>"; $retornar = true;
-		return @copy($src, $dest);
+
+		$resultado = false;
+		if (file_exists($dest) && sha1_file($src) === sha1_file($dest)) {
+			$resultado = true;
+		}
+		else {
+			$resultado = @copy($src, $dest);
+		}
+
+		return $resultado;
 	}
 
 	/**

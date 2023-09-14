@@ -19,12 +19,12 @@ include_once MIFRAME_LOCALMODULES_PATH . '/miframe/file/inifiles.php';
 function micode_modules_class(string $type, bool $exit_on_error = true) {
 
 	// Revisa configuración de dato global "php-namespaces" usado para buscar el path de clases.
-	$namespaces = miframe_data_get('php-namespaces');
-	if (!is_array($namespaces) || !isset($namespaces['local']['miframe\\manager\\*'])) {
+	$namespaces = miframe_data_get('php-namespaces-local');
+	if (!is_array($namespaces) || !isset($namespaces['miframe\\manager\\*'])) {
 		// Actualiza "php-namespaces" (usado al buscar clases)
 		if (!is_array($namespaces)) { $namespaces = array(); }
-		$namespaces['local']['miframe\\manager\\*'] = 'repository\\managers\\*.php';
-		miframe_data_put('php-namespaces', $namespaces);
+		$namespaces['miframe\\manager\\*'] = 'repository\\managers\\*.php';
+		miframe_data_put('php-namespaces-local', $namespaces);
 	}
 
 	$nombre_clase = '\\miFrame\\Manager\\' . $type . 'Manager';
@@ -201,7 +201,8 @@ function micode_modules_repo_filename(string $app_name, bool $check_file = true,
 		}
 	}
 	if ($path != '') {
-		$file_repo = miframe_path($_SERVER['DOCUMENT_ROOT'], $path, 'micode.private', 'repo.ini');
+		// $file_repo = miframe_path($_SERVER['DOCUMENT_ROOT'], $path, 'micode.private', 'repo.ini');
+		$file_repo = miframe_path($path, 'micode.private', 'repo.ini');
 		if ($path == '' || ($check_file && !file_exists($file_repo))) {
 			miframe_error('No pudo ubicar archivo de proyecto en $1', $file_repo);
 		}
@@ -284,9 +285,6 @@ function micode_modules_types(string $type = '') {
 				if ($clase_manejador === false) {
 					unset($listado[$tipo]);
 				}
-				// elseif ($type != '' && $type == $tipo) {
-					// return $titulo;
-				// }
 			}
 		}
 		// Lo guarda en memoria para no volver a leer el archivo .ini si se requiere de nuevo

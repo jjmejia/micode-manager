@@ -3,3 +3,5 @@
 data/base/repositories.ini
 data/projects/*
 soporte
+cmd/local-micode.bat
+data/base/repositories.ini

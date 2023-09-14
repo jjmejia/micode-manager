@@ -62,7 +62,7 @@ function checkModules(&$view, string $param_name, string $default = '') {
 
 ?>
 
-<link rel="stylesheet" href="<?= $this->view->createURL('/resources/css/forms.css') ?>">
+<link rel="stylesheet" href="<?= $this->view->createURL('/public/resources/css/forms.css') ?>">
 
 <?= $this->view->param('mensajes:implode', '', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
 

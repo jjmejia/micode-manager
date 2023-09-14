@@ -56,7 +56,7 @@ class MiProyecto { // extends Router
 		miframe_data_fun('miframe-box-web', array($this, 'localBox'));
 	}
 
-	public function loadView(string $filename, string $path_files_web, string $path_files_json, string $name = '') {
+	public function loadViews(string $filename, string $path_files_web, string $path_files_json, string $name = '') {
 
 		$this->view_file = $filename;
 		$this->view_name = $name;
@@ -221,7 +221,7 @@ class MiProyecto { // extends Router
 		$salida = '';
 
 		if (!$this->framebox_css) {
-			$url_base = $this->router->createURL('/resources/css/miframebox.css');
+			$url_base = $this->router->createURL('/public/resources/css/miframebox.css');
 			$salida .= "<link rel=\"stylesheet\" href=\"$url_base\">";
 			$this->framebox_css = true; // No repite este bloque
 			}

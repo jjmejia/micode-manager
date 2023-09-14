@@ -18,22 +18,26 @@
  */
 function miframe_inifiles_get_data(string $filename, bool $process_sections = true, int $scanner_mode = INI_SCANNER_TYPED) {
 
-	$dataini = array();
+	$data = array();
 	if (file_exists($filename)) {
-		$dataini = parse_ini_file($filename, $process_sections, $scanner_mode);
-		if (is_array($dataini)) {
-			$dataini = array_change_key_case($dataini, CASE_LOWER);
+		$data = parse_ini_file($filename, $process_sections, $scanner_mode);
+		if (is_array($data) && count($data) > 0) {
+			$data = array_change_key_case($data, CASE_LOWER);
 			if ($process_sections) {
-				foreach ($dataini as $k => $v) {
+				foreach ($data as $k => $v) {
 					if (is_array($v)) {
-						$dataini[$k] = array_change_key_case($v, CASE_LOWER);
+						$data[$k] = array_change_key_case($v, CASE_LOWER);
 					}
 				}
 			}
 		}
+		else {
+			// Garantiza que retorne arreglo
+			$data = array();
+		}
 	}
 
-	return $dataini;
+	return $data;
 }
 
 /**

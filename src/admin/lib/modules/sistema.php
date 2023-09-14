@@ -6,37 +6,21 @@
  * @since Mayo 2022
  */
 
-function micode_modules_sistema_ini(bool $process = false) {
+function micode_modules_sistema_ini() {
 
-	// Adiciona datos del sistema
-	$sistema = array();
-	if (defined('MIFRAME_ROOT')) {
-		// Lee archivo de configuración de sistema (complementa miproyecto.ini)
-		// El archivo "sistema.ini" es un archivo propio del "admin", por tanto puede
-		// guardarse en src/config para efectos de que sea usado un unico directorio para los
-		// .ini. Sin embargo, no significa que todos los .ini de ese directorio pertenezcan a
-		// los modulos del repositorio, pero si que son de alguna forma administrados desde módulos
-		// de "micode" (editor de inis).
-		// En este caso, un proyecto puede tener los siguientes directorios config:
-		// * src/micode/config : Parámetros de los módulos de micode y del proyecto.
-		// * config: miproyecto.ini, lista de modulos, etc - Al mismo nivel de "src". Adiministrado
-		//   por micode/admin.
-		$filename = MIFRAME_LOCALCONFIG_PATH . '/sistema.ini';
+	// Carga listado de elementos esperados
+	$sistema = micode_modules_load_cfgs('sistema', 'php');
 
-		if (file_exists($filename)) {
-			$datasys = micode_modules_load_cfgs('sistema', 'php');
-			$sistema = parse_ini_file($filename, false, INI_SCANNER_TYPED) + $datasys;
-		}
-	}
+	// Lee archivo de configuración de sistema (complementa miproyecto.ini)
+	$filename = MIFRAME_LOCALCONFIG_PATH . '/sistema.ini';
 
-	if ($process && count($sistema) > 0) {
-		foreach ($sistema as $k => $v) {
-			$k = strtolower($k);
-			if ($k == 'debug') {
-				miframe_debug_enable($v != false);
-			}
-			elseif (!isset($data[$k]) && $v != '' && !is_array($v)) {
-				miframe_data_put($k, trim($v), false);
+	if (file_exists($filename)) {
+		// Carga datos registrados en el archivo .ini
+		$data = parse_ini_file($filename, false, INI_SCANNER_TYPED);
+		if (is_array($data)) {
+			foreach ($data as $key => $info) {
+				$key = strtolower(trim($key));
+				$sistema[$key] = trim($info);
 			}
 		}
 	}
@@ -78,7 +62,7 @@ function micode_modules_load_cfgs(string $group = '', string $type = '') {
 
 function micode_modules_repository_path(string $path = '') {
 
-	return miframe_path(MIFRAME_ROOT, 'repository', $path);
+	return miframe_path(MIFRAME_SRC, 'repository', $path);
 }
 
 function micode_modules_dataconfig_path(string $path) {
@@ -92,7 +76,7 @@ function micode_modules_enlace(string $cfg_name, mixed $data_repo = false) {
 	$path_modulos = micode_modules_path($cfg_name, false, $data_repo);
 	$filename = miframe_path($path_modulos, '..', 'index.php');
 	if (file_exists($filename)) {
-		// Compara MIFRAME_ROOT con el path del directorio de proyectos.
+		// Compara DOCUMENT_ROOT con el path del directorio de proyectos.
 		// Los primeros items iguales corresponden al directorio "www" y los restantes
 		// se usan para crear el URl de acceso directo al proyecto.
 		$root = str_replace('\\', '/', strtolower($_SERVER['DOCUMENT_ROOT'])) . '/';

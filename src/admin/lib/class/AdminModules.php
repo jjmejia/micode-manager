@@ -32,8 +32,9 @@
 
 namespace miFrame\Local;
 
-// Funciones de serialización usadas por AdminModules
+// Librerías de soporte
 include_once MIFRAME_LOCALMODULES_PATH . '/miframe/file/serialize.php';
+include_once MIFRAME_LOCALMODULES_PATH . '/miframe/file/inifiles.php';
 
 class AdminModules {
 
@@ -46,6 +47,7 @@ class AdminModules {
 
 	public $clase_manejador = false;
 	public $manejadores = array();
+	public $manejador_any = false;
 
 	// public function __construct() { ... }
 
@@ -57,6 +59,13 @@ class AdminModules {
 				$this->manejadores[$extension] = micode_modules_class(substr($extension, 1), false);
 			}
 			$this->clase_manejador = &$this->manejadores[$extension];
+		}
+		if (!$this->clase_manejador) {
+			// Carga manejador generico
+			if (!$this->manejador_any) {
+				$this->manejador_any = micode_modules_class('Shared\\MiBase');
+			}
+			$this->clase_manejador = $this->manejador_any;
 		}
 
 		return ($this->clase_manejador !== false);
@@ -90,7 +99,8 @@ class AdminModules {
 			$spath = micode_modules_repository_path('miframe');
 			$this->repositories['miframe'] = array(
 				'description' => miframe_text('Repositorio para módulos incluídos con miCode'),
-				'path' => micode_modules_remove_root($spath)
+				// 'path' => micode_modules_remove_root($spath)
+				'path' => $spath
 				);
 			// Ordena repositorios
 			ksort($this->repositories);
@@ -106,6 +116,8 @@ class AdminModules {
 			}
 		}
 
+		// print_r($this->repositories); echo "<hr>";
+
 		return $this->repositories;
 	}
 
@@ -118,7 +130,8 @@ class AdminModules {
 		}
 		if (isset($this->repositories[$base])) {
 			$info = $this->repositories[$base];
-			$filename = miframe_path($_SERVER['DOCUMENT_ROOT'], $info['path'], 'micode-repository.ini');
+			// $filename = miframe_path($_SERVER['DOCUMENT_ROOT'], $info['path'], 'micode-repository.ini');
+			$filename = $info['path'] . '/micode-repository.ini';
 			$listado = miframe_inifiles_get_data($filename);
 		}
 
@@ -155,7 +168,6 @@ class AdminModules {
 						$dirbase = $this->evalDirBase($modulo, $v);
 						// Redefine "dirbase" para apuntar al repositorio comun
 						if (!isset($this->listado[$modulo])) {
-							// if (isset($v['dirbase'])) { unset($v['dirbase']); }
 							$v['repo-local'] = $base;
 							$v['module-name'] = $k;
 							$v['module-base'] = $modbase;
@@ -381,8 +393,6 @@ class AdminModules {
 				$requeridos_local = $this->getRequiredFiles($modulo, true);
 				// print_r($requeridos_local); echo "<hr>";
 				foreach ($requeridos_local as $basename => $inforeq) {
-					// $origen = $this->getDirRemote($modulo, '', $basename);
-					// if ($tipo == 'new') { $siempre[$dmodulo] = true; }
 					// Usa destino para generar la llave porque al crear paquetes es fácil asociarlo
 					// ya que allá se remplaza el path real aqui listado, pero asociado al path
 					// destino (lee los archivos directamente).
@@ -406,7 +416,9 @@ class AdminModules {
 			$k ++;
 		}
 
-		// echo "<pre>$modulo<hr>"; print_r($datamodules); echo "<hr>"; print_r($requeridos); echo "<hr>$origen --> $destino<hr>"; exit;
+		// echo "<pre>$modulo : $resultado<hr>"; print_r($datamodules); echo "<hr>"; print_r($requeridos);
+		// echo "<hr>$origen --> $destino<hr>";
+		// exit;
 
 		// Retorna listado de archivos sin procesar
 		if ($return_files) { return $requeridos; }
@@ -432,27 +444,11 @@ class AdminModules {
 					}
 				}
 				else {
-					$destino_base = dirname($inforeq['dest']);
-					if (!is_dir($destino_base)) {
-						@mkdir($destino_base, 0777, true);
-					}
-					if (!is_dir($destino_base)) {
-						$resultado = miframe_text('Módulo $1: No pudo crear directorio "$2"', $modulo, $destino_base);
-					}
-					elseif (@copy($inforeq['src'], $inforeq['dest'])) {
-						if (!isset($resultmodules[$modulo])) { $resultmodules[$modulo] = 0; }
-						$resultmodules[$modulo] ++;
-					}
-					else {
-						// Falló copiado del archivo
-						$errors = error_get_last();
-						$resultado = miframe_text('Módulo **$1**: No pudo copiar el archivo "$2" a "$3": $4',
-							$inforeq['module'],
-							$inforeq['src'],
-							$inforeq['dest'],
-							$errors['message']
-							);
-					}
+					// No pudo cargar manejador
+					$errors = error_get_last();
+					$resultado = miframe_text('Módulo **$1**: No pudo habilitar manejador para el tipo indicado',
+						$inforeq['module']
+						);
 				}
 				if ($resultado !== '') {
 					if (isset($resultmodules[$modulo])) {
@@ -468,9 +464,9 @@ class AdminModules {
 		$ini_actualizado = false;
 		if ($resultado == '') {
 			// Realiza actualización de los .ini
-			// Captura información actual
 
-			// print_r($datamodules); echo "<hr>";
+			// echo "<pre>"; print_r($datamodules); echo "<hr>"; exit;
+
 			if (!$this->updateRemoteModules($datamodules, $app_name, true)) {
 				$resultado = miframe_text('Archivo para control de versiones no pudo ser creado/actualizado.');
 			}
@@ -634,8 +630,8 @@ class AdminModules {
 			}
 			elseif (isset($this->repositories[$arreglo[0]])) {
 				// Tomado del repositorio local, complementa
-				// $dirbase = micode_modules_repository_path($arreglo[0] . '/' . $dirbase);
-				$dirbase = miframe_path($_SERVER['DOCUMENT_ROOT'], $this->repositories[$arreglo[0]]['path'], $dirbase);
+				// $dirbase = miframe_path($_SERVER['DOCUMENT_ROOT'], $this->repositories[$arreglo[0]]['path'], $dirbase);
+				$dirbase = miframe_path($this->repositories[$arreglo[0]]['path'], $dirbase);
 				$tipodir = 'Repositorio';
 			}
 		}
@@ -649,9 +645,10 @@ class AdminModules {
 		if (!is_dir($dirbase)) {
 			miframe_error('El directorio base "$1" para el módulo local "$2" no existe', $dirbase, $module);
 		}
-		elseif (strpos(strtolower($dirbase), strtolower(miframe_path($_SERVER['DOCUMENT_ROOT']))) === false) {
-			miframe_error('El directorio base para el módulo local "$1" no es valido', $module);
-		}
+		// YA NO VALIDA DOCUMENT_ROOT!
+		// elseif (strpos(strtolower($dirbase), strtolower(miframe_path($_SERVER['DOCUMENT_ROOT']))) === false) {
+		// 	miframe_error('El directorio base para el módulo local "$1" no es valido', $module);
+		// }
 
 		// echo "$tipodir: $dirbase<hr>";
 

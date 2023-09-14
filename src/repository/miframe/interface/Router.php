@@ -100,6 +100,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	private function requestURI() {
 
 		$retornar = miframe_data_get('request-uri', '?');
+
 		if ($retornar === '?') {
 			// No se ha declarado aún
 			$retornar = strtolower(miframe_server_get('PATH_INFO'));
@@ -178,12 +179,11 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 		// Valida si usa servidor interno PHP ya que no funciona para dicho servicio
 		// (No soporta consultas file_get_contents('http://...'), cURL ni similares).
+		// En este caso, soporta redireccionamiento dinámico URI por defecto.
 		if (php_sapi_name() === 'cli-server') {
-			return $metodo;
+			$metodo = 'uri';
 		}
-
-
-		if (file_exists($filename) && filemtime($filename) > filemtime(__FILE__)) {
+		elseif (file_exists($filename) && filemtime($filename) > filemtime(__FILE__)) {
 			// Lee contenido del archivo (debe ser mas reciente que este script)
 			$contenido = strtolower(trim(file_get_contents($filename)));
 			if ($contenido != '') {

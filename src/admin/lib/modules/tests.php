@@ -19,11 +19,11 @@ function micode_modules_tests(string $type) {
 	// $extension = $clase_manejador->Extension();
 
 	// AL ejecutar test, no se han declarado constantes
-	$repositorio = MIFRAME_ROOT . '/repository';
+	$repositorio = MIFRAME_SRC . '/repository';
 
 	// Modulos existentes en admin por defecto (Sistema)
 	// $path = miframe_path($repositorio, $type, 'tests', '*' . $extension);
-	$path = dirname(MIFRAME_ROOT) . "/tests/*." . $type;
+	$path = MIFRAME_ROOT . "/tests/*." . $type;
 
 	$fileList = glob($path, GLOB_NOSORT);
 

@@ -9,14 +9,20 @@
  * @since Abril 2022
  */
 
+if (!defined('MIFRAME_ROOT')) {
+	// No se ha invocado desde el index.php correcto. Redirecciona para realizar la consulta correcta.
+	// Si no se consulta desde el index.php indicado, las rutas relativas no funcionarán correctamente.
+	include_once __DIR__ . '/lib/modules/reload-index.php';
+}
+
 // Directorio base del proyecto actual "src/admin"
 define('MIFRAME_BASEDIR', __DIR__);
 
 // Directorio con los scripts del sistema "src" (de preferencia sin acceso web)
-define('MIFRAME_ROOT', dirname(MIFRAME_BASEDIR));
+define('MIFRAME_SRC', MIFRAME_ROOT . DIRECTORY_SEPARATOR . 'src');
 
 // Directorio con los archivos de configuración del sistema "data" (de preferencia sin acceso web)
-define('MIFRAME_DATA', dirname(MIFRAME_ROOT) . DIRECTORY_SEPARATOR . 'data');
+define('MIFRAME_DATA', MIFRAME_ROOT . DIRECTORY_SEPARATOR . 'data');
 
 // Path para registro local de proyectos
 define('MIFRAME_PROJECTS_REPO', MIFRAME_DATA . DIRECTORY_SEPARATOR . 'projects');
@@ -30,9 +36,6 @@ include_once __DIR__ . '/micode/initialize.php';
 // Funciones exclusivas del administrador web.
 include_once __DIR__ . '/lib/modules/admin.php';
 
-
-micode_modules_sistema_ini(true);
-
 $app = new \miFrame\Admin\MiProyecto();
 
 try {
@@ -40,11 +43,18 @@ try {
 	// $app->debug(true);
 
 	// Carga rutas (puede definir un archivo diferente por ejemplo si la consulta es para Web Services)
-	$app->loadRoutes(miframe_path(MIFRAME_DATA, 'base', 'rutas.ini'), miframe_path(__DIR__, 'control'));
+	$app->loadRoutes(
+		miframe_path(MIFRAME_DATA, 'base', 'rutas.ini'),
+		miframe_path(__DIR__, 'control')
+		);
 
 	// Configuración de vistas
 	// (si hay multiples directorios de vistas para Web, indicar el path a la vista deseada)
-	$app->loadView(miframe_path(MIFRAME_DATA, 'base', 'vistas.ini'), miframe_path(__DIR__, 'views/web'), miframe_path(__DIR__, 'views/api'));
+	$app->loadViews(
+		miframe_path(MIFRAME_DATA, 'base', 'vistas.ini'),
+		miframe_path(__DIR__, 'views/web'),
+		miframe_path(__DIR__, 'views/api')
+		);
 
 	// Se asegura que haya configurado "sistema.ini"
 	if ($app->userEmail() == '' || $app->userName() == '') {
@@ -96,7 +106,6 @@ try {
 		miframe_text('Página no encontrada'),
 		miframe_text('La referencia **$1** no está asociada con una página valida.', $app->router->request())
 		);
-
 }
 catch (Exception $e) {
 	// Captura excepción

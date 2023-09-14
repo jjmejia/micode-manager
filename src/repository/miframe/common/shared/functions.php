@@ -262,6 +262,19 @@ function miframe_data_put(string $name, mixed $value, bool $rewrite = true) {
 	}
 }
 
+function miframe_data_put_array(array $data, array $ignorar = array()) {
+
+	foreach ($data as $k => $v) {
+		if ($k != '' && !in_array($k, $ignorar)) {
+			if (!is_array($v)) {
+				$v = trim($v);
+			}
+			// Registra valores en $_SERVER para que puedan ser consultados donde quiera
+			miframe_data_put($k, $v);
+		}
+	}
+}
+
 /**
  * Recupera valor almacenado previamente usando miframe_data_put().
  * Los valores se guardan en la variable superglobal PHP $GLOBALS['MIFRAMEDATA'].

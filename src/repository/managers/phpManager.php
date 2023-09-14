@@ -85,41 +85,15 @@ class phpManager extends \miFrame\Manager\Shared\MiBaseManager {
 	 */
 	protected function exportWorkCopyLocal(string $module, string $src, string $dest) {
 
-		/* Intento de no depender del nombre, pero si cambia el path final, no serviría de todas formas
-		// Compara hacia atrás para buscar diferencias entre $src y $dest
-		$i = 1;
-		while ($i < strlen($src) && $i < strlen($dest)) {
-			$s = strtolower(substr($src, -$i, 1));
-			$d = strtolower(substr($dest, -$i, 1));
-			$i ++;
-			if ($s !== $d) {
-				// Diferentes, hasta aqui remplaza
-				$i --;
-				echo "$s / $d / $i : " . substr($src, $i) . '<hr>';
-				$src = substr($src, 0, $i);
-				$pos_src = 'substr(__FILE__, -' . $i . ')';
-				break;
-			}
-		}
-		*/
-
-		// No copia el archivo como tal sino que crea un acceso al original
-		$root = strtolower(miframe_path($_SERVER['DOCUMENT_ROOT']));
-		if (strpos(strtolower($src), $root) === 0) {
-			$pos_src = '\'' . substr($src, strlen($root)) . '\'';
-			$src = '$_SERVER[\'DOCUMENT_ROOT\']';
-		}
-
-		if ($pos_src != '') { $src .= ' . ' . $pos_src; }
-
-		// echo "$src<hr>$pos_src"; exit;
-
+		// NOTA: El DOCUMENT_ROOT de la aplicación miCode puede no ser el mismo del proyecto.
 		$contenido = '<?php' . PHP_EOL .
 			'// MICODE/REPOSITORY ' . $module . PHP_EOL .
 			'// ' . miframe_text('Importante! No modifique este archivo. Creado sólo para esta copia de trabajo.') . PHP_EOL .
 			'// ' . miframe_text('Será remplazado por el contenido original al generar la copia de distribución/producción.') . PHP_EOL .
 			'// ' . miframe_text('Creado en') . ': ' . date('Y-m-d H:i:s') . PHP_EOL .
-			'include_once ' . str_replace('\\', '/', $src) . ';' . PHP_EOL;
+			'include_once \'' . str_replace('\\', '/', $src) . '\';' . PHP_EOL;
+
+		// echo "COPIA PHPMANAGER: $src a $dest<hr>"; $retornar = true;
 
 		return @file_put_contents($dest, $contenido);
 	}
