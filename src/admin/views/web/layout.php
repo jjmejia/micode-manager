@@ -10,7 +10,7 @@
 
 include_once __DIR__ . '/subs.php';
 
-$micode_logo = $this->view->createURL('favicon.png');
+$micode_logo = $this->view->createURL('public/favicon.png');
 
 ?>
 <html>

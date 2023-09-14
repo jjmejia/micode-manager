@@ -918,7 +918,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 */
 	public function detour(string $filename, bool $export_file = false) {
 
-		if (file_exists($filename) && $this->allowDetour) {
+		if (is_file($filename) && $this->allowDetour) {
 
 			$this->printDebug(miframe_text('Enrutamiento correcto? $1', $filename));
 

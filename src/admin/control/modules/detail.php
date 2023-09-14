@@ -75,7 +75,7 @@ if ($file != '' && isset($requeridos[$file])) {
 $documento = '';
 if ($filename != '' && file_exists($filename)) {
 	$clase_manejador = micode_modules_class($type);
-	$clase_manejador->ignoreLocalStyles = true;
+	// $clase_manejador->ignoreLocalStyles = true;
 	$documento = $clase_manejador->getDocumentationHTML($filename, true, true);
 }
 elseif ($filename != '') {

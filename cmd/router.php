@@ -1,5 +1,7 @@
 <?php
 /**
+ * Enrutador para uso del Servidor web interno de PHP.
+ *
  * Si una petición de URI no especifica un fichero, entonces el index.php o index.html que estén en el directorio
  * dado serán devueltos. Si ninguno de los ficheros existen, la búsqueda de index.php e index.html continuará en
  * el directorio padre y continuará así hasta encontrar uno de ello o se alcance el directorio raíz. Si se encuentra
@@ -14,53 +16,31 @@
  */
 
 // Valida que este script se esté ejecutando desde el servidor interno
-if (php_sapi_name() !== 'cli-server') {
+if (php_sapi_name() !== 'cli-server' || !isset($_SERVER['SERVER_SOFTWARE'])) {
     exit('Script no ejecutado desde el Servidor web interno de PHP (PHP Built-in web server)');
 }
 
-// Declara constante para identificar este script
-define('MIFRAME_LOCAL_SERVER', php_sapi_name());
-
-// Para compensar el problema del server de no ejecutar el index asociado si la URL tiene una parte
-// inicial valida, se revisa el valor de "SERVER_URI" cuando "SCRIPT_FILENAME" toma el path del router
-// (este archivo), lo que ocurre siempre que el enlace corresponde a un script o archivo que no existe.
+// "SCRIPT_FILENAME" toma el valor del router cuando hay una coincidencia parcial con el valor
+// en "REQUEST_URI", por ejemplo si REQUEST_URI = "a/b/c" y solo existe "a/b" pero no existe un
+// "index.php" o "index.html" en "a/b".
+// NOTA: Si se invoca este script desde Web sobre el mismo servidor PHP, no lo ejecuta.
 if ($_SERVER['SCRIPT_FILENAME'] == __FILE__ && $_SERVER['REQUEST_URI'] != '') {
 	// Se ubica en el directorio raíz
 	chdir($_SERVER['DOCUMENT_ROOT']);
-	// Busca hasta encontrar un "index.php" valido
-	// Recupera la cadena sin parametros GET
-	$dirname = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-	while ($dirname != '') {
-
-		// Habilite para no procesar si invoca archivos PHP
-		if (strtolower(trim(substr($dirname, -4, 4))) === '.php') { break; }
-
-		$dirname = dirname($dirname);
-		if ($dirname == DIRECTORY_SEPARATOR) {
-			// Llego al raiz
-			$dirname = '';
-		}
-		$filename = '.' . $dirname . '/index.php';
-		if (file_exists($filename)) {
-			// Redefine valor de SCRIPT_FILENAME, SCRIPT_NAME y PATH_INFO
-			// (PHP_SELF no es estándar en versiones recientes).
-			$_SERVER['SCRIPT_NAME'] = substr($filename, 1);
-			$_SERVER['SCRIPT_FILENAME'] = realpath($filename);
-			$_SERVER['PATH_INFO'] = substr($_SERVER['REQUEST_URI'], strlen($dirname));
-			// Indica que usa router
-			$_SERVER['PHPROUTER_SCRIPT'] = __FILE__;
-			// Se ubica en el directorio asociado
-			chdir(dirname($_SERVER['SCRIPT_FILENAME']));
-			// Reporta cambio al log de errores para seguimiento
-			error_log("PHPROUTER {$_SERVER['REQUEST_URI']} --> {$_SERVER['SCRIPT_NAME']}");
-			// Elimina variables usadas en este script para que no sean heredadas al script.
-			unset($dirname);
-			unset($filename);
-			// Invoca archivo
-			include $_SERVER['SCRIPT_FILENAME'];
-			// Termina el script
-			return;
-		}
+	// Invoca siempre el index.php
+	$_SERVER['SCRIPT_FILENAME'] = realpath($_SERVER['DOCUMENT_ROOT'] . '/index.php');
+	if (file_exists($_SERVER['SCRIPT_FILENAME'])) {
+		// Redefine valor de SCRIPT_FILENAME, SCRIPT_NAME y PATH_INFO
+		// (PHP_SELF no es estándar en versiones recientes).
+		$_SERVER['SCRIPT_NAME'] = '/' . basename($_SERVER['SCRIPT_FILENAME']);
+		// Indica que usa router
+		$_SERVER['PHPROUTER_SCRIPT'] = __FILE__;
+		// Reporta cambio al log de errores para seguimiento
+		error_log("PHPROUTER {$_SERVER['REQUEST_URI']} --> {$_SERVER['SCRIPT_NAME']}");
+		// Invoca archivo
+		include $_SERVER['SCRIPT_FILENAME'];
+		// Termina el script
+		return;
 	}
 }
 

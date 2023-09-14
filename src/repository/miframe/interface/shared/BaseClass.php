@@ -137,7 +137,7 @@ class BaseClass {
 		$script_name = strtolower(miframe_server_get('SCRIPT_NAME'));
 		$dirbase = dirname($script_name);
 		// Si no hay subdirectorios (ej. '/index.php'), dirbase() retorna "\". Lo ignora en ese caso.
-		if ($dirbase !== '\\') { $this->uri_base = $dirbase . '/'; }
+		if ($dirbase !== DIRECTORY_SEPARATOR) { $this->uri_base = $dirbase . '/'; }
 		// Asegura formato
 		if (substr($this->uri_base, 0, 1) != '/') { $this->uri_base = '/' . $this->uri_base; }
 	}

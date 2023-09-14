@@ -190,7 +190,7 @@ class phpManager extends \miFrame\Manager\Shared\MiBaseManager {
 	 */
 	public function getDocumentationHTML(string $filename, bool $clickable = false, bool $show_errors = true, bool $with_styles = true) {
 		$this->initialize_doc();
-		$this->doc->ignoreLocalStyles = !$with_styles;
+		// $this->doc->ignoreLocalStyles = !$with_styles;
 		$this->doc->clickable = $clickable;
 		return $this->doc->render($filename, $show_errors);
 	}
