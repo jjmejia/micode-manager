@@ -5,4 +5,4 @@
 
 echo "Hola mundo!";
 
-echo $this->view->showParams('Parámetros');
+echo $this->params->show('Parámetros');

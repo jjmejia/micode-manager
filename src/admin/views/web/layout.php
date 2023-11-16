@@ -10,21 +10,21 @@
 
 include_once __DIR__ . '/subs.php';
 
-$micode_logo = $this->view->createURL('public/favicon.png');
+$micode_logo = $this->router->createURL('public/favicon.png');
 
 ?>
 <html>
 <head>
-	<title>miCode - <?= $this->view->param('author:e') ?></title>
+	<title>miCode - <?= $this->params->get('author:e') ?></title>
 	<link rel="icon" type="image/x-icon" href="<?= $micode_logo ?>">
-	<link rel="stylesheet" href="<?= str_replace('/tests/', '/', $this->view->createURL('/public/resources/css/micode.css')) ?>">
+	<link rel="stylesheet" href="<?= str_replace('/tests/', '/', $this->router->createURL('/public/resources/css/micode.css')) ?>">
 </head>
 
 
 <div class="header">
 	<div class="header-logo"><img src="<?= $micode_logo ?>" width="18"></div>
-	<b><a href="<?= $this->view->documentRoot() ?>"><span class="micode-main"><?= $this->view->param('page-title:e') ?></span> - <?= strtoupper($this->view->param('author:e')) ?></a></b>
-	<div class="session-info"><small><?= $this->view->param('author-email:e') ?></small></div>
+	<b><a href="<?= $this->router->documentRoot() ?>"><span class="micode-main"><?= $this->params->get('page-title:e') ?></span> - <?= strtoupper($this->params->get('author:e')) ?></a></b>
+	<div class="session-info"><small><?= $this->params->get('author-email:e') ?></small></div>
 </div>
 
 <nav class="nav-main-app">
@@ -36,7 +36,7 @@ $micode_logo = $this->view->createURL('public/favicon.png');
 	<?php
 
 	// Botones de acción en cada página
-	if ($this->view->param('page-buttons:count') > 0) {
+	if ($this->params->get('page-buttons:count') > 0) {
 
 	?>
 
@@ -45,7 +45,7 @@ $micode_logo = $this->view->createURL('public/favicon.png');
 	<?php
 
 		$primero = true;
-		foreach ($this->view->param('page-buttons') as $enlace => $titulo) {
+		foreach ($this->params->get('page-buttons') as $enlace => $titulo) {
 			// Valida enlace
 			$llave = '';
 			$params = '';

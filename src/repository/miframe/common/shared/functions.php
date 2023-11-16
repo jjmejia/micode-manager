@@ -15,7 +15,7 @@ include_once __DIR__ . '/debug.php';
  */
 function miframe_is_web() {
 
-	return (isset($_SERVER["REMOTE_ADDR"]) && $_SERVER["REMOTE_ADDR"] != '');
+	return (miframe_server_get("REMOTE_ADDR") !== '');
 }
 
 /**
@@ -36,7 +36,7 @@ function miframe_error(string $message, mixed ...$args) {
 	miframe_data_put('error-backtrace', miframe_debug_backtrace_info());
 	$message = miframe_text($message, ...$args);
 	// if ($debug_message != '') { $message .= ' - DEBUG: ' . $debug_message; }
-	throw new Exception($message);
+	throw new \Exception($message);
 	// trigger_error($message, E_USER_ERROR);
 	exit;
 }
@@ -255,11 +255,11 @@ function miframe_data_put(string $name, mixed $value, bool $rewrite = true) {
 		$GLOBALS['MIFRAMEDATA'][$name] = $value;
 	}
 	// Remueve elementos en blanco
-	if (array_key_exists($name, $_SERVER)
-		&& ($_SERVER[$name] === '' || $_SERVER[$name] === false)
-	 	) {
-		unset($_SERVER[$name]);
-	}
+	// if (array_key_exists($name, $_SERVER)
+	// 	&& ($_SERVER[$name] === '' || $_SERVER[$name] === false)
+	//  	) {
+	// 	unset($_SERVER[$name]);
+	// }
 }
 
 function miframe_data_put_array(array $data, array $ignorar = array()) {
@@ -443,6 +443,9 @@ function miframe_text(string $text, mixed ...$args) {
 
 	$texto = str_replace($llaves, $args, $texto);
 
+	// Opcional: https://www.php.net/manual/es/function.strtr.php
+	// $texto = strtr($texto, $args);
+
 	return $texto;
 }
 
@@ -524,21 +527,26 @@ function miframe_class_load($class, ...$args) {
  * Convierte valor en bytes a un texto con formato.
  * Ej. 1024 se convierte en 1K o 1KB, este último cuando $fullsufix = true.
  *
- * @param int $size Tamaño en bytes a dar formato.
+ * @param mixed $size Tamaño en bytes a dar formato.
  * @param bool $fullsufix TRUE retorna "KB", "MB" o "GB" como sufijo. De lo contrario retorna "K", "M" o "G".
  * @return string Texto con formato
  */
-function miframe_bytes2text(int $size, bool $fullsufix = false) {
+function miframe_bytes2text(mixed $size, bool $fullsufix = false) {
 
 	$num = 0;
-	$tipos = array('', 'K', 'M', 'G');
-	if ($fullsufix) { $tipos = array(' bytes', ' KB', ' MB', ' GB'); }
-	$ciclos = -1;
-	do {
-		$num = $size;
-		$ciclos ++;
-		$size = ($size / 1024);
-	} while ($size >= 1 && isset($tipos[$ciclos]));
+	if (is_numeric($size) && $size != 0) {
+		$tipos = array('', 'K', 'M', 'G');
+		if ($fullsufix) { $tipos = array(' bytes', ' KB', ' MB', ' GB'); }
+		$ciclos = -1;
+		do {
+			$num = $size;
+			$ciclos ++;
+			$size = ($size / 1024);
+		} while ($size >= 1 && isset($tipos[$ciclos]));
 
-	return str_replace('.00', '', number_format($num, 2)) . $tipos[$ciclos];
+		// Da formato al numero final
+		$num = str_replace('.00', '', number_format($num, 2)) . $tipos[$ciclos];
+	}
+
+	return $num;
 }

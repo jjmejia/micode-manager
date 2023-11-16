@@ -6,7 +6,7 @@
  * @since Diciembre 2022
  */
 
-$listado = $this->view->param('listado');
+$listado = $this->params->get('listado');
 $nuevos = array('total' => count($listado), 'modules' => array());
 
 foreach ($listado as $menu => $info) {

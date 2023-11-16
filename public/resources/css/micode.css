@@ -123,6 +123,11 @@ a {
 	text-decoration: none;
 	outline-width: 0;
 }
+.box-modificado {
+	background:#FADBD8;
+	border:1px solid #922B21 !important;
+	margin-bottom:1px;
+}
 .foot {
 	font-size: 12px;
 	padding-top: 40px;

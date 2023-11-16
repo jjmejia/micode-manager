@@ -42,14 +42,18 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	private $request_param = '';
 	private $request = array();
 	private $recibido = false;
-	private $rutas = array();
+	private $rutas_privadas = array();
+	private $rutas_publicas = array();
 	private $detour_handler = false;
 	private $matchSuccessful = false;		// TRUE si encuentra al menos un match valido
 	private $method_bind = '';
 	private $abortando = false;
 	private $deteniendo = false;
-	private $map_usado = '';
-	private $prepare_include = false;
+	private $ruta_usada = '';
+	private $indexfile = '';
+	private $dir_temp = '';
+	private $uri_base = '';
+	private $params = array();
 
 	public $autoExport = false;
 	public $stopScript = true;
@@ -59,10 +63,14 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 	public function __construct() {
 
+		$this->setURIbase();
 		$this->initialize();
-		$this->color_debug = '#2e2072';
+		$this->clearRoutes();
+
 		// Inicializa ob_start() para capturar cualquier salida a pantalla <-- Evaluar
 		// ob_start();
+
+		$this->color_debug = '#2e2072';
 	}
 
 	/**
@@ -79,6 +87,73 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	public function requestStartWith(string $text) {
 
 		return (isset($this->request[0]) && $this->request[0] === strtolower($text));
+	}
+
+	/**
+	 * Crea un nombre URI usando la URL base.
+	 *
+	 * @param string $path Path a ser adicionado a la URL base.
+	 * @return string URL
+	 */
+	public function createURL(string $path) {
+
+		// $this->uri_base siempre inicia y termina en "/"
+		if ($path != '' && substr($path, 0, 1) == '/') { $path = trim(substr($path, 1)); }
+		return $this->getURIbase() . $path;
+	}
+
+	/**
+	 * Retorna nombre del URL principal.
+	 *
+	 * @return string URL
+	 */
+	public function documentRoot() {
+
+		$path = basename($this->scriptFilename());
+		return $this->createURL($path);
+	}
+
+	/**
+	 * Path físico del script principal.
+	 *
+	 * @return string Path
+	 */
+	public function scriptFilename() {
+
+		return miframe_server_get('SCRIPT_FILENAME');
+	}
+
+	/**
+	 * Path físico real esperado para el path relativo indicado.
+	 *
+	 * @param string $path Nombre del script o path a adicionar al directorio
+	 *   base. Si no se indica, usa el asociado al script invocado.
+	 * @return string Path
+	 */
+	public function createPath(string $script_name) {
+
+		return miframe_path($this->getDirBase(), $script_name);
+	}
+
+	/**
+	 * Directorio físico que contiene el script principal.
+	 *
+	 * @return string Path
+	 */
+	public function getDirBase() {
+
+		$script = $this->scriptFilename();
+		return realpath(dirname($script));
+	}
+
+	/**
+	 * Retorna la URL base identificada.
+	 *
+	 * @return string URL
+	 */
+	public function getURIbase() {
+
+		return $this->uri_base;
 	}
 
 	/**
@@ -120,7 +195,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 						// No hay info adicional, puede que este script se haya invocado desde una URL
 						// alterna o un directorio virtual. En este caso, recupera el path invocado directamente
 						// para validar si existe físicamente un recurso asociado.
-						$filename = miframe_server_get('SCRIPT_FILENAME');
+						$filename = $this->scriptFilename();
 					}
 					else {
 						// Complementa el path recibido para ubicar el archivo físico
@@ -152,9 +227,9 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 *
 	 * @return array Arreglo de rutas.
 	 */
-	public function usedMap() {
+	public function selectedRoute() {
 
-		return $this->map_usado;
+		return $this->ruta_usada;
 	}
 
 	/**
@@ -301,48 +376,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	}
 
 	/**
-	 * Carga enrutamientos listados de un archivo .ini.
-	 *
-	 *
-	 * @param string $filename Nombre del archivo .ini a cargar,
-	 * @param bool	 $rewrite  TRUE para remplazar enrutamientos existentes. FALSE adiciona a los ya registrados.
-	 * @param string $dirbase  Path a usar para ubicar los scripts.
-	*/
-	public function loadConfig(string $filename, bool $rewrite = false) {
-
-		if (!file_exists($filename)) {
-			miframe_error('Archivo no encontrado: $1', $filename);
-		}
-
-		$data = parse_ini_file($filename, true, INI_SCANNER_RAW);
-
-		foreach ($data as $type => $group) {
-			$this->loadConfigArray($type, $group, $rewrite);
-		}
-	}
-
-	public function clearRoutes(string $type = '') {
-
-		if ($type == '') {
-			$this->rutas = array();
-		}
-		elseif (isset($this->rutas[$type])) {
-			$this->rutas[$type] = array();
-		}
-	}
-
-	public function addPrepareAction(string $reference, string $action) {
-
-		// Permite $action = '' para evitar ejecutar el prepare cuando usa "*"
-		$reference = strtolower(trim($reference));
-		if ($reference != '') {
-			if (!is_array($this->prepare_include)) { $this->prepare_include = array(); }
-			$this->prepare_include[$reference] = $action;
-		}
-	}
-
-	/**
-	 * Carga enrutamientos definidos en un arreglo.
+	 * Realiza definición de enrutamientos contenidos en un archivo .ini.
 	 *
 	 * Para el archivo .ini se deben definir tres grupos: "config", "general" y "map" (y/o "map-xxxx").
 	 * El grupo "config" permite realizar configuraciones a la clase.
@@ -355,24 +389,22 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 *
 	 * 	   [config]
 	 * 	   debug = true
-	 *     search-path = (path para buscar scripts)
-	 *     method = (método por defecto: uri, get, post, request)
 	 *
-	 *     [general]
+	 *     [private]
 	 *     default = (script a ejecutar cuando no recibe enrutamiento o el enrutamiento apunta al index.php)
 	 *     abort = (script a ejecutar en respuesta a $this->abort())
 	 *
-	 *     [map]
+	 *     [public]
 	 *     (enrutamiento) = (script a ejecutar)
 	 *     ...
 	 *
-	 *     [map-get]
+	 *     [public-get]
 	 *     (enrutamiento) = (script a ejecutar)
 	 *     ...
 	 *
 	 * Las reglas para la declaración del enrutamiento se describen en la documentación de la función runOnce().
 	 *
-	 * El grupo "map" contiene declaración de enrutamientos aplicados para cualquier método de consulta sea web
+	 * El grupo "public" contiene declaración de enrutamientos aplicados para cualquier método de consulta sea web
 	 * (GET, POST) o los adiconales usados para servicios web (HEAD, DELETE, PUT, PATCH). Para definir el mapa de
 	 * enrutamientos propios de un método específico, use el grupo "map-xxxx" donde la "xxxx" corresponde al nombre
 	 * del método de interés.
@@ -382,99 +414,107 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 * - method: string. Puede ser "post", "get", "request" o "uri". Método usado para detectar el enrutamiento.
 	 * - uri-base: string. Definición del URI base esperado, especialmente requerido si el método de captura es "uri".
 	 *
-	 * @param string $type 	  Elemento a asignar: "general" o "map".
+	 * @param string $filename Nombre del archivo .ini a cargar,
+	 * @param string $dirbase  Path a usar para ubicar los scripts.
+	*/
+	public function loadConfig(string $filename) {
+
+		if (!file_exists($filename)) {
+			miframe_error('Archivo no encontrado: $1', $filename);
+		}
+
+		$data = parse_ini_file($filename, true, INI_SCANNER_RAW);
+
+		foreach ($data as $type => $group) {
+			$metodo_map = ''; // Usado en rutas publicas
+			if ($type == 'private') {
+				$this->addPrivateRoutes($group);
+				continue;
+			}
+			elseif (strtolower(substr($type, 0, 7)) == 'public-') {
+				// MRuta pública asociada a un método particular
+				$metodo_map = strtolower(trim(substr($type, 7)));
+				$type = 'public';
+			}
+			if ($type == 'public') {
+				$this->addRoutes($group, $metodo_map);
+			}
+		}
+	}
+
+	private function addPrivateRoutes(array $data) {
+
+		// Metodos privados asociados
+		$privados = array(
+			'default' => 'addDefaultRoute',
+			'abort' => 'addAbortRoute',
+			'before_stop' => 'addBeforeStopRoute'
+		);
+
+		// Evalua contenido
+		foreach ($data as $reference => $accion) {
+			if (isset($privados[$reference])) {
+				$metodo_clase = $privados[$reference];
+				$this->$metodo_clase($accion);
+			}
+		}
+	}
+
+	public function clearRoutes() {
+
+		$this->rutas_privadas = array(
+			'default' => '',
+			'abort' => '',
+			'before-stop' => ''
+			);
+		$this->rutas_publicas = array();
+	}
+
+	/**
+	 * Carga enrutamientos definidos en un arreglo.
+	 *
 	 * @param array  $data 	  Arreglo de datos a cargar.
-	 * @param bool   $rewrite TRUE para remplazar enrutamientos existentes. FALSE adiciona a los ya registrados.
+	 * @param string $method  Método asociado (POST, GET, etc.). En blanco, cualquiera.
 	 * @param bool  		  TRUE si se pudo relacionar el arreglo, FALSE en otro caso.
 	*/
-	private function loadConfigArray(string $type, array $data,  bool $rewrite = false) {
-
-		$type = strtolower(trim($type));
-
-		// Método request asociado
-		$metodo_map = '';
-		// Valida si contiene el metodo asociado (REQUEST_METHOD)
-		if (strtolower(substr($type, 0, 4)) == 'map-') {
-			$metodo_map = strtolower(trim(substr($type, 4)));
-			$type = 'map';
-		}
-
-		if (!in_array($type, [ 'general', 'map', 'config', 'prepare' ])) { return false; }
-
-		// Valida que existan los elementos mínimos
-		if (in_array($type, [ 'general', 'map' ]) && !isset($this->rutas[$type])) {
-			$this->rutas[$type] = array();
-		}
+	private function addRoutes(array $data, string $method = '') {
 
 		foreach ($data as $reference => $accion) {
-			if ($type == 'config') {
-				// Opciones de configuracion
-				switch ($reference) {
-					// case 'method':
-					// 	// Fija método inicial
-					// 	$this->bindMethod($accion);
-					// 	break;
-					case 'strict':
-						$this->strict = ($accion !== false && $accion != 'false' && $accion > 0);
-						// print_r($this->strict); echo "<hr>$accion " . (intval($accion) > 0); exit;
-						break;
-					case 'debug':
-						$this->debug = ($accion !== false && $accion != 'false' && $accion > 0);
-						break;
-					default:
-				}
-				continue;
-			}
-			elseif ($type == 'prepare') {
-				$this->addPrepareAction($reference, $accion);
-				continue;
-			}
-
-			// echo "$type : $reference : $accion : $metodo_map<hr>";
+			// La descripción se indica separando con "|" (opcional)
 			$arreglo = explode('|', $accion . '|');
-			$this->addRoute($type, $reference, $arreglo[0], $arreglo[1], $metodo_map);
+			$this->addRoute($reference, $arreglo[0], $arreglo[1], $method);
 		}
 
 		return true;
 	}
 
 	/**
-	 * Adiciona nueva ruta a evaluar posteriormente.
+	 * Adiciona nueva ruta pública a evaluar posteriormente.
 	 * Consulte la función runOnce() para el detalle de cómo se determina el enrutamiento a partir del
 	 * path de referencia.
 	 *
 	 * @param string $type 		  Elemento a asignar: "general" o "map".
 	 * @param string $reference   Path de referencia para determinar el enrutamiento.
-	 * @param string $description Descripción del elemento.
-	 * @param string $method 	  Método asociado (POST, GET, etc.). En blanco, cualquiera (se ignora
-	 *      					  para $type = "general").
 	 * @param string $action 	  Script y/o función a ejecutar.
+	 * @param string $description Descripción del elemento.
+	 * @param string $method 	  Método asociado (POST, GET, etc.). En blanco, cualquiera.
 	 */
-	public function addRoute(string $type, string $reference, string $action, string $description = '', string $method = '') {
+	private function addRoute(string $reference, string $action, string $description = '', string $method = '') {
 
-		$type = strtolower($type);
-
-		if (in_array($type, [ 'general', 'map' ])) {
-			$reference = strtolower(trim($reference));
-			$action = trim($action);
-			$method = strtolower(trim($method));
-			if ($method == '') { $method = '@any'; }
-			if ($reference != '' && $action != '') {
-				if ($type == 'general') {
-					$this->rutas[$type][$reference] = $action;
-				}
-				else {
-					// Incluye método de consulta. Separa el primer elemento
-					$arreglo = explode('/', $reference, 2);
-					$primero = strtolower($arreglo[0]);
-					$resto = '';
-					if (isset($arreglo[1])) { $resto = strtolower($arreglo[1]); }
-					$this->rutas[$type][$primero][$resto][$method] = array(
-						'action' => $action,
-						'description' => trim($description)
-					);
-				}
-			}
+		$reference = strtolower(trim($reference));
+		$action = trim($action);
+		$method = strtolower(trim($method));
+		if ($method == '') { $method = '@any'; }
+		if ($reference != '' && $action != '') {
+			// Incluye método de consulta. Separa el primer elemento
+			$arreglo = explode('/', $reference, 2);
+			$primero = strtolower($arreglo[0]);
+			$resto = '';
+			if (isset($arreglo[1])) { $resto = strtolower($arreglo[1]); }
+			$this->rutas_publicas[$primero][$resto][$method] = array(
+				'action' => $action,
+				'description' => trim($description)
+			);
 		}
 	}
 
@@ -484,7 +524,11 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 * @return array Arreglo de enrutamientos.
 	 */
 	public function getLoadedRoutes() {
-		return $this->rutas;
+
+		return array(
+				'private' => $this->rutas_privadas,
+				'public' => $this->rutas_publicas
+				);
 	}
 
 	/**
@@ -499,23 +543,18 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 		return (!$this->matchSuccessful || $this->multipleMatch);
 	}
 
-	private function getRoute($reference, $type = '') {
+	private function getPublicRoute($reference, $startsWith = '') {
 
 		$accion = '';
-		if ($type != '') {
-			// $type = $reference; // Usualmente "map"
+		if ($startsWith != '') {
 			$metodo = strtolower($_SERVER['REQUEST_METHOD']);
 			$metodo_any = '@any';
-			if (isset($this->rutas['map'][$type][$reference][$metodo])) {
-				$accion = $this->rutas['map'][$type][$reference][$metodo]['action'];
+			if (isset($this->rutas_publicas[$startsWith][$reference][$metodo])) {
+				$accion = $this->rutas_publicas[$startsWith][$reference][$metodo]['action'];
 			}
-			elseif (!$this->strict && isset($this->rutas['map'][$type][$reference][$metodo_any])) {
-				$accion = $this->rutas['map'][$type][$reference][$metodo_any]['action'];
+			elseif (!$this->strict && isset($this->rutas_publicas[$startsWith][$reference][$metodo_any])) {
+				$accion = $this->rutas_publicas[$startsWith][$reference][$metodo_any]['action'];
 			}
-		}
-		elseif (isset($this->rutas['general'][$reference])) {
-			// Generales
-			$accion = $this->rutas['general'][$reference];
 		}
 
 		return $accion;
@@ -530,34 +569,21 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 		// Evalua si no hay datos recibidos, en ese caso ejecuta la opción "default"
 		if ($this->continue()) {
-			$accion = $this->getRoute('default');
-			if ($accion != '') {
-				$this->runDefault($accion);
-			}
+			$this->runDefault();
 		}
 
-		if (isset($this->rutas['map'])) {
-			// Evalua rutas programadas por método
-			$this->runMap();
-		}
-
-		return $this->matchSuccessful;
-	}
-
-	private function runMap() {
-
+		// Evalua coincidencias de los datos recibidos con las rutas mapeadas
 		if ($this->continue()
-			&& isset($this->rutas['map'])
-			&& count($this->rutas['map']) > 0
+			&& count($this->rutas_publicas) > 0
 			&& count($this->request) >= 1
 			) {
-			// Usa una copia en caso que $this->rutas sea modificado al ejecutar algún include
+			// Usa una copia en caso que $this->rutas_publicas sea modificado al ejecutar algún include
 			$primero = strtolower($this->request[0]);
-			if (isset($this->rutas['map'][$primero])) {
-				$rutas = array_keys($this->rutas['map'][$primero]);
+			if (isset($this->rutas_publicas[$primero])) {
+				$rutas = array_keys($this->rutas_publicas[$primero]);
 				sort($rutas); // Asegura se evalue correctamente (primero las acciones sin args)
 				foreach ($rutas as $k => $reference) {
-					$accion = $this->getRoute($reference, $primero);
+					$accion = $this->getPublicRoute($reference, $primero);
 					// echo "PRIMERO $primero / $reference = $accion<hr>";
 					if ($accion != '') {
 						if ($reference != '') { $reference = '/' . $reference; }
@@ -569,6 +595,8 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 				}
 			}
 		}
+
+		return $this->matchSuccessful;
 	}
 
 	/**
@@ -602,7 +630,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 		$ultimo_path = '';
 		$capturando = false;
 		$this->params = array();
-		$this->map_usado = '';
+		$this->ruta_usada = '';
 		// Inicializa arreglo con el valor recibido previamente
 		$this->setParam($this->request_param, $this->request());
 
@@ -660,23 +688,19 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 		return $this->runAction($action, $reference);
 	}
 
-	/**
-	 * Acción a realizar si no se detecta enrutamiento.
-	 *
-	 * @param string $action Script y/o función a ejecutar.
-	 * @return bool TRUE si encuentra un enrutamiento valido, FALSE en otro caso.
-	 */
-	public function runDefault(string $action, bool $force = false) {
 
-		$reference = '(default-forced)';
-		if (!$force) {
-			// Si no se forza manualmente, valida si procede por vía regular
-			$force = ($this->continue() && !$this->recibido);
-			$reference = '(default)';
-		}
+	public function runDefault(string $action = '') {
 
-		if ($force) {
-			return $this->runAction($action, $reference);
+		if ($this->continue() && !$this->recibido) {
+			$action = trim($action);
+			if ($action == '') {
+				$action = $this->rutas_privadas['default'];
+			}
+			// Si no se indica, evita ejecutar para no generar mensaje de error y permitir
+			// evaluar por fuera cuando no se encuentra coincidencia.
+			if ($action != '') {
+				return $this->runAction($action, '(default)');
+			}
 		}
 
 		return false;
@@ -687,55 +711,26 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 * El script se ejecuta en un entorno aislado de la clase actual pero recibe esta clase com parámetro bajo el nombre `$thisRouter`.
 	 * Esto para prevenir que se puedan modificar atributos privados de la clase.
 	 * El valor de $action puede ser:
+	 *
 	 * - Nombre de script (absoluto o relativo a $this->path_files).
 	 * - Nombre de script + ":" + Nombre de función incluída en el script (recibe como único parámetro esta clase).
 	 * - ":" + Función previamente definida (recibe como único parámetro esta clase).
 	 *
+	 * Puede invocar métodos asociados a una clase definiendo la funcion como: Nombre de clase + "->" + Nombre de método.
+	 * En este caso, la instanciación de la clase recibe como único parámetro esta clase ()
+	 *
 	 * @param string $action Script y/o función a ejecutar.
-	 * @param string $reference Path para el enrutamiento (para documentación si `$this->debug` = true).
+	 * @param string $reference Nombre o path que identifica el enrutamiento usado. Se muestra en pantalla si `$this->debug` = true).
 	 * @return bool TRUE si encuentra un enrutamiento valido, FALSE en otro caso.
 	 */
-	private function runAction(string $action, string $reference, bool $prepare = false) {
+	public function runAction(string $action, string $reference) {
 
 		// Exporta parametros al request
 		if ($this->autoExport) {
-			$this->export($_REQUEST);
+			$this->exportParamsInto($_REQUEST);
 		}
 
-		// Valida si tiene algo pendiente por procesar
-		if (!$prepare && is_array($this->prepare_include)) {
-			// echo "BUSCAR PREPARE"; exit;
-			$action_prepare = '';
-			// Revisa todos, de forma que si existe un "*" como referencia, pueda excluir algún
-			// archivo al declararlo en blanco.
-			foreach ($this->prepare_include as $llave => $info) {
-				$request = strtolower($this->request());
-				if (substr($llave, -1, 1) == '*') {
-					// Termina en "*", valida parcialmente la llave
-					$llave = strtolower(substr($llave, 0, -1));
-					if ($llave == '') {
-						// Aplica para todos
-						$action_prepare = $info;
-					}
-					elseif (substr($request, 0, strlen($llave)) === $llave) {
-						// Coincidencia
-						$action_prepare = $info;
-					}
-				}
-				elseif (strtolower($llave) === $request) {
-					// La concidencia debe ser full
-					$action_prepare = $info;
-				}
-			}
-			// echo "PREPARE $request : $action_prepare<hr>"; exit;
-			if ($action_prepare != '') {
-				$this->runAction($action_prepare, '(prepare)', true);
-				// Restablece referencias
-				$this->matchSuccessful = false;
-			}
-		}
-
-		$this->map_usado = $reference;
+		$this->ruta_usada = $reference;
 
 		$filename = trim($action);
 		$funcion = '';
@@ -768,25 +763,59 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 		// Ejecuta include asegurando que esté aislado para no acceder a elementos privados de esta clase
 		if ($this->include($path, 'INCLUDE ' . $reference . ' --> ' . $filename)) {
-			$this->matchSuccessful = true;
-			$ejecutado_local = true;
+			// Reporta ejecución exitosa solamente si no debe ejecutar alguna función adicionalmente
+			if ($funcion == '') {
+				$this->matchSuccessful = true;
+				$ejecutado_local = true;
+			}
 		}
 
 		if ($funcion != '') {
 
-			// Las funciones se validan al ejecutar pues si está asociada a un archivo, no estará
-			// disponible sino hasta el cargue del archivo en cuestión.
-			if (!function_exists($funcion)) {
-				miframe_error('Función $1() no existe para la acción *$2* con referencia *$3*', $funcion, $action, $reference);
-			}
+			// Valida si define un método dentro de una clase, debe ser del tipo clase->metodo
+			$pos = strpos($funcion, '->');
 
-			if ($this->debug) {
-				// error_log('MIFRAME/ROUTER FUNCION ' . $reference . ' --> ' . $funcion);
-				$this->printDebug('FUNCTION ' . $reference . ' --> ' . $funcion);
-			}
+			if ($pos > 0) {
+				$clase = trim(substr($funcion, 0, $pos)); // Nombre de la clase
+				$funcion = trim(substr($funcion, $pos + 2)); // Método
 
-			// La función usa esta clase como unico argumento
-			$funcion($this);
+				if ($clase == '' || !class_exists($clase)) {
+					miframe_error('Clase "$1" no existe para la acción *$2* con referencia *$3*', $clase, $action, $reference);
+				}
+
+				// La clase a invocar debe recibir como parámetro esta clase
+				$obj = new $clase($this);
+
+				if ($funcion == '' && !method_exists($obj, $funcion)) {
+					miframe_error('El método $1() de la clase $2 no existe para la acción *$2* con referencia *$3*', $funcion, $clase, $action, $reference);
+				}
+
+				if ($this->debug) {
+					// error_log('MIFRAME/ROUTER FUNCION ' . $reference . ' --> ' . $funcion);
+					$this->printDebug('CLASS ' . $clase . '->' . $funcion . ': ' . $reference);
+				}
+
+				// Invoca método
+				$obj->$funcion();
+
+				// Remueve objeto
+				unset($obj);
+			}
+			else {
+				// Las funciones se validan al ejecutar pues si está asociada a un archivo, no estará
+				// disponible sino hasta el cargue del archivo en cuestión.
+				if (!function_exists($funcion)) {
+					miframe_error('Función $1() no existe para la acción *$2* con referencia *$3*', $funcion, $action, $reference);
+				}
+
+				if ($this->debug) {
+					// error_log('MIFRAME/ROUTER FUNCION ' . $reference . ' --> ' . $funcion);
+					$this->printDebug('FUNCTION ' . $function . ': ' . $reference);
+				}
+
+				// La función usa esta clase como unico argumento
+				$funcion($this);
+			}
 
 			$this->matchSuccessful = true;
 			$ejecutado_local = true;
@@ -794,7 +823,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 		// $this->matchSuccessful podria ser TRUE de un enrutamiento anterior pero haber fallado en este,
 		// por eso se valida $ejecutado_local
-		if ($ejecutado_local && $this->stopScript && !$prepare) {
+		if ($ejecutado_local && $this->stopScript) {
 			// Valida si debe ejecutar algo antes
 			$this->stop();
 		}
@@ -808,7 +837,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 */
 	public function stop() {
 
-		$accion = $this->getRoute('before-stop');
+		$accion = $this->rutas_privadas['before-stop'];
 		if ($accion != '' && !$this->deteniendo) {
 			// La elimina para evitar un ciclo infinito al reinvocar esta función include().
 			$this->deteniendo = true;
@@ -820,13 +849,23 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	}
 
 	/**
+	 * Asocia script y/o función a ejecutar cuando no se recibe parámetro alguno por web.
+	 *
+	 * @param string $action Script y/o función a ejecutar.
+	 */
+	public function addDefaultRoute(string $action) {
+
+		$this->rutas_privadas['default'] = trim($action);
+	}
+
+	/**
 	 * Asocia script y/o función a ejecutar al invocar `$this->abort()`.
 	 *
 	 * @param string $action Script y/o función a ejecutar.
 	 */
-	public function abortHandler(string $action) {
+	public function addAbortRoute(string $action) {
 
-		$this->addRoute('general', 'abort', $action);
+		$this->rutas_privadas['abort'] = trim($action);
 	}
 
 	/**
@@ -834,9 +873,9 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 *
 	 * @param string $action Script y/o función a ejecutar.
 	 */
-	public function beforeStopHandler(string $action) {
+	public function addBeforeStopRoute(string $action) {
 
-		$this->addRoute('general', 'before-stop', $action);
+		$this->rutas_privadas['before-stop'] = trim($action);
 	}
 
 	/**
@@ -872,14 +911,14 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 		error_log('ROUTER ABORT - ' . strip_tags($title . ': ' . $message));
 
-		$accion = $this->getRoute('abort');
+		$accion = $this->rutas_privadas['abort'];
 		if (!$this->abortando
 			&& $accion != ''
 			) {
 			$this->abortando = true; // Previene ciclo infinito si falla include()
-			$this->params['title'] = $title;
-			$this->params['message'] = $message;
-			$this->params['footnote'] = $footnote;
+			$this->setParam('title', $title);
+			$this->setParam('message', $message);
+			$this->setParam('footnote', $footnote);
 			$this->stopScript = $stopScript;
 
 			$ejecutado = $this->runAction($accion, '(abort)');
@@ -890,8 +929,8 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			// Si no pudo ejecutar lo anterior, presenta mensaje base
 			// Mensaje con error a pantalla
 			$message = nl2br($message);
-			$this->printDebug('Ejecución cancelada');
-			$this->print("<h1>$title</h1>\n<p>$message</p>", $footnote);
+			$this->printDebug(miframe_text('Ejecución cancelada'));
+			echo $this->sprintf($title, $message, $footnote);
 		}
 
 		if ($stopScript && !$this->abortando) { $this->stop(); }
@@ -924,12 +963,15 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 			// Suspende cualquier proceso adicional en curso
 			if (is_callable($this->detour_handler)) {
+				// Registra en $_SERVER el nombre del archivo
+				miframe_server_set('MIFRAME_DETOUR_FILENAME', $filename);
 				call_user_func($this->detour_handler);
 			}
 
 			// Forza terminación de capturas previas (incluida la generada al inicio de Router)
 			// while (ob_get_level()) { ob_end_clean(); }
 
+			// En teoría, todo archivo script debería ser invocado por el WebServer y no pasado a este script
 			if (strtolower(substr($filename, -4)) == '.php') {
 				// Cambia al directorio del archivo
 				chdir(dirname($filename));
@@ -943,23 +985,23 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			else {
 				// Envia archivo directamente a pantalla
 				// o para guardar, según se defina en $export_file
-				// (las imágenes las envía directo al navegador siempre?)
-				if ($export_file) {
-					// header('Content-Description: File Transfer');
-					$mimetype = mime_content_type($filename);
-					$name = basename($filename);
-					$extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-					$size = filesize($filename);
 
-					header('Content-Type: ' . $mimetype);
-					// if (!in_array($extension, [ 'jpg', 'jpeg', 'gif', 'png', 'svg', 'mp4' ])) {
-						header('Content-Disposition: attachment; filename="' . $name . '"');
-					// }
-					header('Expires: 0');
-					header('Cache-Control: must-revalidate');
-					header('Pragma: public');
-					header('Content-Length: ' . $size);
+				// header('Content-Description: File Transfer');
+				$mimetype = mime_content_type($filename);
+				$size = filesize($filename);
+
+				header('Content-Type: ' . $mimetype);
+
+				// $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+				// if (!in_array($extension, [ 'jpg', 'jpeg', 'gif', 'png', 'svg', 'mp4' ])) { ... }
+				if ($export_file) {
+					header('Content-Disposition: attachment; filename="' . basename($filename) . '"');
 				}
+
+				header('Expires: 0');
+				header('Cache-Control: must-revalidate');
+				header('Pragma: public');
+				header('Content-Length: ' . $size);
 
 				readfile($filename);
 			}
@@ -971,12 +1013,19 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			$this->matchSuccessful = false;
 			$this->notFound(
 				miframe_text('Solicitud no soportada'),
-				'<p>' .
-				miframe_text('La solicitud para **$1** no pudo ser procesada.', $request_uri) .
-				'</p>' .
-				miframe_text('El archivo solicitado no existe en el servidor o no tiene permisos para su ejecución.')
+				miframe_text('El recurso solicitado **$1** no está disponible en el servidor o no tiene permisos para su ejecución.', $request_uri)
 				);
 		}
+	}
+
+	/**
+	 * Exporta los parámetros declarados.
+	 *
+	 * @param array $dest Arreglo a recibir los parámetros declarados en $this->params.
+	 */
+	public function exportParamsInto(array &$dest) {
+		// if (!is_array($dest)) { $dest = array(); }
+		$dest = $this->params + $dest;
 	}
 
 	/**
@@ -989,18 +1038,26 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	public function param(string $name, string $default = '') {
 
 		$valor = '';
-		if ($this->paramExists($name)) {
-			$valor = trim($this->params[$name]);
+		$name = strtolower(trim($name));
+		if ($name !== '' && array_key_exists($name, $this->params)) {
+			$valor = $this->params[$name];
 		}
 		if ($valor === '') { $valor = $default; }
 
 		return $valor;
 	}
 
-	public function setParam(string $name, mixed $value) {
-		$name = trim($name);
+	/**
+	 * Almacena valor asociado a $name.
+	 * No se permite valor vacio para $name y este siempre será convertido a minúsculas.
+	 * @param string $name Nombre asociado al parámetro.
+	 * @param mixed $value Valor del parámetro (siempre será tratado como texto).
+	 */
+	public function setParam(string $name, string $value) {
+
+		$name = trim(strtolower($name));
 		if ($name != '') {
-			$this->params[$name] = $value;
+			$this->params[$name] = trim($value);
 		}
 	}
 
@@ -1073,6 +1130,46 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			}
 		}
 
+		$filedata = $this->setDataBeforeReload($data);
+		if ($filedata !== '') {
+			$params['micodedata'] = $filedata;
+		}
+
+		$location = $this->getFormAction($request_param, true, $params);
+
+		/*
+		$accion = $this->rutas_privadas['reload'];
+		if ($accion != '') {
+			$this->setParam('xxxx', $location);
+			$this->openAction($accion);
+		}
+
+		*/
+
+		$mensaje = '';
+
+		if (!$this->jsonRequest()) {
+			$mensaje = "<script>window.location='{$location}';</script>" .
+				miframe_text('Se está redireccionando a una nueva página.') .
+				"<a href=\"{$location}\">" . miframe_text('En caso que no se cargue la nueva página, puede hacerlo manualmente haciendo click aquí.') . "</a>.";
+			if (!headers_sent()) {
+				// header("HTTP/1.1 301 Moved Permanently"); <-- No debe marcarla como permanente!
+				header("Location: {$location}");
+			}
+		}
+		else {
+			// En consultas por JSON no son permitidos los reload automáticos
+			$mensaje = miframe_text("Ejecución interrumpida: Se está intentando redireccionar a una nueva página") .
+				":\n" . $location;
+		}
+
+		exit($mensaje);
+	}
+
+	public function setDataBeforeReload(mixed $data = false) {
+
+		$filedata = '';
+
 		if ($data !== false) {
 			$dirname = miframe_temp_dir('micode-cache-reloads', true);
 			$basename = uniqid();
@@ -1082,20 +1179,13 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 				$m ++;
 				$filename = miframe_path($dirname , $basename . dechex($m));
 			}
-			$params['micodedata'] = basename($filename);
+			// $params['micodedata'] = basename($filename);
 			miframe_serialize($filename, $data);
+
+			$filedata = basename($filename);
 		}
 
-		$location = $this->getFormAction($request_param, true, $params);
-
-		$mensaje = "<script>window.location='{$location}';</script>" .
-			miframe_text("Esta página ha sido consultada de forma incorrecta.") .
-			"<a href=\"{$location}\">" . miframe_text('Favor consultar desde esta página') . "</a>.";
-		if (!headers_sent()) {
-			// header("HTTP/1.1 301 Moved Permanently"); <-- No debe marcarla como permanente!
-			header("Location: {$location}");
-		}
-		exit($mensaje);
+		return $filedata;
 	}
 
 	public function getDataReloaded(bool $delete_file = false) {
@@ -1115,19 +1205,129 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 		return $data;
 	}
 
+	public function setDirTemp($path) {
+
+		if (is_dir($path)) {
+			$this->dir_temp = $path;
+		}
+	}
+
+	public function getDirTemp() {
+
+		if ($this->dir_temp == '') {
+			$this->dir_temp = miframe_temp_dir();
+		}
+
+		return $this->dir_temp;
+	}
+
+	/**
+	 * Asigna valor al URL base.
+	 */
+	private function setURIbase() {
+
+		$this->uri_base = '/';
+		// Nombre de quien se invoca como el script base (puede ser diferente al SCRIPT_FILENAME).
+		// Ejemplo:
+		// SCRIPT_NAME = /micode-manager/index.php
+		// SCRIPT_FILENAME = C:\xxx\micode-manager\index.php
+		$script_name = strtolower(miframe_server_get('SCRIPT_NAME'));
+		$dirbase = dirname($script_name);
+		// Si no hay subdirectorios (ej. '/index.php'), dirbase() retorna "\". Lo ignora en ese caso.
+		if ($dirbase !== DIRECTORY_SEPARATOR) { $this->uri_base = $dirbase . '/'; }
+		// Asegura formato
+		if (substr($this->uri_base, 0, 1) != '/') { $this->uri_base = '/' . $this->uri_base; }
+	}
+
+	/**
+	 * Retorna la URL indicada SIN el segmento base (si aplica).
+	 * Si la URL no contiene la URI base, retorna vacio.
+	 *
+	 * @return string URL
+	 */
+	public function removeURIbase(string $request_uri) {
+
+		$retornar = '';
+		$len_base = strlen($this->uri_base);
+		if (substr($request_uri . '/', 0, $len_base) == $this->uri_base) {
+			$retornar = substr($request_uri, $len_base); // No incluye primer "/"
+		}
+
+		return $retornar;
+	}
+
+	/**
+	 * https://stackoverflow.com/questions/7431313/php-getting-full-server-name-including-port-number-and-protocol
+	 */
+	function getServerURL(string $path = '')	{
+
+		$protocol = 'http';
+		if (!empty($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) == 'on' || $_SERVER['HTTPS'] == '1')) {
+			$protocol = 'https';
+		}
+		$server = $_SERVER['SERVER_NAME'];
+		$port = ':' . miframe_server_get('SERVER_PORT', 80);
+		// Adiciona puerto si no es 80 (http) ni 443 (https)
+		if (in_array($port, [ ':80', ':443' ])) {
+			$port = '';
+		}
+
+		if ($path != '') {
+			$path = $this->createURL($path);
+		}
+
+		return $protocol . '://' . $server . $port . $path;
+	}
+
+	public function jsonRequest() {
+
+		$retornar = false;
+
+		if ($this->force_json) {
+			// Manualmente fijado
+			return true;
+		}
+		elseif (
+			// Ajax request
+			// https://stackoverflow.com/questions/19794859/detect-ajax-in-php
+			(miframe_server_get('HTTP_X_REQUESTED_WITH') === 'XMLHttpRequest') ||
+			// Espera una respuesta en JSON
+			(strpos(strtolower(miframe_server_get('HTTP_ACCEPT')), 'application/json') !== false)
+			) {
+			$retornar = true;
+		}
+		else {
+			$headers = apache_request_headers();
+			// Usa apache_request_headers() para recuperar headers no asociados al $_SERVER (ocurre en algunos servidores Web)
+			$retornar = (isset($headers['Accept']) && strpos(strtolower($headers['Accept']), 'application/json') !== false);
+			// TRUE Espera una respuesta en JSON
+		}
+
+		// Actualiza $this->force_json con el valor obtenido para agilizar futuras invocaciones
+		if ($retornar) { $this->force_json = true; }
+
+		return $retornar;
+	}
+
 	/**
 	 * Muestra en pantalla información de la clase actual.
 	 */
 	public function showInfo() {
 
 		echo miframe_box('INFO ROUTER',
-			'<ul>' .
-			'<li><b>URI base:</b> ' .		$this->getURIbase() . '</li>' .
-			'<li><b>Path base:</b> ' .			$this->getDirbase() . '</li>' .
-			'<li><b>Document Root:</b> ' .		$this->documentRoot() . '</li>' .
-			'<li><b>Script principal:</b> ' .	$this->scriptName() . '</li>' .
-			'<li><b>Rutas:</b><pre>' .			print_r($this->getLoadedRoutes(), true) . '</pre></li>' .
-			'</ul>'
-			);
+				'<ul>' .
+				'<li><b>URI base:</b> ' .			$this->getURIbase() . '</li>' . PHP_EOL .
+				'<li><b>Path base:</b> ' .			$this->getDirbase() . '</li>' . PHP_EOL .
+				'<li><b>Document Root:</b> ' .		$this->documentRoot() . '</li>' . PHP_EOL .
+				'<li><b>Script:</b> ' .				$this->scriptFilename() . '</li>' . PHP_EOL .
+				'<li><b>JSON:</b> ' .				($this->jsonRequest() ? 'true' : 'false') . '</li>' . PHP_EOL .
+				'<li><b>Parámetros:</b> ' . 		$this->request() . '</li>' . PHP_EOL .
+				// Este print_r() puede hacer que la salida a pantalla se altere. Porqué?
+				// Cuando el parámetro return se usa, esta función utiliza el almacenamiento en búfer de salida interno,
+				// por lo que no puede usarse dentro de una función de llamada de retorno ob_start().
+				// https://www.php.net/manual/es/function.print-r.php
+				'<li><b>Rutas:</b><pre>' .			print_r($this->getLoadedRoutes(), true) . '</pre></li>' .
+				'</ul>'
+				);
 	}
 }

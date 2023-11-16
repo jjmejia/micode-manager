@@ -8,11 +8,11 @@
 
 ?>
 
-<link rel="stylesheet" href="<?= $this->view->createURL('/public/resources/css/forms.css') ?>">
+<link rel="stylesheet" href="<?= $this->router->createURL('/public/resources/css/forms.css') ?>">
 
-<?= $this->view->param('mensajes:implode', '', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
+<?= $this->params->implode('mensajes', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
 
-<form action="<?= $this->view->param('form-action') ?>" method="POST">
+<form action="<?= $this->params->get('form-action') ?>" method="POST">
 
 <?php
 

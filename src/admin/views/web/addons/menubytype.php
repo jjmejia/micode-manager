@@ -20,7 +20,7 @@ elseif ($this->router->requestStartWith('localtests')) {
 // Recupera tipos validos
 $validos = micode_modules_types();
 $enlaces = array();
-$tiposvalidos = $this->view->param('tiposvalidos');
+$tiposvalidos = $this->params->get('tiposvalidos');
 
 foreach ($validos as $tipo => $titulo) {
 	// Valida si definió $tiposvalidos correctamente o si ignora
@@ -29,8 +29,8 @@ foreach ($validos as $tipo => $titulo) {
 		$titulo .= ' (' . count($tiposvalidos[$tipo]) . ')';
 	}
 	$enlace = $this->router->getFormAction($pre . '/' . $tipo, true);
-	// $selecto = $this->view->iif($this->view->param('type') == $tipo, 'class="selected"');
-	$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($this->view->param('type') == $tipo));
+
+	$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($this->params->get('type') == $tipo));
 }
 
-menuApps($this->view, $title, $enlaces);
+menuApps($this->router, $title, $enlaces);

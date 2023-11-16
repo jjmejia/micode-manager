@@ -6,7 +6,7 @@
  * @since Abril 2022
  */
 
-$this->view->setParam('page-buttons', [
+$this->params->set('page-buttons', [
 	"repositories/create" => miframe_text('Adicionar repositorio'),
 	// 'modules/newrepo' => miframe_text('Nuevo repositorio'),
 	// 'repositories/import' => miframe_text('Importar repositorio')
@@ -15,15 +15,15 @@ $this->view->setParam('page-buttons', [
 ?>
 
 <p class="info">
-	<?= $this->view->iif('listado:empty', "<i>No hay repositorios creados aun.</i>", "<b>" . $this->view->param('listado:count') . "</b> repositorios encontrados") ?>
+	<?= $this->params->iif('listado:empty', "<i>No hay repositorios creados aun.</i>", "<b>" . $this->params->get('listado:count') . "</b> repositorios encontrados") ?>
 </p>
 
-<?= $this->view->param('mensajes:implode', '', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
+<?= $this->params->implode('mensajes', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
 
 <?php
 
-if ($this->view->param('listado:count') > 0) {
-	foreach ($this->view->param('listado:e') as $name => $data) {
+if ($this->params->get('listado:count') > 0) {
+	foreach ($this->params->get('listado:e') as $name => $data) {
 		// Busca información del proyecto listado
 		$uname = urlencode($name);
 		$name = htmlspecialchars($name);

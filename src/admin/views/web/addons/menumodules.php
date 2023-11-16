@@ -6,8 +6,8 @@
  * @since Diciembre 2022
  */
 
-$cfg_type = $this->view->param('type');
-$cfg_module = $this->view->param('module');
+$cfg_type = $this->params->get('type');
+$cfg_module = $this->params->get('module');
 $paths = explode('/', $cfg_module);
 
 $arreglo = array(
@@ -20,7 +20,7 @@ $tituloppal = '';
 $enlaces = array();
 $enlace_modulos = '';
 
-if ($this->view->param('nuevo', false) === false) {
+if (!$this->params->get('nuevo:bool')) {
 	$tituloppal = miframe_text('Módulo $1', htmlspecialchars($cfg_module));
 	// Enlaces
 	$enlaces = array();
@@ -51,7 +51,7 @@ else {
 
 $enlace_repo = $this->router->getFormAction('repositories/detail/' . urlencode($paths[0]) . '/' . $cfg_type, true);
 
-menuApps($this->view, $tituloppal, $enlaces,
+menuApps($this->router, $tituloppal, $enlaces,
 	$enlace_modulos .
 	"<a href=\"{$enlace_repo}\">" . miframe_text('Repositorio $1', $paths[0]) . "</a>"
 );

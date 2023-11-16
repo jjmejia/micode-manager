@@ -20,17 +20,18 @@ include_once __DIR__ . '/shared/functions.php';
  * @param string $style Define el tema usado para mostrar la ventana (colores). Puede ser uno de los siguientes:
  * 			mute (estilo por defecto), info, warning, alert, critical, console.
  * @param string $footnote Texto a mostrar en la parte baja de la ventana.
- * @param bool $showscrolls TRUE para restringir la altura de la ventana con la información (si el contenido es mayor se habilitan scrolls
- *			en la ventana para permitir su visualización), FALSE para presentar el contenido sin restricción de altura (sin scrolls).
  * @return string Texto HTML para consultas web, texto regular para consola.
  */
-function miframe_box(string $title, string $message, string $style = '', string $footnote = '', bool $showscrolls = true) {
+function miframe_box(string $title, string $message, string $style = '', string $footnote = '') {
 
 	$salida = '';
+	// $showscrolls = true;
+	// * @param bool $showscrolls TRUE para restringir la altura de la ventana con la información (si el contenido es mayor se habilitan scrolls
+	// *			en la ventana para permitir su visualización), FALSE para presentar el contenido sin restricción de altura (sin scrolls).
 
 	if (miframe_is_web()) {
 
-		if (miframe_data_call('miframe-box-web', $salida, $title, $message, $style, $footnote, $showscrolls)) {
+		if (miframe_data_call('miframe-box-web', $salida, $title, $message, $style, $footnote)) {
 			return $salida;
 		}
 
@@ -50,7 +51,7 @@ function miframe_box(string $title, string $message, string $style = '', string 
 		if (isset($estilos[$style])) { $color = $estilos[$style]; }
 
 		$max_alto = 'max-height:200px;';
-		if (!$showscrolls) { $max_alto = ''; }
+		// if (!$showscrolls) { $max_alto = ''; }
 
 		if ($footnote != '') {
 			$footnote = "<hr size=\"1\" style=\"color:$color\"><small>$footnote</small>";

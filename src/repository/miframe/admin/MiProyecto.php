@@ -20,8 +20,11 @@ use \miFrame\Interface\Views 	  as miViews;
 use \miFrame\Interface\Request 	  as miRequest;
 use \miFrame\Interface\Router 	  as miRouter;
 use \miFrame\Interface\EditConfig as miEditConfig;
+use \miFrame\Interface\Params 	  as miParams;
 
 class MiProyecto { // extends Router
+
+	use \miFrame\Utils\Traits\HTMLSupportTrait;
 
 	public $formAction = '';
 
@@ -29,12 +32,7 @@ class MiProyecto { // extends Router
 	private $post = false;			// Objeto interface/Request
 	private $router = false;		// Objeto interface/Router
 	private $config = false;		// Objeto interface/EditConfig
-
-	private $view_path_web = '';
-	private $view_path_json = '';
-	private $view_file = '';
-	private $view_name = '';
-	private $framebox_css = false;
+	private $params = false;		// Objeto interface/Params
 
 	public function __construct() {
 
@@ -44,6 +42,11 @@ class MiProyecto { // extends Router
 		// para efectos de facilitar el proceso.
 		$this->router = new miRouter();
 		$this->post = new miRequest();
+		$this->view = new miViews();
+		$this->params = new miParams();
+
+		// Para uso en HTMLSupportTrait
+		$this->setFilenameCSS(__DIR__ . '/miproyecto-styles.css');
 
 		// Exportar al REQUEST
 		$this->router->autoExport = true;
@@ -52,67 +55,58 @@ class MiProyecto { // extends Router
 		// referencia a este objeto (MiProyecto).
 		$this->router->setIncludeFun(array($this, 'includeFile'));
 
+		// Debe ir antes que se genere cualquier posible invocación a includes (sea por layout o error)
+		$this->view->setIncludeFun(array($this, 'includeFile'));
+
 		// Registra ventanas modales personalizadas
 		miframe_data_fun('miframe-box-web', array($this, 'localBox'));
 	}
 
-	public function loadViews(string $filename, string $path_files_web, string $path_files_json, string $name = '') {
 
-		$this->view_file = $filename;
-		$this->view_name = $name;
-		$this->view_path_web = $path_files_web;
-		$this->view_path_json = $path_files_json;
+	public function initializeJson() {
+
+		$this->router->force_json = true;
+		// $this->router->strict = true;
+
+		// Registra ventanas modales personalizadas
+		miframe_data_fun('miframe-box-web', array($this, 'apiBox'));
+
+		// Informa que la salida es en JSON
+		header('Content-Type: application/json');
+	}
+
+	public function loadView(string $name) {
+
+		$this->view->setViewName($name);
+
+		$filename = $this->view->fileView('config-view.ini');
+
+		if ($name == '' || !file_exists($filename)) {
+			miframe_error('No se ha indicado una Vista valida');
+		}
+
+		// Inicializa configuración
+		$this->view->loadConfig($filename);
 	}
 
 	public function startView(string $filename, array $data) {
 
-		if ($this->view === false) {
-			// Inicializa la clase solamente la primera vez que se invoca
-
-			if ($this->view_file === '' || !file_exists($this->view_file)) {
-				miframe_error('Vistas no configuradas');
-			}
-
-			$this->view = new miViews();
-
-			$this->view->debug = $this->router->debug;
-			$this->view->force_json = $this->router->force_json;
-
-			// Debe ir antes que se genere cualquier posible invocación a includes (sea por layout o error)
-			$this->view->setIncludeFun(array($this, 'includeFile'));
-
-			// Adiciona directorio a buscar vistas API/WEB
-			$view_base = $this->view_path_web;
-			if ($this->view->jsonRequest()) {
-				$view_base = $this->view_path_json;
-			}
-			else {
-				// En caso que haya definido multiples tipos de vistas, aquí selecciona el path a usar
-				// $this->view_name
-			}
-			// Inicializa directorios
-			$this->view->setPathFiles($view_base);
-			// Inicializa configuración
-			if ($this->view->jsonRequest()) {
-				// Asume que siempre declara un layout por default para JSON pero no aborta si no existe
-				$this->view->layoutDefault('default.php', true);
-			}
-			else {
-				$this->view->loadConfig($this->view_file, $this->view_name);
-			}
-		}
+		$this->view->debug = $this->router->debug;
+		$this->view->force_json = $this->router->force_json;
 
 		// Método para crear URLs (debe ir luego del bindPost() y no debe inicializar "form-action" en los defaults de las vistas)
 		if ($this->formAction == '') {
 			$this->formAction = $this->router->getFormAction();
 		}
 
-		$this->view->setParams( [
-			'form-action' => $this->formAction,
-			'author' => $this->userName(),
-			'author-email' => $this->userEmail(),
-			'page-title' => $this->projectTitle(),
-			]);
+		// Inicializa parámetros
+		$this->params->clear();
+
+		// Define valores estándar para el proyecto
+		$this->params->set('form-action', $this->formAction);
+		$this->params->set('author', $this->userName());
+		$this->params->set('author-email', $this->userEmail());
+		$this->params->set('page-title', $this->projectTitle());
 
 		// Accciones adicionales al detour <-- No requerido pues con este modelo,
 		// cuando invoca $this->router->detour() no se ha inicializado aún la vista.
@@ -121,7 +115,8 @@ class MiProyecto { // extends Router
 				$this->view->cancelLayout();
 			});*/
 
-		$this->view->capture($filename, $data);
+		$this->params->append($data);
+		$this->view->capture($filename);
 	}
 
 	public function includeFile(string $filename) {
@@ -136,7 +131,7 @@ class MiProyecto { // extends Router
 	 * @return string Texto
 	 */
 	public function userName() {
-		return miframe_data_get('micode-user', 'Anónimo');
+		return miframe_data_get('micode-user');
 	}
 
 	/**
@@ -171,6 +166,15 @@ class MiProyecto { // extends Router
 	}
 
 	/**
+	 * Valida si ya se asociaron los datos mínimos asociados a proyectos.
+	 *
+	 * @return bool TRUE si ya tiene datos registrados para correo y nombre de usuario, FALSE en otro caso.
+	 */
+	public function existsDataProject() {
+		return (trim($this->userEmail()) !== '' && trim($this->userName()) !== '');
+	}
+
+	/**
 	 * Asigna/Remueve modo depuración, para inclusión de mensajes adicionales en las vistas, log de errores PHP, etc.
 	 *
 	 * @param bool $value
@@ -186,11 +190,10 @@ class MiProyecto { // extends Router
 	 *
 	 * @param string $basename Nombre del archivo ini a cargar (relativo al directorio "micode/config" del proyecto)
 	 */
-	public function loadRoutes(string $filename, string $path_files) {
+	public function loadRoutes(string $filename) {
+
 		// Carga configuración de rutas
-		$this->router->loadConfig($filename, false);
-		// Define path a buscar archivos de rutas
-		$this->router->setPathFiles($path_files);
+		$this->router->loadConfig($filename);
 	}
 
 	/**
@@ -201,14 +204,12 @@ class MiProyecto { // extends Router
 	 * @param string $style Define el tema usado para mostrar la ventana (colores). Puede ser uno de los siguientes:
 	 * 			mute (estilo por defecto), info, warning, alert, critical, console.
 	 * @param string $footnote Texto a mostrar en la parte baja de la ventana.
-	 * @param bool $showscrolls TRUE para restringir la altura de la ventana con la información (si el contenido es mayor se habilitan scrolls
-	 *			en la ventana para permitir su visualización), FALSE para presentar el contenido sin restricción de altura (sin scrolls).
 	 * @return string Texto HTML.
 	 */
-	public function localBox(string $title, string $message, string $style = '', string $footnote = '', bool $showscrolls = true) {
+	public function localBox(string $title, string $message, string $style = '', string $footnote = '') {
 
 		$max_alto = ' box-message-limited';
-		if (!$showscrolls) { $max_alto = ''; }
+		// if (!$showscrolls) { $max_alto = ''; }
 
 		if ($footnote != '') {
 			$footnote = "<div class=\"box-footnote box-$style\">$footnote</div>";
@@ -218,13 +219,7 @@ class MiProyecto { // extends Router
 			$title = '<div class="box-title">' . $title . '</div>';
 			}
 
-		$salida = '';
-
-		if (!$this->framebox_css) {
-			$url_base = $this->router->createURL('/public/resources/css/miframebox.css');
-			$salida .= "<link rel=\"stylesheet\" href=\"$url_base\">";
-			$this->framebox_css = true; // No repite este bloque
-			}
+		$salida = $this->getStylesCSS(true);
 
 		$salida .= "<div class=\"miframe-box box-$style\">" .
 			$title .
@@ -244,10 +239,10 @@ class MiProyecto { // extends Router
 			}
 
 		if ($title != '') {
-			$title = PHP_EOL . PHP_EOL . '*** ' . strtoupper($title) . PHP_EOL . PHP_EOL;
+			$title = '*** ' . strtoupper($title) . PHP_EOL . PHP_EOL;
 			}
 
-		$salida = strip_tags(
+		$salida = PHP_EOL . PHP_EOL . strip_tags(
 			$title .
 			$message .
 			$footnote
@@ -278,6 +273,15 @@ class MiProyecto { // extends Router
 		}
 		// Si llega a este punto, está intentando leer un item no valido
 		miframe_error('El elemento "$1" no existe en la clase $2', $name, get_class($this));
+	}
+
+	// Throwable o Exception
+	public function abort(mixed $e) {
+
+		$data = miframe_error_info($e);
+		// Emplea método provisto por el router
+		$this->router->abort($data['title'], $data['message'], $data['trace']);
+		exit;
 	}
 
 	/*

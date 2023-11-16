@@ -6,9 +6,9 @@
  * @since Diciembre 2022
  */
 
-$cfg_module = $this->view->param('reponame');
+$cfg_module = $this->params->get('reponame');
 $tituloppal = '';
-if ($this->view->param('nuevo', false) !== false) {
+if ($this->params->exists('nuevo')) {
 	$tituloppal = miframe_text('Nuevo Repositorio');
 }
 else {
@@ -21,24 +21,16 @@ $cmd = cmdPost($this->post, 'name');
 
 // Recupera tipos validos
 $validos = micode_modules_types();
-$tiposvalidos = $this->view->param('tiposvalidos');
+$tiposvalidos = $this->params->get('tiposvalidos');
 foreach ($validos as $tipo => $titulo) {
 	if (is_array($tiposvalidos) && isset($tiposvalidos[$tipo])) {
 		$titulo .= ' (' . count($tiposvalidos[$tipo]) . ')';
 		$enlace = $this->router->getFormAction('repositories/detail/' . $cfg_module . '/' . $tipo, true);
-		$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($this->view->param('type') == $tipo));
+		$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($this->params->get('type') == $tipo));
 	}
 }
 
-/*
-foreach ($arreglo as $llave => $titulo) {
-	$enlace = $this->router->getFormAction($llave, true);
-	// $comparar = explode('?', $llave);
-	$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($cmd == $llave));
-	// echo "$cmd -- {$llave}<hr>";
-}
-*/
 
 $enlace = $this->router->getFormAction('repositories/list', true);
 
-menuApps($this->view, $tituloppal, $enlaces, "<a href=\"{$enlace}\">" . miframe_text('Listado de Repositorios') . "</a>");
+menuApps($this->router, $tituloppal, $enlaces, "<a href=\"{$enlace}\">" . miframe_text('Listado de Repositorios') . "</a>");

@@ -8,31 +8,29 @@
 
 // Lista modulos encontrados
 
-$tipo = $this->view->param('type');
-$reponame = $this->view->param('reponame');
+$tipo = $this->params->get('type');
+$reponame = $this->params->get('reponame');
 $show_infotipo = ($tipo == '');
 
 if ($reponame != '') {
-	$this->view->setParam('page-buttons', array(
+	$this->params->set('page-buttons', array(
 		'modules/create/' . urlencode($reponame) => miframe_text('Nuevo módulo'),
 		));
 }
 
-if ($this->view->param('listado:count') <= 0) {
+if ($this->params->get('listado:count') <= 0) {
 	// $this->view->buffer("<p>No hay módulos " . htmlspecialchars($tipo) . " creados aun</p>");
 	$this->view->buffer("<p>No hay módulos creados aun.</p>");
 }
-// else {
-// 	$this->view->buffer("<p class=\"info\">Hay <b>" . $this->view->param('listado:count') . "</b> módulos/archivos encontrados.</p>");
-// }
 
-$this->view->buffer($this->view->param('mensajes:implode', '', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>'));
 
-// $this->view->buffer($this->view->iif('repodata->path', '<p><b>Ubicación:</b> /{{ repodata->path:e }}</p>'));
+$this->view->buffer($this->params->implode('mensajes', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>'));
 
-if ($this->view->param('listado:count') > 0) {
+// $this->view->buffer($this->params->iif('repodata->path', '<p><b>Ubicación:</b> /{{ repodata->path:e }}</p>'));
 
-	foreach ($this->view->param('listado:e') as $modulo => $data) {
+if ($this->params->get('listado:count') > 0) {
+
+	foreach ($this->params->get('listado:e') as $modulo => $data) {
 
 		// Obtiene listado para cada uno
 
@@ -77,7 +75,7 @@ if ($this->view->param('listado:count') > 0) {
 			$infotipo = "<span class=\"label-tipo\">{$data['type']}</span>";
 		}
 		// $umodulo = urlencode($modulo);
-		$utype = $this->view->param('type:url');
+		$utype = $this->params->get('type:url');
 		$basename = $modulo;
 		// if (isset($data['islocal']) && $data['islocal'] != '') { $basename = $data['islocal']; }
 		$enlace = $data['url'];

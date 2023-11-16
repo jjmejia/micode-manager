@@ -6,14 +6,10 @@
  * @since Diciembre 2022
  */
 
-$cfg_type = 'mirepo->type';
-$cfg_name = 'config->project-name';
-$cfg_nuevo = '';
-
-$cfg_type = $this->view->param($cfg_type);
-$cfg_name = $this->view->param($cfg_name);
-$cfg_nuevo = $this->view->param($cfg_nuevo, false);
-$data_repo = $this->view->param('mirepo', false);
+$cfg_type = $this->params->get('mirepo->type');
+$cfg_name = $this->params->get('config->project-name');
+$cfg_nuevo = $this->params->get('nuevo:bool');
+$data_repo = $this->params->get('mirepo', false);
 
 $arreglo = array();
 
@@ -32,7 +28,7 @@ if (!$cfg_nuevo) {
 	}
 }
 
-$tituloppal = miframe_text('Proyecto') . ' ' . htmlspecialchars($cfg_name);
+$tituloppal = miframe_text('Proyecto $1', htmlspecialchars($cfg_name));
 if ($cfg_nuevo) { $tituloppal = 'Nuevo proyecto'; }
 
 // Enlaces
@@ -53,4 +49,4 @@ if (!$cfg_nuevo) {
 	}
 }
 
-menuApps($this->view, $tituloppal, $enlaces);
+menuApps($this->router, $tituloppal, $enlaces);

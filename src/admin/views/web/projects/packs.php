@@ -6,7 +6,7 @@
  * @since Abril 2022
  */
 
-$this->view->setParam('page-buttons', [
+$this->params->set('page-buttons', [
 	'?new' => miframe_text('Nuevo paquete'),
 	// '?export' => miframe_text('Exportar proyecto')
 ]);
@@ -15,14 +15,14 @@ $this->view->setParam('page-buttons', [
 
 <?php
 
-if ($this->view->param('listado:count') <= 0) {
+if ($this->params->get('listado:count') <= 0) {
 	// $this->view->buffer("<p>No hay módulos " . htmlspecialchars($tipo) . " creados aun</p>");
 	$this->view->buffer("<p>No hay paquetes creados aun.</p>");
 }
 else {
-	$this->view->buffer("<p class=\"info\">Hay <b>" . $this->view->param('listado:count') . "</b> paquetes encontrados.</p>");
+	$this->view->buffer("<p class=\"info\">Hay <b>" . $this->params->get('listado:count') . "</b> paquetes encontrados.</p>");
 
-	foreach ($this->view->param('listado:e') as $nombre => $data) {
+	foreach ($this->params->get('listado:e') as $nombre => $data) {
 
 		// Obtiene listado para cada uno
 		$data['datetime'] = date('Y/m/d H:i:s', $data['datetime']);

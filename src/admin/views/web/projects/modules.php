@@ -9,19 +9,22 @@
 /**
  * Visualiza listados de modulos en la página de edición de proyectos.
  */
-function checkModules(&$view, string $param_name, string $default = '') {
+function checkModules(&$params, string $param_name, string $default = '') {
 
 	echo '<ul class="form-list">';
 
-	$total_modulos = $view->param('modules->' . $param_name . ':count');
+	$total_modulos = $params->get('modules->' . $param_name . ':count');
 	if ($total_modulos <= 0) {
 		echo '<li style="color:#777">No hay elementos para mostrar</li>';
 	}
 	else {
-		foreach ($view->param('modules->' . $param_name) as $name => $info) {
+		foreach ($params->get('modules->' . $param_name) as $name => $info) {
+
 			$checked = $default;
 			$modificado = '';
 			$descripcion = '';
+			$color = '';
+
 			if (isset($info['description'])) { $descripcion = $info['description']; }
 			if (isset($info['require-total']) && $info['require-total'] > 1) {
 				$modificado .= '<div class="box-data" style="color:#333"><b>Este módulo agrupa ' . ($info['require-total']) . ' archivos.</b></div>';
@@ -35,15 +38,17 @@ function checkModules(&$view, string $param_name, string $default = '') {
 			if (isset($info['datetime']) && $info['datetime'] > 0) {
 				$modificado .= '<div class="box-data"><b>Fecha instalación/modificación:</b> ' . date('Y/m/d H:i:s', $info['datetime']) . '</div>';
 			}
-			// Ojo que $name contiene "/" y eso afecta la lectura de $this->view->param()
+			// Ojo que $name contiene "/" y eso afecta la lectura de $this->params->get()
 			if (isset($info['changed']) && $info['changed'] !== false) {
 				$modificado .= '<div class="box-data box-alert"><b>Repositorio actualizado</b> en ' .
 					date('Y/m/d H:i:s', $info['sysdata']['datetime']) .
 					'</div>';
+				// Cambia color de fondo
+				$color = 'class="box-modificado"';
 			}
 	?>
 
-	<li>
+	<li <?= $color ?>>
 		<label class="form-checkbox">
 			<input type="checkbox" name="<?= $param_name ?>[]" value="<?= $name ?>" <?= $checked ?>>
 			<div class="title-item"><?= $name ?></div>
@@ -62,26 +67,26 @@ function checkModules(&$view, string $param_name, string $default = '') {
 
 ?>
 
-<link rel="stylesheet" href="<?= $this->view->createURL('/public/resources/css/forms.css') ?>">
+<link rel="stylesheet" href="<?= $this->router->createURL('/public/resources/css/forms.css') ?>">
 
-<?= $this->view->param('mensajes:implode', '', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
+<?= $this->params->implode('mensajes', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
 
 
-<form action="<?= $this->view->param('form-action') ?>" method="POST">
+<form action="<?= $this->params->get('form-action') ?>" method="POST">
 
-	<h3>Módulos instalados (<?= $this->view->param('modules->pre:count') ?>)</h3>
+	<h3>Módulos instalados (<?= $this->params->get('modules->pre:count') ?>)</h3>
 
-	<?= $this->view->iif(
+	<?= $this->params->iif(
 			'ini_datetime:!empty',
 			'<p class="separator">Última modificación realizada en {{ ini_datetime:date }}</p>'
 			) ?>
 	<?php
 
-	if ($this->view->param('modules->pre:!empty')) {
+	if ($this->params->get('modules->pre:!empty')) {
 		$reconstruir_parcial = '';
-		if ($this->view->param('modules->changes:!empty')) {
+		if ($this->params->get('modules->changes:!empty')) {
 			echo miframe_box('Aviso importante',
-					'Hay ' . $this->view->param('modules->changes') . ' modulos instalados que presentan cambios respecto al Repositorio. Verifique.',
+					'Hay ' . $this->params->get('modules->changes') . ' modulos instalados que presentan cambios respecto al Repositorio. Verifique.',
 					'warning'
 					);
 			$reconstruir_parcial = '<option value="changed">Reconstruir los módulos que reportan cambios respecto al Repositorio</option>' . PHP_EOL;
@@ -97,13 +102,13 @@ function checkModules(&$view, string $param_name, string $default = '') {
 
 	?>
 
-	<?= checkModules($this->view, 'pre', 'checked'); ?>
+	<?= checkModules($this->params, 'pre', 'checked'); ?>
 
 	<?php
 	/*
-	<h3>Módulos adicionales sugeridos (<?= $this->view->param('modules->add:count') ?>)</h3>
+	<h3>Módulos adicionales sugeridos (<?= $this->params->get('modules->add:count') ?>)</h3>
 
-	<?= $this->view->iif(
+	<?= $this->params->iif(
 			'modules->add:!empty',
 			'<p class="separator">Los módulos instalados pueden requerir de algunos de los siguientes módulos:</p>'
 			) ?>
@@ -111,20 +116,20 @@ function checkModules(&$view, string $param_name, string $default = '') {
 	<?= $this->view->checkModules('add') ?>
 	*/ ?>
 
-	<h3>Módulos removidos del repositorio principal (<?= $this->view->param('modules->del:count') ?>)</h3>
+	<h3>Módulos removidos del repositorio principal (<?= $this->params->get('modules->del:count') ?>)</h3>
 
-	<?= $this->view->iif(
+	<?= $this->params->iif(
 			'modules->del:!empty',
 			'<p class="separator">Estos módulos fueron instalados pero ya no se encuentran disponibles en el repositorio. ' .
 			'Deseleccione para removerlos del proyecto.</p>'
 			) ?>
 
-	<?= checkModules($this->view, 'del', 'checked') ?>
+	<?= checkModules($this->params, 'del', 'checked') ?>
 
 
-	<h3>Módulos disponibles (<?= $this->view->param('modules->new:count') ?>)</h3>
+	<h3>Módulos disponibles (<?= $this->params->get('modules->new:count') ?>)</h3>
 
-	<?= checkModules($this->view, 'new') ?>
+	<?= checkModules($this->params, 'new') ?>
 
 	<div style="margin-top:30px">
 		<input type="submit" name="modulok" value="Guardar cambios" class="btn btn-ppal">

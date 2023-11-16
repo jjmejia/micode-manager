@@ -9,6 +9,6 @@
 $data = array();
 
 // Exporta parámetros de Router a $data
-$this->router->export($data);
+$this->router->exportParamsInto($data);
 
 $this->startView('error.php', $data);

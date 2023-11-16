@@ -8,7 +8,7 @@
 
 ?>
 
-<link rel="stylesheet" href="<?= $this->view->createURL('/public/resources/css/forms.css') ?>">
+<link rel="stylesheet" href="<?= $this->router->createURL('/public/resources/css/forms.css') ?>">
 
 <?php
 
@@ -16,20 +16,19 @@
 	if ($this->config->existsMessages()) {
 		echo '<div class="info"><ul><li>' . implode('</li><li>', $this->config->getMessages()) . '</li></ul></div>';
 	}
-	// $this->view->param('mensajes:implode', '', '<div class="info"><ul><li>{{ </li><li> }}</li></ul></div>')
 
 ?>
 
-<form action="<?= $this->view->param('form-action') ?>" method="POST">
+<form action="<?= $this->params->get('form-action') ?>" method="POST">
 
 	<?php
 
-	// foreach ($this->view->param('form', array()) as $name => $info) {
+	// foreach ($this->params->get('form', array()) as $name => $info) {
 	foreach ($this->config->getFormData() as $name => $info) {
 
 		// Ignora cualquier elemento al que no se haya configurado titulo
 		// if (!isset($info['title'])) { continue; }
-		// $valor_sistema = $this->view->param('system->' . $name);
+		// $valor_sistema = $this->params->get('system->' . $name);
 
 		if (isset($info['group']) && $info['group'] != '') {
 			echo '<h4>' . htmlspecialchars($info['group']) . '</h4>' . PHP_EOL;
@@ -59,7 +58,7 @@
 
 	}
 
-	$archivos = $this->view->param('update-files', array());
+	$archivos = $this->params->get('update-files', array());
 
 	if (count($archivos) > 0) {
 		echo '<h4>' . miframe_text('Archivos de proyecto') . '</h4>' . PHP_EOL;
@@ -68,7 +67,7 @@
 		}
 	}
 
-	$ocultos = $this->view->param('form-hidden');
+	$ocultos = $this->params->get('form-hidden');
 	if (is_array($ocultos)) {
 		foreach ($ocultos as $param => $value) {
 			echo '<input type="hidden" name="' . $param . '" value="' . htmlspecialchars($value) . '">';

@@ -7,7 +7,10 @@
 
 $app_name = strtolower($this->router->param('app'));
 if ($app_name == '') {
-	$this->router->abort('Parámetros incompletos', 'No se ha definido nombre del Proyecto a actualizar');
+	$this->router->abort(
+		miframe_text('Parámetros incompletos'),
+		miframe_text('No se ha definido nombre del Proyecto a actualizar')
+		);
 }
 
 $data_proyecto = micode_modules_project_data($app_name);

@@ -33,4 +33,4 @@ foreach ($arreglo as $llave => $titulo) {
 	$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($cmd == $llave));
 }
 
-menuApps($this->view, '', $enlaces);
+menuApps($this->router, '', $enlaces);

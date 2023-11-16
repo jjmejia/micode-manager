@@ -18,18 +18,18 @@
  * @since Abril 2022
  */
 
-if ($this->view->param('page-nomenu', false) === false) {
+if (!$this->params->exists('page-nomenu')) {
 	// Menú principal general
 	$include_nav = 'addons/menumain.php';
-	if ($this->view->param('config->project-name', false) !== false) {
+	if ($this->params->exists('config->project-name')) {
 		// Está consultando una aplicación
 		$include_nav = 'addons/menuprojects.php';
 	}
-	elseif ($this->view->param('module', false) !== false) {
+	elseif ($this->params->exists('module')) {
 		// Menús para detalle de módulos
 		$include_nav = 'addons/menumodules.php';
 	}
-	elseif ($this->view->param('reponame', false) !== false) {
+	elseif ($this->params->exists('reponame')) {
 		// Está consultando una aplicación
 		$include_nav = 'addons/menurepos.php';
 	}
@@ -37,7 +37,8 @@ if ($this->view->param('page-nomenu', false) === false) {
 		// Menus por tipos de proyecto
 		$include_nav = 'addons/menubytype.php';
 	}
-	$this->view->capture($include_nav, array(), 'menu');
+
+	$this->view->capture($include_nav, 'menu');
 }
 
 /**
@@ -56,21 +57,14 @@ function cmdPost($post, string $param_name = '') {
 	return $cmd;
 }
 
-function menuApps(&$view, string $title, array $enlaces, string $return = '') {
+function menuApps(&$router, string $title, array $enlaces, string $return = '') {
 
 	$return_enlace = '';
 	if ($title != '') {
-		$return_enlace = $view->documentRoot();
+		$return_enlace = $router->documentRoot();
 	}
 
-	/*$view->setParams([
-		'page-subtitle' => $title,
-		'page-menu' => $enlaces,
-		'page-return' => $return_enlace
-		]);*/
-
 	// Menú de cada página
-	// if ($this->view->param('page-menu:count') > 0) {
 	if (count($enlaces) > 0 || $title != '') {
 
 		$nav_add = '';
@@ -81,7 +75,7 @@ function menuApps(&$view, string $title, array $enlaces, string $return = '') {
 		}
 
 		// Valida subtitulo para complementar la clase asociada al "nav"
-		// if ($this->view->param('page-subtitle') != '') {
+		// if ($this->params->get('page-subtitle') != '') {
 		if ($title != '') {
 			$nav_add = '-app';
 			$subtitulo = "
@@ -103,7 +97,7 @@ function menuApps(&$view, string $title, array $enlaces, string $return = '') {
 
 			<?php
 
-			// $this->view->param('page-menu:foreach', '', function ($k, $info) {
+			// $this->params->get('page-menu:foreach', '', function ($k, $info) {
 			foreach ($enlaces as $k => $info) {
 					$selecto = '';
 					if ($info['selecto']) { $selecto .= ' class="selected"'; }

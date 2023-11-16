@@ -6,7 +6,7 @@
  * @since Abril 2022
  */
 
-$app_name = $this->view->param('config->project-name');
+$app_name = $this->params->get('config->project-name');
 
 ?>
 
@@ -14,11 +14,11 @@ $app_name = $this->view->param('config->project-name');
 
 <?php
 
-$estado = $this->view->param('pack-status');
+$estado = $this->params->get('pack-status');
 $enlace = $this->router->getFormAction('projects/packs/' . $app_name, true);
 $regresar = $this->router->getFormAction('projects/packs/' . $app_name, true);
 $enlace_regresar = '<p><a href="' . $regresar . '">Regresar a listado de paquetes</a></p>';
-$filepack = $this->view->param('pack-file');
+$filepack = $this->params->get('pack-file');
 
 if ($estado == 'CAMBIOS_PENDIENTES') {
 
@@ -42,7 +42,7 @@ elseif ($estado == 'NOFILES') {
 	<p><b>No se encontraron archivos</b></p>
 	<p>
 		No se encontraron archivos al explorar el directorio del proyecto.
-		Revise el directorio <i><?= $this->view->param('config->path:e') ?></i> y confirme que existen archivos.
+		Revise el directorio <i><?= $this->params->get('config->path:e') ?></i> y confirme que existen archivos.
 		Revise también la configuración de archivos a ser ignorados (sección <b>Paquetes de distribución</b>
 		del menú de edición de proyecto) no los esté excluyendo todos.
 	</p>
@@ -78,7 +78,7 @@ elseif ($estado == 'ZIP_VALIDO') {
 }
 elseif ($estado == 'ZIP_FALLIDO') {
 
-	$errorfile = $this->view->param('pack-errorfile');
+	$errorfile = $this->params->get('pack-errorfile');
 
 ?>
 	<p><b>No pudo crear paquete de distribución</b></p>
