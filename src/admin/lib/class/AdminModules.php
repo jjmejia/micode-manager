@@ -71,7 +71,7 @@ class AdminModules {
 		return ($this->clase_manejador !== false);
 	}
 
-	private function moduleCRC(string $desc, array $info) {
+	/*private function moduleCRC(string $desc, array $info) {
 
 		$text = '';
 		$items = array('dirbase', 'datetime', 'size', 'sha', 'require', 'require-total');
@@ -84,7 +84,7 @@ class AdminModules {
 		}
 
 		return md5($text);
-	}
+	}*/
 
 	public function clearRepos() {
 		$this->repositories = false;
@@ -287,13 +287,10 @@ class AdminModules {
 						}
 					}
 
-					// echo $modulo . '<br>' ; print_r($info) ; echo '<br>' ; print_r($infolocal) ; echo "<hr>";
+					// echo 'GET ' . $modulo . '<br>' ; print_r($info) ; echo '<hr>' ; print_r($infolocal) ; echo "<hr>";
+
 					// Valida cambios generales
-					if ($info['sha'] != $infolocal['sha']
-						|| $info['datetime'] != $infolocal['datetime']
-						|| $info['size'] != $infolocal['size']
-						|| $info['require-total'] != $infolocal['require-total']
-						) {
+					if ($this->refreshInfo($info, $infolocal)) {
 						$this->locales['pre'][$modulo]['changed'] = true;
 						$this->locales['changes'] ++;
 					}
@@ -367,6 +364,7 @@ class AdminModules {
 
 		$datamodules = array();
 		$requeridos  = array();
+
 		$repositorios = $this->getAllRepos();
 		$data_repo = micode_modules_repo($app_name);
 		$path_modulos = micode_modules_path($app_name, false, $data_repo);
@@ -391,7 +389,6 @@ class AdminModules {
 				}
 				// Lista requeridos
 				$requeridos_local = $this->getRequiredFiles($modulo, true);
-				// print_r($requeridos_local); echo "<hr>";
 				foreach ($requeridos_local as $basename => $inforeq) {
 					// Usa destino para generar la llave porque al crear paquetes es fácil asociarlo
 					// ya que allá se remplaza el path real aqui listado, pero asociado al path
@@ -426,36 +423,21 @@ class AdminModules {
 		$resultmodules = array();
 
 		if ($resultado === '') {
+			// Realiza copias de trabajo
 			foreach ($requeridos as $dmodulo => $inforeq) {
 				$modulo = $inforeq['module'];
-				if ($this->loadManager($inforeq['src'])) {
-					if ($this->clase_manejador->exportWorkCopy($modulo, $inforeq['src'], $inforeq['dest'])) {
-						if (!isset($resultmodules[$modulo])) { $resultmodules[$modulo] = 0; }
-						$resultmodules[$modulo] ++;
-					}
-					else {
-						// Ocurrió un error y no pudo realizar el cambio
-						$resultado = miframe_text('Módulo **$1**: No pudo exportar el archivo "$2" a "$3": $4',
-							$inforeq['module'],
-							$inforeq['src'],
-							$inforeq['dest'],
-							$this->clase_manejador->getError()
-							);
-					}
+				$resultado_exportar = $this->exportRemoteModules($modulo, $inforeq['src'], $inforeq['dest']);
+				if ($resultado_exportar === true) {
+					if (!isset($resultmodules[$modulo])) { $resultmodules[$modulo] = 0; }
+					$resultmodules[$modulo] ++;
 				}
 				else {
-					// No pudo cargar manejador
-					$errors = error_get_last();
-					$resultado = miframe_text('Módulo **$1**: No pudo habilitar manejador para el tipo indicado',
-						$inforeq['module']
-						);
-				}
-				if ($resultado !== '') {
 					if (isset($resultmodules[$modulo])) {
 						unset($resultmodules[$modulo]);
 					}
+					// Retorna mensaje de error
+					$resultado = $resultado_exportar;
 					// Abandona ciclo
-					// $hay_errores = true;
 					break;
 				}
 			}
@@ -477,6 +459,32 @@ class AdminModules {
 		}
 
 		return array('result' => $resultado, 'modules' => $resultmodules, 'ini-installed' => $ini_actualizado);
+	}
+
+	private function exportRemoteModules(string $modulo, string $src, string $dest) {
+
+		$resultado = true;
+
+		if ($this->loadManager($src)) {
+			if (!$this->clase_manejador->exportWorkCopy($modulo, $src, $dest)) {
+				// Ocurrió un error y no pudo realizar el cambio
+				$resultado = miframe_text('Módulo **$1**: No pudo exportar el archivo "$2" a "$3": $4',
+					$modulo,
+					$src,
+					$dest,
+					$this->clase_manejador->getError()
+					);
+			}
+		}
+		else {
+			// No pudo cargar manejador
+			$errors = error_get_last();
+			$resultado = miframe_text('Módulo **$1**: No pudo habilitar manejador para el tipo indicado',
+				$modulo
+				);
+		}
+
+		return $resultado;
 	}
 
 	public function updateRemoteModules(array $data, string $app_name = '', bool $partial = false) {
@@ -839,17 +847,9 @@ class AdminModules {
 			$info = $info + $info_base;
 		}
 
-		$actualizar = false;
 		// Valida si debe actualizar información de modulo y por ende, actualizar el archivo
 		// asociado (externals/locals)
-		if (!isset($info['crc']) || $info['crc'] != $this->moduleCRC('eval', $info)
-			|| !isset($info['sha']) || $info['sha'] !== $listado['sha']
-			|| !isset($info['datetime']) || $info['datetime'] !== $listado['datetime']
-			|| !isset($info['size']) || $info['size'] !== $listado['size']
-			|| (isset($info['require']) && !isset($info['require-total']))
-			) {
-			$actualizar = true;
-		}
+		$actualizar = $this->refreshInfo($info, $listado);
 
 		// Asigna valores previos de los datos ya leidos
 		$items = array('description', 'author', 'since', 'uses', 'require-total', 'php-namespaces');
@@ -888,6 +888,19 @@ class AdminModules {
 		return $listado;
 	}
 
+	private function refreshInfo(array $info, array $listado) {
+
+		// Los datos recuperados de .ini no aplican "!==" correctamente si el otro es numerico
+		return (!isset($info['sha']) || 'x' . $info['sha'] !== 'x' . $listado['sha']
+			|| !isset($info['datetime']) || $info['datetime'] != $listado['datetime']
+			|| !isset($info['size']) || $info['size'] != $listado['size']
+			|| !isset($info['dirbase']) || $info['dirbase'] !== $listado['dirbase']
+			|| (isset($info['require']) && (
+				!isset($info['require-total']) || $info['require-total'] != $listado['require-total']
+				))
+			);
+	}
+
 	private function readCacheModule(string $filename, string $type) {
 
 		$info = false;
@@ -921,7 +934,7 @@ class AdminModules {
 		$prefijo = 'nn';
 		if (isset($info['type'])) { $prefijo = $info['type']; }
 		// Adiciona item de control
-		$info['crc'] = $this->moduleCRC('new', $info);
+		// $info['crc'] = $this->moduleCRC('new', $info);
 		$info['#file'] = $filename;
 
 		$dirname = miframe_temp_dir('micode-cache-modules', true);
@@ -976,7 +989,7 @@ class AdminModules {
 									'type' => $extension,
 									'path' => $filename,
 									'size' => filesize($filename),
-									'sha' => sha1_file($filename),
+									'sha' =>  sha1_file($filename),
 									'datetime' => filemtime($filename)
 								);
 							}

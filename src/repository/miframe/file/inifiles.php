@@ -91,20 +91,21 @@ function miframe_inifiles_format_data(mixed $data, bool $process_sections = true
 		if (isset($comentarios[$llave])) {
 			$contenido .= '; ' . $comentarios[$llave] . PHP_EOL;
 		}
-		if (is_array($valor)) {
+		if (is_array($valor) && $process_sections) {
 			// En este caso, $llave indica el grupo
 			if ($contenido != '') {
 				$contenido .= PHP_EOL;
 			}
-			if ($process_sections) {
-				$contenido .= '[' . $llave . ']' . PHP_EOL . PHP_EOL;
-			}
+			$contenido .= '[' . $llave . ']' . PHP_EOL . PHP_EOL;
 			foreach ($valor as $gllave => $gvalor) {
 				$contenido .= miframe_inifiles_format($gllave, $gvalor);
 			}
 		}
-		else {
+		elseif (!is_array($valor)) {
 			$contenido .= miframe_inifiles_format($llave, $valor);
+		}
+		else {
+			$contenido .= "; AVISO: El valor del atributo $llave es un arreglo de datos y será ignorado.";
 		}
 
 		$contenido .= PHP_EOL;
