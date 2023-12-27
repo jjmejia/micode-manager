@@ -114,17 +114,43 @@ class EvalMiCode {
 
 	public function checkMiCode() {
 
+		// Determina templates usados para configurar el administrador (por defecto "micode-admin")
+		$startup = 'micode-admin';
+		// Determina directorio usados para instalar módulos (por defecto "micode")
+		$app_modules = 'micode';
+
+		// Obtiene datos del repo.ini
+		$file_repo = MIFRAME_BASEDIR . '/micode.private/repo.ini';
+		$existe_repo = file_exists($file_repo);
+		if ($existe_repo) {
+			$repo_info = parse_ini_file($file_repo, true, INI_SCANNER_TYPED);
+			if (isset($repo_info['startup']) && $repo_info['startup'] != '') {
+				$startup = trim($repo_info['startup']);
+			}
+			if (isset($repo_info['app-modules']) && $repo_info['app-modules'] != '') {
+				$app_modules = trim($repo_info['app-modules']);
+			}
+		}
+
 		// Valida que exista php-namespaces.ini y modules-installed.ini
 		$inifile_path = MIFRAME_DATA . '/projects/micode-admin.path';
-		$inifile_modulos = MIFRAME_BASEDIR . '/micode.private/modules-installed.ini';
-		$inifile_namespaces = MIFRAME_BASEDIR . '/micode/config/php-namespaces.ini';
+		$inifile_namespaces = MIFRAME_BASEDIR . "/{$app_modules}/config/php-namespaces.ini";
+		$inifile_modulos = dirname($file_repo) . '/modules-installed.ini';
+
 		// Carga definiciones, incluidas en uno de los templates del sistema
-		$filename = MIFRAME_SRC . '/repository/templates/startup/micode-admin/tpl-config.ini';
+		$filename = MIFRAME_SRC . "/repository/templates/startup/{$startup}/tpl-config.ini";
 		// echo "!$inifile_modulos = " . file_exists($inifile_modulos) . " || !$inifile_namespaces = " . file_exists($inifile_namespaces) . "<hr>"; exit;
+
+		if (!file_exists($filename)) {
+			$this->mensajes['error'] = 'No pudo encontrar archivo ' . $filename;
+			$this->checkMiCodeShow(array());
+			exit;
+		}
 
 		// Procesa si no existe alguno de los archivos indicados o si el archivo de instalados es mas antiguo
 		// que  el archivo guia (template).
-		if (!file_exists($inifile_modulos)
+		if (!$existe_repo
+			|| !file_exists($inifile_modulos)
 			|| !file_exists($inifile_namespaces)
 			|| (file_exists($inifile_modulos) && filemtime($inifile_modulos) < filemtime($filename))
 			|| !$this->checkInstalledIni($inifile_modulos, $filename)
@@ -154,8 +180,6 @@ class EvalMiCode {
 			// Obtiene modulos disponibles (esto requiere que existan los archivos de referencia en "micode")
 			// Usar una lista predefinida para crear los archivos de arranque! Validar que el listado de modulos
 			// instalados tenga una fecha > a la de dicho archivo para que refresque si es necesario!
-
-			$startup = 'micode-admin';
 
 			$datamodules = $m->exportRemoteFiles($this->app_name, $startup_info['modules'], $startup);
 

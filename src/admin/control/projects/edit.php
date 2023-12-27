@@ -129,8 +129,7 @@ elseif ($this->config->formSubmitted('configok')) {
 		// Construye paths
 		$base_final = str_replace('/', DIRECTORY_SEPARATOR, $app_path . '/' . $app_name);
 		$dir_final = miframe_path($_SERVER['DOCUMENT_ROOT'], $base_final);
-		// $path_repo = miframe_path($app_path, $app_name);
-		$file_repo = micode_modules_repo_filename($app_name, false, $base_final);
+		$file_repo = micode_modules_repo_filename($app_name, false, $dir_final);
 
 		// El proyecto no debe ya existir en el repositorio local
 		if (file_exists($file_repo)) {
@@ -152,8 +151,9 @@ elseif ($this->config->formSubmitted('configok')) {
 			}
 		}
 		// Crea directorio destino
-		elseif (!@mkdir(dirname($file_repo), 0777, true)) {
-			$this->config->setMessage(miframe_text('No pudo crear directorio para archivo "$1"', $file_repo));
+		$path_repo = dirname($file_repo);
+		if (!is_dir($path_repo) && !@mkdir($path_repo, 0777, true)) {
+			$this->config->setMessage(miframe_text('No pudo crear directorio "$1"', $path_repo));
 			$app_name = '';
 		}
 		if ($app_name != '') {
@@ -179,14 +179,18 @@ elseif ($this->config->formSubmitted('configok')) {
 
 			$dirname = dirname($inifile);
 			if (!is_dir($dirname)) {
+				// Crea directorio destino
 				mkdir($dirname, 0777, true);
 			}
 			elseif (file_exists($inifile) && !$temporal) {
+				// Archivo ya creado y no está haciendo una actualización de datos ($temporal = true)
 				$this->config->setMessage(miframe_text('El archivo de proyecto ya existe en el servidor.'));
 			}
+
 			// Todo OK, preserva configuración actual (no guarda el path)
 			$copia = $data_repo;
 			unset($copia['path']);
+
 			miframe_inifiles_save_data($file_repo, $copia, false);
 			// Valida exista entrada en el repositorio de proyectos
 			$filepath = miframe_path(MIFRAME_PROJECTS_REPO, strtolower($app_name) . '.path');
@@ -233,8 +237,10 @@ $this->config->addValidator('notype', $notype);
 $this->config->addHelper('DOCUMENT_ROOT', $_SERVER['DOCUMENT_ROOT']);
 
 // Configuración de campos en $file_repo
+// Si está editando el repo Administrador, previene ediciones en línea
+// para no modificar el archivo ya versionado.
 $inifile = micode_modules_dataconfig_path('mirepo-cfg.ini');
-$this->config->addConfigFile('mirepo', $inifile);
+$this->config->addConfigFile('mirepo', $inifile, ($app_name == 'micode-admin'));
 
 // Configuración de los campos básicos de miproyecto.ini
 $inifile = micode_modules_dataconfig_path('miproyecto-cfg.ini');
@@ -283,6 +289,14 @@ if (isset($data_repo['since'])) { $since = $data_repo['since']; }
 $this->config->setDataValue('project-name', $app_name, true);
 $this->config->setDataValue('since', $since, true);
 $this->config->setDataValue('temp-path', miframe_temp_dir(), true);
+
+// Visualiza datos bloqueados para edición al consultar el repo Administrador
+if ($app_name == 'micode-admin') {
+	$mostrar = miframe_text('No');
+	if (array_key_exists('minimize', $data_repo) && $data_repo['minimize']) { $mostrar = miframe_text('Si'); }
+	$this->config->setDataValue('minimize', $mostrar, true);
+
+}
 
 // checkformRequest() captura la data recibida via POST, por ello se valida primero.
 if ($this->config->checkformRequest('configok') && $app_name != '') {
@@ -448,7 +462,7 @@ if ($this->config->checkformRequest('configok') && $app_name != '') {
 	}
 	else {
 		// Envia a detalle (fija $_REQUEST['app'] para que sea capturado al invocar $Router->param)
-		$cmd = 'projects/info';
+		$cmd = 'projects/info/' . $app_name;
 		$params = false;
 		$data = false;
 		// Guarda en temporal los mensajes y retorna un valor de caché

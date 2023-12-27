@@ -19,6 +19,7 @@
  * SUGERENCIA: Manejo de HTTPS y localhost
  *
  * @micode-uses miframe/common/functions
+ * @micode-uses miframe/file/serialize
  * @author John Mejia
  * @since Abril 2022
  */
@@ -1179,7 +1180,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 				$m ++;
 				$filename = miframe_path($dirname , $basename . dechex($m));
 			}
-			// $params['micodedata'] = basename($filename);
+
 			miframe_serialize($filename, $data);
 
 			$filedata = basename($filename);

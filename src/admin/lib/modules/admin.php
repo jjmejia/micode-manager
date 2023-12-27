@@ -198,10 +198,17 @@ function micode_modules_repo_filename(string $app_name, bool $check_file = true,
 		$filepath = miframe_path(MIFRAME_PROJECTS_REPO, strtolower($app_name) . '.path');
 		if (file_exists($filepath)) {
 			$path = trim(file_get_contents($filepath));
+			// Si no contiene la ruta completa, adiciona "www-root"
+			if (!is_dir($path)) {
+				$path_root = miframe_path($_SERVER['DOCUMENT_ROOT'], $path);
+				if (is_dir($path_root)) {
+					// Ruta encontrada
+					$path = $path_root;
+				}
+			}
 		}
 	}
 	if ($path != '') {
-		// $file_repo = miframe_path($_SERVER['DOCUMENT_ROOT'], $path, 'micode.private', 'repo.ini');
 		$file_repo = miframe_path($path, 'micode.private', 'repo.ini');
 		if ($path == '' || ($check_file && !file_exists($file_repo))) {
 			miframe_error('No pudo ubicar archivo de proyecto en $1', $file_repo);

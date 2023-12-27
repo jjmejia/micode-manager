@@ -90,7 +90,7 @@ try {
 		}
 	}
 
-	$app->router->showInfo();
+	// $app->router->showInfo();
 
 	// Procesa entrada
 	$app->router->run();

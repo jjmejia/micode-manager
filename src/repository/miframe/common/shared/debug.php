@@ -25,6 +25,14 @@ function miframe_debug_enable(bool $value) {
 	miframe_data_put('debug-on', $value, true);
 }
 
+function miframe_is_vscode_on() {
+	return (miframe_data_get('vscode-on') == true);
+}
+
+function miframe_vscode_enable(bool $value) {
+	miframe_data_put('vscode-on', $value, true);
+}
+
 /**
  * Retorna texto con la secuencia de llamados actual (rastreo o backtrace) o uno capturado previamente.
  *
@@ -54,8 +62,15 @@ function miframe_debug_backtrace_info(array $track = null, string $function = ''
 		}
 		if (isset($infotrack['file'])) {
 			if ($track_cadena != '') { $track_cadena .= '<br />' . PHP_EOL; }
-			$ultimo_track = miframe_text('**$1** Línea $2 - $function', $infotrack['file'], $infotrack['line'], function: $infotrack['function']);
-			$track_cadena .= $ultimo_track;
+			$ultimo_track = miframe_text('Línea $1 - $2', $infotrack['line'], $infotrack['function']);
+			if (!miframe_is_vscode_on()) {
+				$track_cadena .= '<b>' . $infotrack['file'] . '</b> ' . $ultimo_track;
+			}
+			else {
+				// vscode://file/{full path to file}:line
+				// https://stackoverflow.com/questions/48641921/is-it-possible-to-use-the-vscode-hyperlink-to-open-a-file-or-directory-in-code
+				$track_cadena .= "<a href=\"vscode://file/{$infotrack['file']}:{$infotrack['line']}\">{$infotrack['file']}</a> " . $ultimo_track;
+			}
 		}
 	}
 

@@ -260,7 +260,7 @@ class AdminModules {
 			if (!is_array($this->locales['pre'])
 				|| ($total_validos_pre <= 0 && count($this->locales['pre']) > 0)
 				) {
-				$this->getRemoteModules($path);
+				$this->getRemoteModules($path, $listado);
 			}
 
 			// Valida información
@@ -312,7 +312,7 @@ class AdminModules {
 		return $this->locales;
 	}
 
-	private function getRemoteModules(string $path) {
+	private function getRemoteModules(string $path, array $listado) {
 
 		// Hace revisión manual de todos los módulos creados y busca cuáles están en el directorio remoto
 		// solamente si no hay valores en "pre" o si existe el .ini pero todo está errado

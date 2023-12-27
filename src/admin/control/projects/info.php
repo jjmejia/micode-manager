@@ -31,9 +31,8 @@ if (file_exists($filename)) {
 
 }
 
-// Valida valores fijados por ej. al crear proyecto
 $data = $this->router->getDataReloaded(true);
-if ($data !== false && is_array($data) && isset($data['msg'])) {
+if (is_array($data) && isset($data['msg'])) {
 	$data_proyecto['mensajes'] = $data['msg'];
 }
 

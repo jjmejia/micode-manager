@@ -24,10 +24,14 @@ function miframe_get_proyecto_ini() {
 		if (is_array($data)) {
 			$data = array_change_key_case($data, CASE_LOWER);
 			// Items a no incluir en el entorno global (son informativos nada mas)
-			$ignorar = array('project-desc-info', 'since', 'path', 'startup', 'debug');
+			$ignorar = array('project-desc-info', 'since', 'path', 'startup', 'debug', 'vscode');
 			if (array_key_exists('debug', $data)) {
 				// Valores: false, true. Si no existe, asume el definido para el sistema.
 				miframe_debug_enable(boolval($data['debug']) !== false);
+			}
+			if (array_key_exists('vscode', $data)) {
+				// Valores: false, true. Si no existe, asume el definido para el sistema.
+				miframe_vscode_enable(boolval($data['vscode']) !== false);
 			}
 			// Guarda información
 			miframe_data_put_array($data, $ignorar);

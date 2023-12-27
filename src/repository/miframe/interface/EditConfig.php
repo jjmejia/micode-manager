@@ -107,7 +107,7 @@ class EditConfig {
 	 * @param string $filename Path del archivo .ini.
 	 * @return bool TRUE si el archivo existe y pudo ser adicionado, FALSE en otro caso.
 	 */
-	public function addConfigFile(string $namecfg, string $filename) {
+	public function addConfigFile(string $namecfg, string $filename, bool $force_readonly = false) {
 
 		$namecfg = strtolower(trim($namecfg));
 		$filename = trim($filename);
@@ -119,7 +119,11 @@ class EditConfig {
 			foreach ($data as $name => $info) {
 				// $info DEBE ser un arreglo
 				if (is_array($info)) {
-					$this->setConfig($namecfg, $name, $info);
+					if ($this->setConfig($namecfg, $name, $info)) {
+						if ($force_readonly) {
+							$this->setConfigParam($name, 'type', 'readonly');
+						}
+					}
 				}
 			}
 			// Registra archivo de configuración (el arreglo se declara en $this->setConfig() si hay
@@ -838,7 +842,7 @@ class EditConfig {
 						// Ocurrió un error, $resultado contiene el mensaje con detalles del mismo.
 						// Fija $resultado a false para que no procese los datos.
 						$titulo = $this->getTitle($name);
-						$this->mensajes[] = $titulo . ': ' . $res;
+						$this->setMessag($titulo . ': ' . $res);
 						$resultado = false;
 					}
 				}
@@ -846,12 +850,14 @@ class EditConfig {
 				$valor = $this->getSingleValue($name);
 				// print_r($this->config[$name]); echo "<hr>";
 				// Por defecto todos los campos son opcionales
-				if ((!array_key_exists('optional', $info) || ($info['optional'] !== true && intval($info['optional']) <= 0))
+				if ((array_key_exists('optional', $info) && intval($info['optional']) <= 0)
 					&& ($valor == '' || $valor == false)
 					) {
 					if (isset($info['title']) && $info['title'] != '') {
-						$this->setMessage(miframe_text('Valor requerido para $1', $info['title']));
-						// var_dump($info); echo "<hr>";
+						$this->setMessage(miframe_text('Valor requerido para **$1**', $info['title']), $name);
+					}
+					else {
+						$this->setMessage(miframe_text('Valor requerido para atributo **$1** (sín titulo asociado)', $name), $name);
 					}
 					$resultado = false;
 				}
@@ -867,7 +873,7 @@ class EditConfig {
 		if ($text != '') {
 			if ($index !== '') {
 				// Indica llave a usar para mensaje (permite modificarlo posteriormente)
-				$this->mensajes[$key] = $text;
+				$this->mensajes[$index] = $text;
 			}
 			else {
 				$this->mensajes[] = $text;

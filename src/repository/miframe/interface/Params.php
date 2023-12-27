@@ -320,7 +320,9 @@ class Params { // extends \miFrame\Interface\Shared\BaseClass
 			if ($pre != '' || $pos != '') {
 				$container = "{$pre}$1{$pos}";
 			}
-			$text = $this->extract($values, $container);
+
+			$text = $this->extract($values, $template, $container);
+
 			// foreach ($values as $k => $v) {
 			// 	if ($v != '') {
 			// 		$text .= str_replace(array('$1', '$2'), array($v, $k), $template);
@@ -342,18 +344,30 @@ class Params { // extends \miFrame\Interface\Shared\BaseClass
 		return $text;
 	}
 
-	public function extract(array $data, string $container = '', string $empty_text = '') {
+	public function extract(array $data, string $item_template = '', string $container = '', string $empty_text = '') {
 
 		$text = '';
-		foreach ($data as $param => $template) {
-			$valor = $this->get($param);
-			// if (is_array($valor) && count($valor) > 0) {
-			// 	// En este caso, $template es el usado por "implode"
-			// 	$text .= $this->implode($valor, $template);
-			// }
-			// else
+
+		// foreach ($data as $param => $template) {
+		// $valor = $this->get($param);
+		// if (is_array($valor) && count($valor) > 0) {
+		// 	// En este caso, $template es el usado por "implode"
+		// 	$text .= $this->implode($valor, $template);
+		// }
+		// else
+		// if ($valor != '') {
+		// 	$text .= trim(str_replace(array('$1', '$2'), array($valor, $param), $template));
+		// }
+		// }
+
+		foreach ($data as $param => $valor) {
 			if ($valor != '') {
-				$text .= trim(str_replace(array('$1', '$2'), array($valor, $param), $template));
+				if ($item_template != '') {
+					$text .= trim(str_replace(array('$1', '$2'), array($valor, $param), $item_template));
+				}
+				else {
+					$text .= $valor;
+				}
 			}
 		}
 		if ($text != '') {
