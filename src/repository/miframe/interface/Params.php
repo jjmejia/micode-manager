@@ -299,6 +299,7 @@ class Params { // extends \miFrame\Interface\Shared\BaseClass
 	public function implode(string $param, string $template, string $default = '') {
 
 		$text = '';
+		$container = '';
 		$values = $this->get($param);
 
 		if (is_array($values) && count($values) > 0) {
@@ -316,60 +317,48 @@ class Params { // extends \miFrame\Interface\Shared\BaseClass
 				}
 			}
 			// Contenedor de los valores a conectar
-			$container = '';
 			if ($pre != '' || $pos != '') {
 				$container = "{$pre}$1{$pos}";
 			}
 
-			$text = $this->extract($values, $template, $container);
+			$text = '';
 
-			// foreach ($values as $k => $v) {
-			// 	if ($v != '') {
-			// 		$text .= str_replace(array('$1', '$2'), array($v, $k), $template);
-			// 	}
-			// }
-			// if ($text != '' && ($pre != '' || $pos != '')) {
-			// 	// Complementa salida
-			// 	$text = $pre . $text . $pos;
-			// }
-			// $valor = $this->template($template,
-			// 	function($matches) use ($valor) {
-			// 		return implode(str_replace(array('{{', '}}'), '', $matches[0]), $valor);
-			// 	});
-		}
-		else {
-			$text = $default;
+			if ($template != '') {
+				foreach ($values as $key => $valor) {
+					if ($valor != '') {
+						$text .= trim(str_replace(array('$1', '$2'), array($valor, $key), $template));
+					}
+				}
+			}
+			else {
+				// No hay template para los elementos, simplemente los conecta
+				$text = trim(implode('', $values));
+			}
 		}
 
-		return $text;
+		return $this->addContainer($text, $container, $default);
 	}
 
-	public function extract(array $data, string $item_template = '', string $container = '', string $empty_text = '') {
+	public function extract(array $data, string $container = '', string $empty_text = '') {
 
 		$text = '';
 
-		// foreach ($data as $param => $template) {
-		// $valor = $this->get($param);
-		// if (is_array($valor) && count($valor) > 0) {
-		// 	// En este caso, $template es el usado por "implode"
-		// 	$text .= $this->implode($valor, $template);
-		// }
-		// else
-		// if ($valor != '') {
-		// 	$text .= trim(str_replace(array('$1', '$2'), array($valor, $param), $template));
-		// }
-		// }
-
-		foreach ($data as $param => $valor) {
-			if ($valor != '') {
-				if ($item_template != '') {
-					$text .= trim(str_replace(array('$1', '$2'), array($valor, $param), $item_template));
-				}
-				else {
-					$text .= $valor;
-				}
+		foreach ($data as $param => $template) {
+			$valor = $this->get($param);
+			if (is_array($valor) && count($valor) > 0) {
+				// En este caso, $template es el usado por "implode"
+				$text .= $this->implode($valor, $template);
+			}
+			elseif ($valor != '') {
+				$text .= trim(str_replace(array('$1', '$2'), array($valor, $param), $template));
 			}
 		}
+
+		return $this->addContainer($text, $container, $empty_text);
+	}
+
+	private function addContainer(string $text, string $container, string $empty_text) {
+
 		if ($text != '') {
 			// Complementa salida con textos pre/pos
 			if ($container != '') {

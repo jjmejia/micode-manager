@@ -18,20 +18,28 @@ class Views extends \miFrame\Interface\Shared\BaseClass {
 	private $buffer = '';
 	private $view_name = '';
 	private $view_title = '';
+	private $start_engine = false;
 
 	public function __construct() {
 
 		$this->initialize();
 		$this->color_debug = '#0969da';
 
-		// Funcion para ejecutar al cierre (en caso que termine el script antes de realizar el render)
-		register_shutdown_function(array($this, 'show'));
-
 		// Inicializa contenedor de layout
 		$this->layout = array('file' => '', 'file-error' => '', 'file-default' => '');
 
-		// Captura todo en adelante
-		ob_start();
+	}
+
+	private function startEngine() {
+
+		if (!$this->start_engine) {
+			// Marca inicio
+			$this->start_engine = true;
+			// Funcion para ejecutar al cierre (en caso que termine el script antes de realizar el render)
+			register_shutdown_function(array($this, 'show'));
+			// Captura todo en adelante
+			// ob_start();
+		}
 	}
 
 	public function setViewName(string $name) {
@@ -129,7 +137,7 @@ class Views extends \miFrame\Interface\Shared\BaseClass {
 		}
 
 		if ($this->debug) {
-			if ($this->force_json) {
+			if (!miframe_is_web()) {
 				$salida = PHP_EOL . PHP_EOL . ">>> START MiFrame.section " . htmlspecialchars($namesection) . PHP_EOL .
 					$salida .
 					PHP_EOL . PHP_EOL . ">>> END MiFrame.section " . htmlspecialchars($namesection) . PHP_EOL . PHP_EOL;
@@ -225,6 +233,8 @@ class Views extends \miFrame\Interface\Shared\BaseClass {
 	}
 
 	public function start(string $namesection) {
+
+		$this->startEngine();
 
 		if ($namesection != '') {
 			$this->seccion_default[] = $namesection;

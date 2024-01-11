@@ -196,22 +196,6 @@ function miframe_tree_directory(string $path, string $pattern = '', bool $ignore
 	return $dirs;
 }
 
-function iso2utf8(string $contenido) {
-
-	// Valida si debe decodificar el código
-	$eval_code = array('á', 'é', 'í', 'ó', 'ú', 'ñ', 'Ñ');
-	foreach ($eval_code as $car) {
-		$car8 = iconv("UTF-8", "ISO-8859-1//IGNORE", $car);
-		if (strpos($contenido, $car8) !== false) {
-			// Encontrado, decodifica todo el texto
-			$contenido = iconv("ISO-8859-1", "UTF-8//IGNORE", $contenido);
-			break;
-		}
-	}
-
-	return $contenido;
-}
-
 /*
 
 https://stackoverflow.com/questions/11452938/how-to-use-http-x-forwarded-for-properly

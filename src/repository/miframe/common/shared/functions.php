@@ -15,7 +15,11 @@ include_once __DIR__ . '/debug.php';
  */
 function miframe_is_web() {
 
-	return (miframe_server_get("REMOTE_ADDR") !== '');
+	return (miframe_server_get("REMOTE_ADDR") !== '' && miframe_data_get('miframe-noweb', false) === false);
+}
+
+function miframe_set_noweb(bool $noweb) {
+	miframe_data_put('miframe-noweb', $noweb);
 }
 
 /**
@@ -251,9 +255,10 @@ function miframe_data_put(string $name, mixed $value, bool $rewrite = true) {
 
 	if (!array_key_exists('MIFRAMEDATA', $GLOBALS)) { $GLOBALS['MIFRAMEDATA'] = array(); }
 	$name = strtoupper(miframe_only_alphanum($name, '_'));
-	if ($value != '' && (!array_key_exists($name, $_SERVER) || $rewrite)) {
+	if (!array_key_exists($name, $_SERVER) || $rewrite) {
 		$GLOBALS['MIFRAMEDATA'][$name] = $value;
 	}
+
 	// Remueve elementos en blanco
 	// if (array_key_exists($name, $_SERVER)
 	// 	&& ($_SERVER[$name] === '' || $_SERVER[$name] === false)
@@ -549,4 +554,20 @@ function miframe_bytes2text(mixed $size, bool $fullsufix = false) {
 	}
 
 	return $num;
+}
+
+function iso2utf8(string $contenido) {
+
+	// Valida si debe decodificar el código
+	$eval_code = array('á', 'é', 'í', 'ó', 'ú', 'ñ', 'Ñ');
+	foreach ($eval_code as $car) {
+		$car8 = iconv("UTF-8", "ISO-8859-1//IGNORE", $car);
+		if (strpos($contenido, $car8) !== false) {
+			// Encontrado, decodifica todo el texto
+			$contenido = iconv("ISO-8859-1", "UTF-8//IGNORE", $contenido);
+			break;
+		}
+	}
+
+	return $contenido;
 }

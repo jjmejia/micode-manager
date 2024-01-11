@@ -31,12 +31,11 @@ namespace miFrame\Interface;
  * Las siguientes propiedades públicas pueden ser usadas:
  * - $autoExport: boolean. TRUE carga los argumentos encontrados al validar el enrutamiento en la variable global $_REQUEST
  *   (no se modifica $_POST ni $_GET).
- * - $stopScript: boolean. TRUE para terminar toda ejecución al encontrar la primer ruta valida.
  * - $multipleMatch: boolean. TRUE para permitir que busque en todas las rutas programadas. FALSE suspende validaciones luego de la
  *   primer validación éxitosa.
- * - allowDetour: boolean. TRUE para intentar ejecutar scripts PHP mal redireccionados por el servidor.
  * - strict: boolean. TRUE requiere que se mapeen las rutas para cada método de acceso (GET, POST, etc.). FALSE permite mapeo genérico
  *  (puede representar un riesgo de seguridad según la aplicación).
+ * - $stopScript: boolean. TRUE para terminar toda ejecución al encontrar la primer ruta valida.
  */
 class Router extends \miFrame\Interface\Shared\BaseClass {
 
@@ -45,7 +44,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	private $recibido = false;
 	private $rutas_privadas = array();
 	private $rutas_publicas = array();
-	private $detour_handler = false;
+	// private $detour_handler = false;
 	private $matchSuccessful = false;		// TRUE si encuentra al menos un match valido
 	private $method_bind = '';
 	private $abortando = false;
@@ -55,21 +54,29 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	private $dir_temp = '';
 	private $uri_base = '';
 	private $params = array();
+	private $script_filename = '';
+	private $dir_base = '';
+	private $request_uri = '?';
+	private $document_root = '';
+	private $force_json = false;
+	private $file_detected = '';
 
 	public $autoExport = false;
-	public $stopScript = true;
 	public $multipleMatch = false;
-	public $allowDetour = true;
 	public $strict = false;
+	private $stopScript = true;
 
 	public function __construct() {
 
 		$this->setURIbase();
 		$this->initialize();
 		$this->clearRoutes();
+		$this->assignMode();
 
-		// Inicializa ob_start() para capturar cualquier salida a pantalla <-- Evaluar
-		// ob_start();
+		// Definiciones
+		$this->script_filename = miframe_server_get('SCRIPT_FILENAME');
+		$this->dir_base = realpath(dirname($this->script_filename));
+		$this->document_root = $this->createURL(basename($this->script_filename));
 
 		$this->color_debug = '#2e2072';
 	}
@@ -77,7 +84,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	/**
 	 * Retorna valor de referencia detectado.
 	 *
-	 * @return string Valor de referencia detectado por la función $this->bindPost().
+	 * @return string Valor de referencia detectado por la función $this->captureUserAction().
 	 */
 	public function request() {
 
@@ -110,8 +117,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 */
 	public function documentRoot() {
 
-		$path = basename($this->scriptFilename());
-		return $this->createURL($path);
+		return $this->document_root;
 	}
 
 	/**
@@ -121,7 +127,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 */
 	public function scriptFilename() {
 
-		return miframe_server_get('SCRIPT_FILENAME');
+		return $this->script_filename;
 	}
 
 	/**
@@ -143,8 +149,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 */
 	public function getDirBase() {
 
-		$script = $this->scriptFilename();
-		return realpath(dirname($script));
+		return $this->dir_base;
 	}
 
 	/**
@@ -175,52 +180,50 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 */
 	private function requestURI() {
 
-		$retornar = miframe_data_get('request-uri', '?');
-
-		if ($retornar === '?') {
-			// No se ha declarado aún
+		if ($this->request_uri === '?') {
+			// No se ha declarado aún, recupera PATH_INFO (algunos servidores web no lo declaran).
+			// PATH_INFO es el componente que va después del path asociado al index, por ejemplo:
+			// Si el index está en /cliente/app/index.php
+			// Y el recurso solicitado es /cliente/app/path1/path2
+			// Entonces PATH_INFO sería /path1/path2.
 			$retornar = strtolower(miframe_server_get('PATH_INFO'));
+			// Archivo fisico detectado (si alguno)
+			$this->file_detected = '';
+
 			if ($retornar == '') {
 				// Intenta recuperar manualmente.
-				// Recupera URI sin argumentos
+				// Recupera URI sin argumentos (ignora todo despues de "?")
 				$request_uri = parse_url(strtolower(miframe_server_get('REQUEST_URI')), PHP_URL_PATH);
-				// Si el $request_uri termina en "/", adiciona el basename() del root
-				$root = $this->documentRoot();
-				if (substr($request_uri, -1, 1) == '/') { $root = $this->getURIbase(); }
-				if  ($request_uri !== $root) {
-					// No está consultando el script base (usualmente "index.php")
-					// Recupera del URI la parte que identifica el recurso solicitado.
-					$retornar = $this->removeURIbase($request_uri);
-					$filename = '';
-					if ($retornar == '') {
-						// No hay info adicional, puede que este script se haya invocado desde una URL
-						// alterna o un directorio virtual. En este caso, recupera el path invocado directamente
-						// para validar si existe físicamente un recurso asociado.
-						$filename = $this->scriptFilename();
-					}
-					else {
-						// Complementa el path recibido para ubicar el archivo físico
-						$filename = $this->createPath($retornar);
-						// Asigna valor a 'PATH_INFO' para evitar repetir este ciclo si se invoca de nuevo
-						miframe_data_put('request-uri', $retornar);
-					}
-					if (file_exists($filename)) {
-						// Valida que no sea un path directo, esos deberían pasar directamente al archivo llamado. Por ej:
-						// [REQUEST_URI] => /micode/projects/edit/php-demo.php
-						// Esto significa que el direccionamiento en el servidor web fue deficiente.
-						// Intenta de todas formas resolverlo.
-						$this->detour($filename);
-					}
+				// No está consultando el script base (usualmente "index.php")
+				// Recupera del URI la parte que identifica el recurso solicitado.
+				// Retorna vacio si no contiene la URI base.
+				$retornar = $this->removeURIbase($request_uri);
+			}
+			if ($retornar != '') {
+				// Complementa el path recibido para ubicar el archivo físico
+				$filename = $this->createPath($retornar);
+				// Valida si se ha recibido un path de un archivo valido y es el script actual.
+				if ($filename == $this->scriptFilename()) {
+					$retornar = '';
+				}
+				elseif (file_exists($filename)) {
+					// Esto no debería ocurrir ya que el servidor web debería proveerlo.
+					// Esto puede pasar debido a una configuración fallida en el servidor.
+					// Se procede a evaluar si puede desplegar el archivo solicitado.
+					$this->file_detected = $filename;
 				}
 			}
+
+			// No incluye primer "/" (a menos que solo contenga ese caracter)
+			if ($retornar != '' && $retornar != '/' && substr($retornar, 0, 1) === '/') {
+				$retornar = substr($retornar, 1);
+			}
+
+			// Asigna valor a 'PATH_INFO' para evitar repetir este ciclo si se invoca de nuevo
+			$this->request_uri = $retornar;
 		}
 
-		// No incluye primer "/" (a menos que solo contenga ese caracter)
-		if ($retornar != '' && $retornar != '/' && substr($retornar, 0, 1) === '/') {
-			$retornar = substr($retornar, 1);
-		}
-
-		return $retornar;
+		return $this->request_uri;
 	}
 
 	/**
@@ -234,128 +237,48 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	}
 
 	/**
-	 * Asigna manualmente la base para evaluar el enrutamiento.
-	 * Si se asigna en blanco, autodetecta al ejecutar $this->bindPost().
-	 * IMPORTANTE: Este método no funciona cuando se usa el Servidor interno de PHP.
-	 *
-	 * @param string $method_bind Puede tomar valores: "post", "get", "request" (puede ser cualquiera POST o GET, esta
-	 *                            es la opción por defecto), "uri" para evaluar el REQUEST_URI.
-	 */
-	public function bindMethod(string $method_bind) {
-		$this->method_bind = strtolower(trim($method_bind));
-	}
-
-	private function bindMethodAutoDetect() {
-
-		$reference = 'miframe-autocheckbindmethod';
-		$request_uri = $this->requestURI();
-		$filename = $this->dir_temp . '/router-' . md5($reference) . '.data';
-		$validando = false;
-		$metodo = '';
-
-		// Valida si usa servidor interno PHP ya que no funciona para dicho servicio
-		// (No soporta consultas file_get_contents('http://...'), cURL ni similares).
-		// En este caso, soporta redireccionamiento dinámico URI por defecto.
-		if (php_sapi_name() === 'cli-server') {
-			$metodo = 'uri';
-		}
-		elseif (file_exists($filename) && filemtime($filename) > filemtime(__FILE__)) {
-			// Lee contenido del archivo (debe ser mas reciente que este script)
-			$contenido = strtolower(trim(file_get_contents($filename)));
-			if ($contenido != '') {
-				$arreglo = explode("\n", $contenido . "\n");
-				// Toma solamente el primer elemento
-				$metodo = trim($arreglo[0]);
-			}
-			// Confirma si está o no validando
-			$validando = ($metodo === 'starting...');
-		}
-		elseif ($request_uri != '') {
-			// Soporta URI (automáticaente detectado)
-			$metodo = 'uri';
-		}
-		else {
-			// Está consultando el index o no soporta redirección por URI
-			// No ha realizado validación.
-			// Inicia creando el archivo de control.
-			file_put_contents($filename, 'starting...');
-			// Realiza consulta
-			$validando = true;
-		}
-
-		if ($validando) {
-			// Modifica contenido para prevenir ciclos eternos
-			file_put_contents($filename, 'checking...');
-			// Realiza auto-consulta por URI (ej. http://localhost/micode/autocheckbindmethod)
-			$enlace = $this->getServerURL($reference);
-			// echo "$enlace<hr>";
-			$contenido = @file_get_contents($enlace);
-			// echo "<hr>$enlace<hr>$contenido<hr>";
-			// file_put_contents($filename, 'checking...' . PHP_EOL . $enlace . PHP_EOL . $contenido);
-			$metodo = 'request';
-			if ($contenido === 'miFrame/Router URI OK') {
-				// Soporta modelo URI
-				$metodo = 'uri';
-			}
-			// Actualiza archivo de control
-			file_put_contents($filename, $metodo . PHP_EOL . $enlace . PHP_EOL . $contenido . PHP_EOL . '--- ' . date('Y-m-d H:i:s'));
-		}
-
-		if (strtolower($request_uri) === $reference) {
-			// Respuesta cuando está ejecutanto una validación (si no soporta el URI retorna vacio)
-			exit("miFrame/Router URI OK");
-		}
-		elseif (in_array($metodo, ['uri', 'request', 'post', 'get'])) {
-			$this->bindMethod($metodo);
-		}
-		elseif ($metodo === 'checking...') {
-			// Reporta error
-			exit("ERROR: miFrame/Router auto-Validación en proceso");
-		}
-		else {
-			miframe_error('Método de consulta para Router ($1) no soportado/detectado', $metodo);
-		}
-
-		return $metodo;
-	}
-
-	/**
 	 * Captura valor de la referencia asociada al enrutamiento.
 	 * Sugerencia: Esta función debe ejecutarse después de $this->setURIbase(), especialmente cuando $this->method_bind = 'URI".
 	 *
-	 * @param  string $name        Nombre del parámetro REQUEST asociado. Cuando se usa método "uri", el $name es usado para guardar
-	 *                             el valor capturado bajo ese nombre.
+	 * @param  string $name_post   Nombre del parámetro REQUEST asociado. Cuando se usa método "uri", el $name es usado para guardar
+	 *                             el valor capturado bajo ese nombre. Si no se designa valor y usa un método de captura
+	 *  						   diferente al "uri", asigna "mcmx".
 	 * @param  string $method_bind Restricción al origen del dato: "post", "get", "request" (POST o GET) o "uri". Si no se indica
-	 *                             valor alguno, autodetecta el origen en el siguiente orden: uri, post/get, request.
+	 *                             valor alguno, usa por defecto "uri".
 	 * @return bool                TRUE si fue posible capturar el valor de referencia.
 	 */
-	function bindPost(string $name) {
+	function assignMode(string $method_bind = '', string $name_post = '') {
+
+		$this->request_param = trim($name_post);
+
+		if ($this->request_param == '') { $this->request_param = 'mcmx'; }
+
+		$valor = '';
+		// $method_bind = $this->method_bind;
+		$this->method_bind = strtolower(trim($method_bind));
+		if ($this->method_bind == '') {
+			// Autodetecta método (request/uri)
+			// $method_bind = $this->bindMethodAutoDetect();
+			// No ha definido el método a usar. Por defecto intenta en modo URI
+			$this->method_bind = 'uri';
+		}
+	}
+
+	private function captureUserAction() {
 
 		$this->request = array();
 		$this->recibido = false;
-		$this->request_param = trim($name);
 
-		if ($this->request_param == '') { return false; }
-
-		$valor = '';
-		$method_bind = $this->method_bind;
-		if ($method_bind == '') {
-			// Autodetecta método (request/uri)
-			$method_bind = $this->bindMethodAutoDetect();
-		}
-
-		if ($method_bind == 'uri') {
+		if ($this->method_bind == 'uri') {
 			$valor = $this->requestURI();
 		}
 		else {
-			$collector = '_REQUEST';
-			$tipos = array('post' => '_POST', 'get' => '_GET');
-			if (isset($tipos[$method_bind])) {
-				$collector = $tipos[$method_bind];
+			$tipos = array('post' => '_POST', 'get' => '_GET', 'request' => '_REQUEST');
+			if (!isset($tipos[$this->method_bind])) {
+				// Error de configuración
+				miframe_error('Método de selección no reconocido: $1. Esperaba "$2" o "uri".', $filename, implode('", "', array_keys($tipos)));
 			}
-			else {
-				$method_bind = 'request';
-			}
+			$collector = $tipos[$this->method_bind];
 			if (isset($GLOBALS[$collector])
 				&& isset($GLOBALS[$collector][$name])
 				&& is_string($GLOBALS[$collector][$name])
@@ -390,6 +313,8 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 *
 	 * 	   [config]
 	 * 	   debug = true
+	 * 	   method = uri/get/post/request
+	 *     name_post = cmd
 	 *
 	 *     [private]
 	 *     default = (script a ejecutar cuando no recibe enrutamiento o el enrutamiento apunta al index.php)
@@ -413,7 +338,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 * El grupo "config" permite realizar configuraciones a la clase. Las opciones validas para este grupo son:
 	 * - debug: boolean. TRUE para presentar mensajes de depuración.
 	 * - method: string. Puede ser "post", "get", "request" o "uri". Método usado para detectar el enrutamiento.
-	 * - uri-base: string. Definición del URI base esperado, especialmente requerido si el método de captura es "uri".
+	 * - name_post: string. Nombre de la variable asociada al modo de captura (no requerida para "uri").
 	 *
 	 * @param string $filename Nombre del archivo .ini a cargar,
 	 * @param string $dirbase  Path a usar para ubicar los scripts.
@@ -428,17 +353,32 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 		foreach ($data as $type => $group) {
 			$metodo_map = ''; // Usado en rutas publicas
-			if ($type == 'private') {
+			if ($type == 'config') {
+				// Configura modo de captura
+				$method_bind = '';
+				$name_post = '';
+				if (isset($group['method'])) { $method_bind = $group['method']; }
+				if (isset($group['name_post'])) { $name_post = $group['name_post']; }
+				if ($method_bind != '' || $name_post != '') {
+					$this->assignMode($method_bind, $name_post);
+				}
+				// Configura modo debug
+				if (isset($group['debug'])) {
+					$this->debug = boolval($group['debug']);
+				}
+			}
+			elseif ($type == 'private') {
 				$this->addPrivateRoutes($group);
-				continue;
 			}
-			elseif (strtolower(substr($type, 0, 7)) == 'public-') {
-				// MRuta pública asociada a un método particular
-				$metodo_map = strtolower(trim(substr($type, 7)));
-				$type = 'public';
-			}
-			if ($type == 'public') {
-				$this->addRoutes($group, $metodo_map);
+			else {
+				if (strtolower(substr($type, 0, 7)) == 'public-') {
+					// MRuta pública asociada a un método particular
+					$metodo_map = strtolower(trim(substr($type, 7)));
+					$type = 'public';
+				}
+				if ($type == 'public') {
+					$this->addRoutes($group, $metodo_map);
+				}
 			}
 		}
 	}
@@ -541,7 +481,8 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 */
 
 	public function continue() {
-		return (!$this->matchSuccessful || $this->multipleMatch);
+
+		return ($this->file_detected == '' && (!$this->matchSuccessful || $this->multipleMatch));
 	}
 
 	private function getPublicRoute($reference, $startsWith = '') {
@@ -567,6 +508,8 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 * @return bool TRUE si encuentra un enrutamiento valido, FALSE en otro caso.
 	 */
 	public function run() {
+
+		$this->captureUserAction();
 
 		// Evalua si no hay datos recibidos, en ese caso ejecuta la opción "default"
 		if ($this->continue()) {
@@ -688,7 +631,6 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 		return $this->runAction($action, $reference);
 	}
-
 
 	public function runDefault(string $action = '') {
 
@@ -889,10 +831,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	public function notFound(string $title, string $message, string $footnote = '') {
 
 		if (!$this->matchSuccessful) {
-			if (!headers_sent()) {
-				header("HTTP/1.1 404 Not Found");
-			}
-			$this->abort($title, $message, $footnote, $this->stopScript);
+			$this->abort($title, $message, $footnote, '404 Not Found');
 		}
 	}
 
@@ -904,9 +843,8 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 * @param string $title Titulo
 	 * @param string $message Mensaje
 	 * @param string $footnote Mensaje adicional (usualmente para mostrar en diferente formato)
-	 * @param bool $stopScript TRUE para detener la ejecución del script principal (valor por defecto). FALSE, continua.
 	 */
-	public function abort(string $title, string $message, string $footnote = '', bool $stopScript = true) {
+	public function abort(string $title, string $message, string $footnote = '', string $header = '') {
 
 		$ejecutado = false;
 
@@ -917,10 +855,15 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			&& $accion != ''
 			) {
 			$this->abortando = true; // Previene ciclo infinito si falla include()
-			$this->setParam('title', $title);
-			$this->setParam('message', $message);
-			$this->setParam('footnote', $footnote);
-			$this->stopScript = $stopScript;
+			$this->setParam('abort_title', $title);
+			$this->setParam('abort_message', $message);
+			$this->setParam('abort_footnote', $footnote);
+			// Siempre termina la ejecución al ejecutar la acción
+			$this->stopScript = true;
+
+			if ($header != '' && !headers_sent()) {
+				header("HTTP/1.1 " . $header);
+			}
 
 			$ejecutado = $this->runAction($accion, '(abort)');
 			$this->abortando = false;
@@ -931,10 +874,11 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			// Mensaje con error a pantalla
 			$message = nl2br($message);
 			$this->printDebug(miframe_text('Ejecución cancelada'));
-			echo $this->sprintf($title, $message, $footnote);
+			echo miframe_box($title, $message, '', $footnote);
 		}
 
-		if ($stopScript && !$this->abortando) { $this->stop(); }
+		// Si llega a este punto y no esta en otro proceso de abortar, termina el script.
+		if (!$this->abortando) { $this->stop(); }
 	}
 
 	/**
@@ -942,60 +886,68 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 *
 	 * @param callable $function Función a ejecutar.
 	 */
-	public function detourCall(callable $function) {
+	// public function detourCall(callable $function) {
+	// 	$this->detour_handler = $function;
+	// }
 
-		$this->detour_handler = $function;
+	public function fileDetected() {
+		return $this->file_detected;
+	}
+
+	public function reportFileDetected(string $title, string $message, string $footnote = '') {
+
+		if ($this->file_detected != '' && !$this->matchSuccessful) {
+			$this->abort($title, $message, $footnote, '403 Forbidden');
+		}
+	}
+
+	public function exportFileDetected(bool $export_direct = false) {
+
+		if ($this->file_detected != '' && !$this->matchSuccessful) {
+			$this->exportFile($this->file_detected, $export_direct);
+		}
+
+		return false;
 	}
 
 	/**
-	 * Ejecuta script que no está asociados a alguno de los enrutamientos declarados.
+	 * Ejecuta script/archivo que no está asociados a alguno de los enrutamientos declarados.
 	 * Esto usualmente permite al sistema intentar recuperar scripts recibidos por enrutamientos erróneos realizados
 	 * por el servidor web y detectados al evaluar el REQUEST_URI.
 	 * También puede usarse para ejecutar scripts en un entorno aislado al actual.
 	 *
 	 * @param string $filename Script a ejecutar.
-	 * @param bool $export_file Exportar archivo. TRUE envía headers para guardar archivo, FALSE envía directo al navegador.
+	 * @param bool $export_direct TRUE envía archivo directo al browser, FALSE envía headers para guardar archivo.
 	 */
-	public function detour(string $filename, bool $export_file = false) {
+	public function exportFile(string $filename, bool $export_direct = false) {
 
-		if (is_file($filename) && $this->allowDetour) {
-
-			$this->printDebug(miframe_text('Enrutamiento correcto? $1', $filename));
-
-			// Suspende cualquier proceso adicional en curso
-			if (is_callable($this->detour_handler)) {
-				// Registra en $_SERVER el nombre del archivo
-				miframe_server_set('MIFRAME_DETOUR_FILENAME', $filename);
-				call_user_func($this->detour_handler);
-			}
-
-			// Forza terminación de capturas previas (incluida la generada al inicio de Router)
-			// while (ob_get_level()) { ob_end_clean(); }
+		if ($filename != '' && is_file($filename)) {
 
 			// En teoría, todo archivo script debería ser invocado por el WebServer y no pasado a este script
-			if (strtolower(substr($filename, -4)) == '.php') {
+			if (strtolower(substr($filename, -4)) == '.php' && $export_direct) {
 				// Cambia al directorio del archivo
 				chdir(dirname($filename));
 				// Ejecuta en modo privado
-				$this->include(basename($filename),
-					miframe_text('DETOUR: Script **$1** ejecutado localmente', $filename),
-					miframe_text('Si este no era el comportamiento esperado, favor revisar enrutamiento en el servidor web.'),
+				$this->include(
+					basename($filename),
+					miframe_text('READFILE: Script ejecutado localmente'),
+					miframe_text('Archivo $1', $filename),
 					true
 					);
 			}
 			else {
-				// Envia archivo directamente a pantalla
-				// o para guardar, según se defina en $export_file
-
+				// Envia archivo directamente a pantalla o para guardar
 				// header('Content-Description: File Transfer');
 				$mimetype = mime_content_type($filename);
 				$size = filesize($filename);
 
-				header('Content-Type: ' . $mimetype);
+				if ($mimetype != '') {
+					header('Content-Type: ' . $mimetype);
+				}
 
 				// $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 				// if (!in_array($extension, [ 'jpg', 'jpeg', 'gif', 'png', 'svg', 'mp4' ])) { ... }
-				if ($export_file) {
+				if (!$export_direct) {
 					header('Content-Disposition: attachment; filename="' . basename($filename) . '"');
 				}
 
@@ -1009,14 +961,8 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 			exit;
 		}
-		else {
-			$request_uri = parse_url(miframe_server_get('REQUEST_URI'), PHP_URL_PATH);
-			$this->matchSuccessful = false;
-			$this->notFound(
-				miframe_text('Solicitud no soportada'),
-				miframe_text('El recurso solicitado **$1** no está disponible en el servidor o no tiene permisos para su ejecución.', $request_uri)
-				);
-		}
+
+		return false;
 	}
 
 	/**
@@ -1025,7 +971,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 * @param array $dest Arreglo a recibir los parámetros declarados en $this->params.
 	 */
 	public function exportParamsInto(array &$dest) {
-		// if (!is_array($dest)) { $dest = array(); }
+
 		$dest = $this->params + $dest;
 	}
 
@@ -1305,9 +1251,16 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 		}
 
 		// Actualiza $this->force_json con el valor obtenido para agilizar futuras invocaciones
-		if ($retornar) { $this->force_json = true; }
+		if ($retornar) {
+			$this->forceJSON(true);
+		}
 
 		return $retornar;
+	}
+
+	public function forceJSON(bool $json) {
+		$this->force_json = $json;
+		miframe_set_noweb($json);
 	}
 
 	/**

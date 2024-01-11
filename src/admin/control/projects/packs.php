@@ -30,8 +30,7 @@ if ($this->post->exists('down')) {
 		);
 	}
 
-	$this->router->allowDetour = true;
-	$this->router->detour($filename, true);
+	$this->router->exportFile($filename);
 }
 elseif ($this->post->exists('new')) {
 	// Nuevo paquete

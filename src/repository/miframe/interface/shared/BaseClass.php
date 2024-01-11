@@ -24,7 +24,6 @@ class BaseClass {
 	protected $path_files = '';
 	protected $color_debug = '';
 
-	public $force_json = false;
 	public $debug = false;
 
 	/**
@@ -40,41 +39,6 @@ class BaseClass {
 	}
 
 	/**
-	 * Retorna texto HTML preformateado.
-	 *
-	 * @param string $text Mensaje a imprimir, permite texto en HTML.
-	 * @param string $footnote Mensaje adicional (usualmente para mostrar en diferente formato)
-	 */
-	protected function sprintf(string $title, string $text, string $footnote = '') {
-
-		$salida = '';
-
-		if (!$this->force_json) {
-			if ($footnote != '') {
-				$footnote = '<div style="font-size:12px;padding:10px;margin:10px;background:rgba(175,184,193,0.2); color:#000;">' .
-					$footnote .
-					'</div>' . PHP_EOL;
-			}
-
-			$salida = '<div style="font-family:Segoe UI,Tahoma;font-size:14px;margin:0;">'.
-				'<h1>' . $title . '</h1>' . PHP_EOL .
-				'<p>' . $text . '</p>' . PHP_EOL .
-				$footnote .
-				'</div>' . PHP_EOL;
-		}
-		else {
-			if ($footnote != '') {
-				$footnote = PHP_EOL . '---' . PHP_EOL . $footnote . PHP_EOL;
-			}
-			$title .=  PHP_EOL . PHP_EOL;
-			$salida = PHP_EOL . PHP_EOL . '*** ' . trim(strip_tags($title . $text . $footnote)) . PHP_EOL . PHP_EOL;
-		}
-
-		return $salida;
-	}
-
-
-	/**
 	 * Imprime mensaje en pantalla solamente si $this->debug = true.
 	 *
 	 * @param string $message Mensaje a imprimir, permite texto en HTML
@@ -87,13 +51,22 @@ class BaseClass {
 			// Marca en modo debug
 			if ($this->debug) {
 				$this->secuencia ++;
-				$this->print(
-					'<div style="font-size:14px;padding:10px;margin:0;background:' . $this->color_debug . ';color:#fff;line-height:1">' .
-					'[' . $this->secuencia . '] <b>DEBUG ' . get_class($this) . '</b> - ' .
-					$text .
-					'</div>',
-					$footnote
-					);
+				$salida = '<div style="font-size:14px;padding:10px;margin:0;background:' . $this->color_debug . ';color:#fff;line-height:1">' .
+						'[' . $this->secuencia . '] <b>DEBUG ' . get_class($this) . '</b> - ' .
+						$text;
+				if ($footnote != '') {
+					$salida .=	PHP_EOL .
+						'<div style="font-size:12px;padding:10px 0 5px 0;color:yellow">' .
+						$footnote .
+						'</div>';
+				}
+				$salida .= '</div>';
+				if (!miframe_is_web()) {
+					$salida = PHP_EOL . '---' . PHP_EOL .
+						strip_tags($salida) .
+						PHP_EOL . '---' . PHP_EOL;
+				}
+				echo $salida;
 			}
 			// Adiciona al log de errores de PHP
 			error_log($text);

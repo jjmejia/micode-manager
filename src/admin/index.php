@@ -46,16 +46,11 @@ try {
 	// $app->framebox_css = $app->router->createURL('/public/resources/css/miframebox.css');
 	// $app->setFilenameCSS(MIFRAME_ROOT . '/public/resources/css/miframebox.css');
 
-	// Procesa comandos recibidos por REQUEST (automáticamente detecta del URI si no existe este valor)
-	// Si el server no soporta (o no tiene configurado) para que todas las peticiones sean redirigidas a este
-	// script (de forma que se detecta la petición deseada al interpretar el URI), entonces se debe invocar este
-	// script usando "cmd" como la variable POST que contiene la petición deseada (ruta).
-	$app->router->bindPost('cmd');
-
 	// Inicializa directorios para vistas y base para ejecución de rutas
 	$app->view->setPathFiles(miframe_path(MIFRAME_BASEDIR, 'views'));
 	$app->router->setPathFiles(miframe_path(MIFRAME_BASEDIR, 'control'));
 
+	// Valida si es una solicitud de API o JSON
 	if ($app->router->requestStartWith('api') || $app->router->jsonRequest()) {
 
 		$app->initializeJson();
@@ -99,11 +94,15 @@ try {
 
 	Forma alterna sin recurrir a un archivo de configuración:
 
+
 		// Recomendado: Registrar script a ejecutar al invocar abort()
 		$app->addAbortRoute('actions/projects/error.php');
 
 		// Opcional: Acciones a ejecutar antes de detener la ejecución del script actual
 		$app->addBeforeStopRoute('xxxx');
+
+		// Asigna modo de captura del enlace de navegación (puede incluirse en el .ini)
+		$app->router->assignMode('uri');
 
 		// OPCION 1:
 		// Definir todo el mapa de rutas manualmente
@@ -133,6 +132,9 @@ try {
 		// Ejecutar cada consulta manualmente
 		// (cuando encuentra coincidencia, ejecuta e ignora el resto)
 
+			// Captura seleccion del usuario
+			$this->captureUserAction();
+
 			$app->runOnce('projects/create', 'actions/projects/create.php');
 			$app->runOnce('modules/detail', 'actions/modules/detail.php');
 			...
@@ -141,6 +143,10 @@ try {
 			$app->runDefault('actions/projects/list.php')
 
 	*/
+
+	// Si detectó algún archivo, pero no corresponde a los mapas de navegación lo intenta exportar
+	// usando $app->router->exportFileDetected() o lo reporta usando $app->router->reportFileDetected().
+	$app->router->exportFileDetected(true);
 
 	// Si nada funciona, presenta mensaje de error
 	$app->router->notFound(
