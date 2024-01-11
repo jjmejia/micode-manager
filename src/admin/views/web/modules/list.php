@@ -75,7 +75,7 @@ if ($this->params->get('listado:count') > 0) {
 			$infotipo = "<span class=\"label-tipo\">{$data['type']}</span>";
 		}
 		// $umodulo = urlencode($modulo);
-		$utype = $this->params->get('type:url');
+		$utype = $this->params->get('type:e');
 		$basename = $modulo;
 		// if (isset($data['islocal']) && $data['islocal'] != '') { $basename = $data['islocal']; }
 		$enlace = $data['url'];

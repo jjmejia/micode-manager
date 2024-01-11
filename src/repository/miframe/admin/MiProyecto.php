@@ -26,8 +26,6 @@ use \miFrame\Utils\UI\HTMLSupport as miHTML;
 
 class MiProyecto { // extends Router
 
-	use \miFrame\Utils\Traits\HTMLSupportTrait;
-
 	public $formAction = '';
 
 	private $view = false;			// Objeto interface/Views
@@ -98,8 +96,6 @@ class MiProyecto { // extends Router
 
 		$this->view->debug = $this->router->debug;
 		// $this->view->force_json = $this->router->force_json;
-
-		$this->view->xxxx();
 
 		// Método para crear URLs (debe ir luego de la captura de datos de navegacion captureUsearAction() y no debe inicializar "form-action" en los defaults de las vistas)
 		if ($this->formAction == '') {

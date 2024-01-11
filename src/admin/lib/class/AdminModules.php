@@ -894,7 +894,7 @@ class AdminModules {
 		return (!isset($info['sha']) || 'x' . $info['sha'] !== 'x' . $listado['sha']
 			|| !isset($info['datetime']) || $info['datetime'] != $listado['datetime']
 			|| !isset($info['size']) || $info['size'] != $listado['size']
-			|| !isset($info['dirbase']) || $info['dirbase'] !== $listado['dirbase']
+			|| !isset($info['dirbase']) || (isset($listado['dirbase']) && $info['dirbase'] !== $listado['dirbase'])
 			|| (isset($info['require']) && (
 				!isset($info['require-total']) || $info['require-total'] != $listado['require-total']
 				))

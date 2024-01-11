@@ -16,6 +16,7 @@ $micode_logo = $this->router->createURL('public/favicon.png');
 <html>
 <head>
 	<title>miCode - <?= $this->params->get('author:e') ?></title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<link rel="icon" type="image/x-icon" href="<?= $micode_logo ?>">
 	<link rel="stylesheet" href="<?= str_replace('/tests/', '/', $this->router->createURL('/public/resources/css/micode.css')) ?>">
 </head>

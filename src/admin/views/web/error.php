@@ -7,7 +7,7 @@
  * @since Mayo 2022
  */
 
-$backtrace = $this->params->get('footnote');
+$backtrace = $this->params->get('abort_footnote');
 if ($backtrace == '') {
 	$backtrace = miframe_debug_backtrace_info();
 }
@@ -27,9 +27,9 @@ body {
 }
 </style>
 
-<h1><?= $this->params->get('title:e') ?></h1>
+<h1><?= $this->params->get('abort_title:e') ?></h1>
 
-<p><?= nl2br($this->params->get('message')) ?></p>
+<p><?= nl2br($this->params->get('abort_message')) ?></p>
 
 <?= $this->params->iif('pre:!empty', '<p class="trace">{{ pre:e }}</p>') ?>
 

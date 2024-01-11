@@ -6,8 +6,8 @@
  * @since Abril 2022
  */
 
-$tipo = $this->params->get('type:url');
-$modulo_padre = $this->params->get('module:url');
+$tipo = $this->params->get('type:e');
+$modulo_padre = $this->params->get('module:e');
 $enlace_ppal = '';
 
 if ($this->params->get('url-back-file') != '') {
