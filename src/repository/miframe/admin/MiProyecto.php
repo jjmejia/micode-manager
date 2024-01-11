@@ -6,7 +6,8 @@
  * @micode-uses miframe/interface/router
  * @micode-uses miframe/interface/views
  * @micode-uses miframe/interface/request
- * @micode-uses miframe/interface/EditConfig
+ * @micode-uses miframe/interface/editconfig
+ * @micode-uses miframe/utils/htmlsupport
  * @author John Mejia
  * @since Abril 2022
  * @version 1.0.0
@@ -21,6 +22,7 @@ use \miFrame\Interface\Request 	  as miRequest;
 use \miFrame\Interface\Router 	  as miRouter;
 use \miFrame\Interface\EditConfig as miEditConfig;
 use \miFrame\Interface\Params 	  as miParams;
+use \miFrame\Utils\UI\HTMLSupport as miHTML;
 
 class MiProyecto { // extends Router
 
@@ -33,6 +35,7 @@ class MiProyecto { // extends Router
 	private $router = false;		// Objeto interface/Router
 	private $config = false;		// Objeto interface/EditConfig
 	private $params = false;		// Objeto interface/Params
+	private $html = false;			// Objeto Utils/UI/HTMLSupport
 
 	public function __construct() {
 
@@ -44,9 +47,10 @@ class MiProyecto { // extends Router
 		$this->post = new miRequest();
 		$this->view = new miViews();
 		$this->params = new miParams();
+		$this->html = new miHTML();
 
 		// Para uso en HTMLSupportTrait
-		$this->setFilenameCSS(__DIR__ . '/miproyecto-styles.css');
+		$this->html->setFilenameCSS(__DIR__ . '/miproyecto-styles.css');
 
 		// Exportar al REQUEST
 		$this->router->autoExport = true;
@@ -65,7 +69,8 @@ class MiProyecto { // extends Router
 
 	public function initializeJson() {
 
-		$this->router->force_json = true;
+		$this->router->forceJSON(true);
+
 		// $this->router->strict = true;
 
 		// Registra ventanas modales personalizadas
@@ -92,9 +97,11 @@ class MiProyecto { // extends Router
 	public function startView(string $filename, array $data) {
 
 		$this->view->debug = $this->router->debug;
-		$this->view->force_json = $this->router->force_json;
+		// $this->view->force_json = $this->router->force_json;
 
-		// Método para crear URLs (debe ir luego del bindPost() y no debe inicializar "form-action" en los defaults de las vistas)
+		$this->view->xxxx();
+
+		// Método para crear URLs (debe ir luego de la captura de datos de navegacion captureUsearAction() y no debe inicializar "form-action" en los defaults de las vistas)
 		if ($this->formAction == '') {
 			$this->formAction = $this->router->getFormAction();
 		}
@@ -219,7 +226,7 @@ class MiProyecto { // extends Router
 			$title = '<div class="box-title">' . $title . '</div>';
 			}
 
-		$salida = $this->getStylesCSS(true);
+		$salida = $this->html->getStylesCSS(true);
 
 		$salida .= "<div class=\"miframe-box box-$style\">" .
 			$title .

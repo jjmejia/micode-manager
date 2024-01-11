@@ -54,12 +54,12 @@ function miframe_box(string $title, string $message, string $style = '', string 
 		// if (!$showscrolls) { $max_alto = ''; }
 
 		if ($footnote != '') {
-			$footnote = "<hr size=\"1\" style=\"color:$color\"><small>$footnote</small>";
+			$footnote = "<hr size=\"1\" style=\"color:$color;margin-top:10px\"><small>$footnote</small>";
 		}
 
 		$salida = "<div style=\"font-family:Segoe UI,Arial;border:2px solid $color;padding:10px;margin:10px 0\">".
 			"<div><b>$title</b></div>" .
-			"<div style=\"$max_alto max-width:100%;overflow:auto\">" .
+			"<div style=\"$max_alto max-width:100%;overflow:auto;margin-top:5px\">" .
 			$message .
 			$footnote .
 			'</div>'.
@@ -194,6 +194,22 @@ function miframe_tree_directory(string $path, string $pattern = '', bool $ignore
 	// echo "<pre>"; print_r($dirs); exit;
 
 	return $dirs;
+}
+
+function iso2utf8(string $contenido) {
+
+	// Valida si debe decodificar el código
+	$eval_code = array('á', 'é', 'í', 'ó', 'ú', 'ñ', 'Ñ');
+	foreach ($eval_code as $car) {
+		$car8 = iconv("UTF-8", "ISO-8859-1//IGNORE", $car);
+		if (strpos($contenido, $car8) !== false) {
+			// Encontrado, decodifica todo el texto
+			$contenido = iconv("ISO-8859-1", "UTF-8//IGNORE", $contenido);
+			break;
+		}
+	}
+
+	return $contenido;
 }
 
 /*

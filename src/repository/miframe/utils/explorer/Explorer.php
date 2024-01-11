@@ -411,6 +411,7 @@ class Explorer {
 			'date-creation' => date('Y/m/d H:i:s', filectime($filename_full)),
 			'date-modified' => date('Y/m/d H:i:s', filemtime($filename_full)),
 			'size' => filesize($filename_full),
+			'encoding' => '',
 			'add-fav' => '',
 			'content' => ''
 			);
@@ -467,7 +468,7 @@ class Explorer {
 				// Funciones
 				$contenido = $filename_full;
 				if ($this->showContentsFor[$extension]['type'] != 'filename') {
-					$contenido = @file_get_contents($filename_full);
+					$contenido = $this->get_contents($filename_full);
 				}
 				$salida['content'] = call_user_func($this->showContentsFor[$extension]['fun'], $contenido);
 			}
@@ -652,9 +653,9 @@ class Explorer {
 	private function formatText() {
 
 		$salida = '';
-		$contenido = @file_get_contents($this->root . $this->filename);
+		$contenido = $this->get_contents($this->root . $this->filename);
 		if ($contenido != '') {
-			$contenido = htmlspecialchars($contenido);
+			$contenido = htmlspecialchars(iso2utf8($contenido));
 			$salida = '<pre>' . $this->formatLinks($contenido) . '</pre>';
 		}
 
@@ -693,7 +694,7 @@ class Explorer {
 		$contenido = @highlight_file($this->root . $this->filename, true);
 		if ($contenido != '') {
 			// https://stackoverflow.com/a/206087
-			$contenido = $this->formatLinks($contenido);
+			$contenido = $this->formatLinks(iso2utf8($contenido));
 		}
 
 		return $contenido;
@@ -709,7 +710,7 @@ class Explorer {
 
 		$salida = '';
 		if (is_callable($this->parserTextFunction)) {
-			$contenido = @file_get_contents($this->root . $this->filename);
+			$contenido = $this->get_contents($this->root . $this->filename);
 			if ($contenido != '') {
 				$salida = call_user_func($this->parserTextFunction, $contenido);
 			}
@@ -758,5 +759,15 @@ class Explorer {
 	 */
 	private function continue() {
 		return ($this->error_data['code'] == 0);
+	}
+
+	private function get_contents(string $filename) {
+
+		$contenido = '';
+		if (file_exists($filename)) {
+			$contenido = @file_get_contents($filename);
+		}
+
+		return $contenido;
 	}
 }

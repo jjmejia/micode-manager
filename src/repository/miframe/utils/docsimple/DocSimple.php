@@ -193,6 +193,9 @@ class DocSimple {
 	 * @return bool TRUE si recupera con éxito de caché en disco. FALSE en otro caso.
 	 */
 	public function unserialize(string $filename, mixed &$info) {
+
+		return false;
+
 		if ($this->pathCache != ''
 			&& is_dir($this->pathCache)
 			&& function_exists('miframe_unserialize')
@@ -549,7 +552,7 @@ class DocSimple {
 
 		if ($this->tags['code-start-full'] != '' || $this->tags['code-start'] != '') {
 			// Al menos uno de los tags de inicio no está en blanco
-			$contenido = file_get_contents($filename);
+			$contenido = iso2utf8(file_get_contents($filename));
 			// Valida que el contenido tenga alguno de los inicios declarados (no es estrictamente)
 			$inicio_full = ($this->tags['code-start-full'] != '' && strpos($contenido, $this->tags['code-start-full']) !== false);
 			$inicio_simple = ($this->tags['code-start'] != '' && strpos($contenido, $this->tags['code-start']) !== false);

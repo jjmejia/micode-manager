@@ -192,7 +192,8 @@ class phpManager extends \miFrame\Manager\Shared\MiBaseManager {
 		$this->initialize_doc();
 		// $this->doc->ignoreLocalStyles = !$with_styles;
 		$this->doc->clickable = $clickable;
-		return $this->doc->render($filename, $show_errors);
+		$this->doc->showErrors = $show_errors;
+		return $this->doc->render($filename);
 	}
 
 }

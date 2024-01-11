@@ -3,6 +3,7 @@
  * Da formato HTML a documentación de código obtenida con la clase DocSimple.
  *
  * @micode-uses miframe/common/functions
+ * @micode-uses miframe/utils/htmlsupport
  * @author John Mejia
  * @since Febrero 2023
  */
@@ -20,18 +21,20 @@ namespace miFrame\Utils\DocSimple;
  */
 class DocSimpleHTML extends DocSimple {
 
-	use \miFrame\Utils\Traits\HTMLSupportTrait;
-
-	private $tags_html_fun = array();
+	private $tags_html_fun = array();	// Funciones asociadas a tags de documentación
+	private $html = false;				// Objeto Utils/UI/HTMLSupport
 
 	public $parserTextFunction = false;
 	public $clickable = false;
 	public $showErrors = true;
+	public $showAllFunctions = true; 	// FALSE muestra solamente métodos/funciones públicas
 
 	public function __construct() {
+		// Ejecuta __construct() de la clase padre (DocSimple)
 		parent::__construct();
-		// Para uso en HTMLSupportTrait
-		$this->setFilenameCSS(__DIR__ . '/docsimple-styles.css');
+		// Para uso en HTMLSupport
+		$this->html = new \miFrame\Utils\UI\HTMLSupport();
+		$this->html->setFilenameCSS(__DIR__ . '/docsimple-styles.css');
 	}
 
 	/**
@@ -57,7 +60,7 @@ class DocSimpleHTML extends DocSimple {
 
 		$documento = $this->getDocumentation($filename, $funcion);
 
-		$salida = $this->getStylesCSS(true);
+		$salida = $this->html->getStylesCSS(true);
 
 		$salida .= '<div class="docblock"><div class="docfile">' . $titulo . '</div>' . PHP_EOL;
 
@@ -82,9 +85,14 @@ class DocSimpleHTML extends DocSimple {
 		if (!$this->clickable && count($documento['docs']) > 0) {
 			// Muestra todas las funciones en la misma vista
 			$salida .= '<div class="docnonav"><h1>' . miframe_text('Contenido') . '</h1>' . PHP_EOL;
+			$conteo = 0;
 			foreach ($documento['docs'] as $k => $info) {
 				if ($info['type'] != 'namespace') {
+					if ($conteo > 0) {
+						$salida .= '<div class="docseparator">&bull; &bull; &bull;</div>' . PHP_EOL;
+					}
 					$salida .= $this->evalHTMLDoc($info, array())  . PHP_EOL;
+					$conteo ++;
 				}
 			}
 			$salida .= '</div>' . PHP_EOL;
@@ -169,18 +177,24 @@ class DocSimpleHTML extends DocSimple {
 				}
 				elseif (isset($info['name'])) { // function-name
 					$function = strtolower($info['name']); // function-name
+					$incluir = true;
+					$info_function = '';
 					if (!$this->clickable) {
-						$arreglo[$function] = '<b>' . htmlspecialchars($info['name']) . '</b>'; // function-name
+						$info_function = '<b>' . htmlspecialchars($info['name']) . '</b>'; // function-name
 					}
 					else {
 						// Determinar si llega por GET o POST la data principal?
-						$arreglo[$function] = $this->parserLink($info['name'], $info['name']); // function-name
+						$info_function = $this->parserLink($info['name'], $info['name']); // function-name
 					}
 					if ($info['type'] != 'public function' && $info['type'] != 'function') {
-						$arreglo[$function] .= ' (' . $info['type'] . ')';
+						$info_function .= ' (' . $info['type'] . ')';
+						$incluir = $this->showAllFunctions;
 					}
 					if (isset($info['summary']) && $info['summary'] != '') {
-						$arreglo[$function] .= ' -- ' . $this->parserText($info['summary'], true);
+						$info_function .= ' -- ' . $this->parserText($info['summary'], true);
+					}
+					if ($incluir) {
+						$arreglo[$function] = $info_function;
 					}
 				}
 			}
@@ -189,7 +203,7 @@ class DocSimpleHTML extends DocSimple {
 				ksort($arreglo);
 				$salida .= '<div class="docfun"><h2>' . $titulo . '</h2>' .
 							$summary .
-							'<p class="docfuntabla">Tabla de contenidos</p>' .
+							'<p class="docfuntabla">' . miframe_text('Tabla de contenidos') . '</p>' .
 							'<ul><li>' . implode('</li><li>', $arreglo) . '</li></ul>' .
 							'</div>' . PHP_EOL;
 			}
@@ -298,12 +312,14 @@ class DocSimpleHTML extends DocSimple {
 				$text = $this->parserLocalMarkdown($text);
 			}
 			// Protege enlaces, los abre en una pestaña nueva
-			$text = str_replace('<a href="', '<a target="doclink" href="', $text);
+			$text = str_replace('<a href="', '<a target="doclink" href="', trim($text));
 			if ($remove_tag_p) {
 				// No lo hace si hay "<p>" en medio del texto, para prevenir tags incompletos.
 				if (substr($text, 0, 3) == '<p>' && strpos($text, '<p>', 3) === false) {
 					$text = substr($text, 3);
-					if (substr($text, -4, 4) == '</p>') { $text = substr($text, 0, -4); }
+				}
+				if (strpos($text, '<p>') === false && substr($text, -4, 4) == '</p>') {
+					$text = substr($text, 0, -4);
 				}
 			}
 		}
@@ -332,33 +348,6 @@ class DocSimpleHTML extends DocSimple {
 			$this->tags_html_fun[$tag] = $fun;
 		}
 	}
-
-	/*
-	private function docblock_styles_css() {
-
-		$salida = '';
-		if ($this->ignoreLocalStyles) { return $salida; }
-		$this->ignoreLocalStyles = true;
-
-		if ($this->stylesCSS != '') {
-			$salida = trim($this->stylesCSS);
-			if (strtolower(substr($salida, 0, 4)) == 'url:') {
-				$salida = '<link rel="stylesheet" href="' . substr($salida, 4) . '">' . PHP_EOL;
-			}
-			else {
-				$salida = '<style>' . PHP_EOL . substr($salida, 4) . PHP_EOL . '</style>' . PHP_EOL;
-			}
-			$salida = $this->stylesCSS;
-		}
-		else {
-			$salida = '
-<style>
-</style>' . PHP_EOL;
-		}
-
-		return $salida;
-	}
-	*/
 
 	/**
 	 * Interprete de texto Markdown básico.
@@ -466,7 +455,7 @@ class DocSimpleHTML extends DocSimple {
 	 * Soporte para parserLocalMarkdown: Realiza apertura de tags HTML.
 	 * Si se ejecutan aperturas consecutivas del mismo tag, solo aplica la primera.
 	 *
-	 * @param array $tags_acum Arreglo editable con los tags abiertos (ul, blockquote).
+	 * @param array $tags_acum Arreglo editable con los tags abiertos (ul, pre, blockquote).
 	 * @param string $tag Tag a evaluar.
 	 * @return string texto HTML con los tags abiertos (si alguno). Ej: "<ul>".
 	 */

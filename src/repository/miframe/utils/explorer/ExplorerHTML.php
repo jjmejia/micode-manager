@@ -3,6 +3,7 @@
  * Clase para generar salida HTML a los datos generados por la clase Explorer.
  *
  * @micode-uses miframe/common/shared
+ * @micode-uses miframe/utils/htmlsupport
  * @author John Mejia
  * @since Julio 2022
  */
@@ -10,12 +11,14 @@ namespace miFrame\Utils\Explorer;
 
 class ExplorerHTML extends Explorer {
 
-	use \miFrame\Utils\Traits\HTMLSupportTrait;
+	private $html = false;				// Objeto Utils/UI/HTMLSupport
 
 	public function __construct() {
+		// Ejecuta __construct() de la clase padre (Explorer)
 		parent::__construct();
-		// Para uso en HTMLSupportTrait
-		$this->setFilenameCSS(__DIR__ . '/explorer-styles.css');
+		// Para uso en HTMLSupport
+		$this->html = new \miFrame\Utils\UI\HTMLSupport();
+		$this->html->setFilenameCSS(__DIR__ . '/explorer-styles.css');
 	}
 
 	/**
@@ -29,7 +32,7 @@ class ExplorerHTML extends Explorer {
 		$listado = $this->explore($baselink);
 
 		// Adiciona estilos en líne (si previamente no han sido incluidos)
-		$salida = $this->getStylesCSS(true);
+		$salida = $this->html->getStylesCSS(true);
 
 		$salida .= '<div class="x-explorer">';
 
@@ -117,6 +120,7 @@ class ExplorerHTML extends Explorer {
 				'<table><tr><td><b>Creado en:</b></td><td>' . $listado['date-creation'] . '</td></tr>' .
 				'<tr><td><b>Última modificación:</b></td><td>' . $listado['date-modified'] . '</td></tr>' .
 				'<tr><td><b>Tamaño:</b></td><td>' . miframe_bytes2text($listado['size'], true) . '</td></tr></table>' .
+				// '<tr><td><b>Encoding:</b></td><td>' . $listado['encoding'] . '</td></tr></table>' .
 				'</div>';
 			$salida .= '<div class="x-' . $listado['class'] . '">' . $listado['content'] . '</div>';
 		}
@@ -178,5 +182,9 @@ class ExplorerHTML extends Explorer {
 		}
 
 		return $salida;
+	}
+
+	public function getStylesCSS() {
+		return $this->html->getStylesCSS();
 	}
 }
