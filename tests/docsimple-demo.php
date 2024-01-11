@@ -11,7 +11,7 @@ include_once __DIR__ . '/lib/testfunctions.php';
 $files = array(
 	'/miframe/common/shared/functions.php',
 	'/miframe/file/serialize.php',
-	'/miframe/utils/traits/HTMLSupportTrait.php',
+	'/miframe/utils/ui/HTMLSupport.php',
 	'/miframe/utils/docsimple/docsimple.php',
 	'/miframe/utils/docsimple/docsimplehtml.php',
 );
@@ -35,35 +35,78 @@ if (isset($_REQUEST['doc'])) {
 		$selecto = count($files) - 1;
 	}
 }
-$navegable = (!isset($_REQUEST['nav']) || intval($_REQUEST['nav']) > 0);
 
 $doc = new \miFrame\Utils\DocSimple\DocSimpleHTML();
 
 // Opcional: echo $doc->getStylesCSS();
 
-//////////////////////////////////////
-// TEMPORAL!
-include_once 'C:\Desarrollo\www\vendor\parsedown-master\parsedown.php';
-// Función para realizar Parser
-if (class_exists('\Parsedown')) {
-	$parser = new \Parsedown();
-	// Escape HTML even in trusted input
-	$parser->setMarkupEscaped(true);
-	$doc->parserTextFunction = array($parser, 'text');
-	// print_r($parser);
-}
-//////////////////////////////////////
+// Opciones de visualización
+$doc->clickable = false;
+$doc->showErrors = false;
+$doc->showAllFunctions = false;
 
+$enlaces = '';
+
+// Habilita navegacion en linea
+if (miframe_test_option(
+	'online',
+	'Habilitar navegación en línea',
+	'Mostrar todo en pantalla',
+	$enlaces)) {
+	$doc->clickable = true;
+}
+
+// Mostrar errores
+if (miframe_test_option(
+	'errorson',
+	'Mostrar errores encontrados',
+	'Ocultar errores encontrados',
+	$enlaces
+	)) {
+	$doc->showErrors = true;
+}
+
+// Mostrar todas las funciones
+if (miframe_test_option(
+	'privateon',
+	'Mostrar funciones/métodos privados',
+	'Ocultar funciones/métodos privados',
+	$enlaces
+	)) {
+	$doc->showAllFunctions = true;
+}
+
+// Valida si existe librería Parsedown en ruta pre-establecida
+$parsedown_include = __DIR__ . '\..\..\..\vendor\parsedown-master\parsedown.php';
+if (file_exists($parsedown_include)) {
+	if (miframe_test_option(
+		'usepdon',
+		'Usar librería Parsedown',
+		'Remover librería Parsedown',
+		$enlaces
+		)) {
+		include_once $parsedown_include;
+		// Función para realizar Parser
+		$parser = new \Parsedown();
+		// Escape HTML even in trusted input
+		$parser->setMarkupEscaped(true);
+		$doc->parserTextFunction = array($parser, 'text');
+	}
+}
+
+
+// Adiciona listas de ejemplos
 $ejemplos = '';
+$data = $_REQUEST;
 foreach ($files as $k => $file) {
 	if ($ejemplos != '') { $ejemplos .= ' | '; }
 	if ($k == $selecto) {
-		$doc->clickable = $navegable;
 		$documento = $doc->render($file);
 		$ejemplos .= "<b>" . basename($file) . "</b> ";
 	}
 	else {
-		$ejemplos .= "<a href=\"?file=$k\">" . basename($file) . "</a>";
+		$data['file'] = $k;
+		$ejemplos .= miframe_test_datalink(basename($file), $data);
 	}
 }
 
@@ -76,6 +119,9 @@ miframe_test_start('Test DocSimple');
 	$doc = new \miFrame\Utils\DocSimple\DocSimpleHTML();
 	$documento = $doc->getDocumentationHTML($file);
 </pre>
+<p>
+	Opciones: <?= $enlaces ?>
+</p>
 <p>
 	Explorar: <?= $ejemplos ?>
 </p>

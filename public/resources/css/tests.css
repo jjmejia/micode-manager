@@ -1,16 +1,33 @@
 /* Estilos para archivos de test */
+html {
+	padding: 0;
+	margin:0;
+}
 body {
 	font-family: "Segoe UI",Helvetica,Arial,sans-serif;
 	font-size: 14px;
 	line-height: 1.5;
 	word-wrap: break-word;
-	/* padding:0 20px; */
+	padding:0;
+	margin:0;
 	}
 h1 {
-    padding-bottom: .3em;
+    /* padding-bottom: .3em; */
     font-size: 2em;
-    border-bottom: 1px solid hsla(210,18%,87%,1);
+    /* border-bottom: 1px solid hsla(210,18%,87%,1); */
+	background-color: #000000;
+	color:#fefefe;
+	padding:10px;
+	margin:0;
 	}
+h1 small {
+	color:#f5f537;
+	font-size:0.5em;
+	display:block;
+	padding-top:5px;
+	font-weight: 400;
+	text-transform: uppercase;
+}
 h2 {
 	margin-top: 24px;
 }
@@ -18,6 +35,9 @@ h1, h2 {
 	margin-bottom: 16px;
 	font-weight: 600;
 	line-height: 1.25;
+}
+.content-test {
+	padding: 20px;
 }
 code {
 	background: rgba(175,184,193,0.2);

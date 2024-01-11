@@ -10,38 +10,41 @@ include_once __DIR__ . '/lib/testfunctions.php';
 include_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/debug.php';
 include_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/functions.php';
 
-// Valida carga de librería para formato de errores
-if (array_key_exists('errorson', $_REQUEST)) {
-	include_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/errors.php';
-}
-
-miframe_test_start('Test Framebox');
-
 // Por defecto, deshabilita modo Debug
 miframe_debug_enable(false);
 
+$enlace = '';
+$enlace_error = '';
+
 // Valida si habilita modo debug
-$enlace_base = miframe_server_get('REQUEST_URI');
-$enlace = $enlace_base;
-if (strpos($enlace, '?') !== false) { $enlace .= '&'; }
-else { $enlace .= '?'; }
-$enlace .= 'debugon';
-$enlace = '<a href="' . $enlace . '">Habilitar modo debug</a>';
-if (array_key_exists('debugon', $_REQUEST)) {
+if (miframe_test_option(
+	'debugon',
+	'Habilitar modo debug',
+	'Deshabilitar modo debug',
+	$enlace
+	)) {
 	miframe_debug_enable(true);
-	$enlace = '<a href="' . str_replace('debugon', '', $enlace_base) . '">Deshabilitar modo debug</a>';
-	$enlace = str_replace('?&', '?', $enlace);
 }
 
-$enlace_error = $enlace_base;
-if (strpos($enlace_error, '?') !== false) { $enlace_error .= '&'; }
-else { $enlace_error .= '?'; }
-$enlace_error .= 'errorson';
-$enlace_error = '<a href="' . $enlace_error . '">Cargar librería "miframe/common/errors"</a>';
-if (array_key_exists('errorson', $_REQUEST)) {
-	$enlace_error = '<a href="' . str_replace('errorson', '', $enlace_base) . '">No cargar librería "miframe/common/errors"</a>';
-	$enlace_error = str_replace('?&', '?', $enlace_error);
+if (miframe_test_option(
+	'errorson',
+	'Cargar librería "miframe/common/errors"',
+	'No cargar librería "miframe/common/errors"',
+	$enlace_error
+	)) {
+	include_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/errors.php';
 }
+
+if (miframe_test_option(
+	'vscodeon',
+	'Abrir archivos con VSCode',
+	'No abrir archivos con VSCode',
+	$enlace_error
+	)) {
+	miframe_vscode_enable(true);
+}
+
+miframe_test_start('Test Framebox');
 
 ?>
 
@@ -80,9 +83,17 @@ else {
 <?= miframe_test_pre('miframe_error($message, $message_debug, $endscript);') ?>
 
 <p>
-	Adicionalmente, la librería <b>miframe/common/errors</b> provee una interfaz alternativa para despliegue de errores.<br />
-	<?= $enlace_error ?>
+
 </p>
+<?php
+
+	echo miframe_box('Información',
+		'La librería <b>miframe/common/errors</b> provee una interfaz alternativa para despliegue de errores y puede asociarse al editor VSCode.',
+		'info',
+		$enlace_error
+		);
+
+?>
 <p>
 	Ejemplos:
 </p>

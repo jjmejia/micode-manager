@@ -23,7 +23,7 @@ else {
 		// Busca información del proyecto listado
 		// $uname = urlencode($name);
 		$uname = htmlspecialchars($name);
-		$enlace_url = $this->router->createURL('../tests/' . $name);
+		$enlace_url = $this->router->createURL('tests/' . $name);
 		$pos = strpos($name, ':');
 		if ($pos !== false) {
 			$type = trim(substr($name, 0, $pos));

@@ -19,12 +19,15 @@ function miframe_test_start(string $title) {
 <html>
 <head>
 	<title><?= htmlentities($title) ?></title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<link rel="stylesheet" href="<?= $estilos ?>">
 </head>
 <body>
 	<h1>
 		<?= htmlentities($title) ?>
+		<small>miCode-Manager Demo</small>
 	</h1>
+	<div class="content-test">
 
 <?php
 
@@ -37,7 +40,7 @@ function miframe_test_pre(string $text) {
 
 function miframe_test_end() {
 
-	echo "</body></html>";
+	echo "</div></body></html>";
 }
 
 function miframe_test_include(array &$files) {
@@ -61,4 +64,36 @@ function miframe_test_include(array &$files) {
 			include_once $path;
 		}
 	}
+}
+
+function miframe_test_datalink(string $info, array $data) {
+
+	$enlace_base = basename(miframe_server_get('SCRIPT_FILENAME'));
+	if (count($data) > 0) {
+		$enlace_base .= '?' . http_build_query($data);
+	}
+	$enlace_base = '<a href="' . $enlace_base . '">' . $info . '</a>';
+
+	return $enlace_base;
+}
+
+function miframe_test_option(string $option, string $text_ok, string $text_nok, string &$link) {
+
+	$retornar = false;
+
+	$data = $_REQUEST;
+	$info = $text_ok;
+	if (array_key_exists($option, $_REQUEST)) {
+		$retornar = true;
+		unset($data[$option]);
+		$info = $text_nok;
+	}
+	else {
+		$data[$option] = '';
+	}
+
+	if ($enlace != '') { $enlace .= ' | '; }
+	$enlace .= miframe_test_datalink($info, $data);
+
+	return $retornar;
 }
