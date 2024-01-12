@@ -51,7 +51,7 @@ class MiProyecto { // extends Router
 		$this->html = new miHTML();
 
 		// Para uso en HTMLSupportTrait
-		$this->html->setFilenameCSS(__DIR__ . '/miproyecto-styles.css');
+		// $this->html->setFilenameCSS(__DIR__ . '/miproyecto-styles.css');
 
 		// Exportar al REQUEST
 		$this->router->autoExport = true;
