@@ -44,13 +44,9 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	private $recibido = false;
 	private $rutas_privadas = array();
 	private $rutas_publicas = array();
-	// private $detour_handler = false;
 	private $matchSuccessful = false;		// TRUE si encuentra al menos un match valido
 	private $method_bind = '';
-	private $abortando = false;
-	private $deteniendo = false;
 	private $ruta_usada = '';
-	private $indexfile = '';
 	private $dir_temp = '';
 	private $uri_base = '';
 	private $params = array();
@@ -60,11 +56,12 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	private $document_root = '';
 	private $force_json = false;
 	private $file_detected = '';
+	private $history = array();
 
 	public $autoExport = false;
 	public $multipleMatch = false;
 	public $strict = false;
-	private $stopScript = true;
+	public $stopScript = true;
 
 	public function __construct() {
 
@@ -187,8 +184,6 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			// Y el recurso solicitado es /cliente/app/path1/path2
 			// Entonces PATH_INFO sería /path1/path2.
 			$retornar = strtolower(miframe_server_get('PATH_INFO'));
-			// Archivo fisico detectado (si alguno)
-			$this->file_detected = '';
 
 			if ($retornar == '') {
 				// Intenta recuperar manualmente.
@@ -199,31 +194,39 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 				// Retorna vacio si no contiene la URI base.
 				$retornar = $this->removeURIbase($request_uri);
 			}
-			if ($retornar != '') {
-				// Complementa el path recibido para ubicar el archivo físico
-				$filename = $this->createPath($retornar);
-				// Valida si se ha recibido un path de un archivo valido y es el script actual.
-				if ($filename == $this->scriptFilename()) {
-					$retornar = '';
-				}
-				elseif (file_exists($filename)) {
-					// Esto no debería ocurrir ya que el servidor web debería proveerlo.
-					// Esto puede pasar debido a una configuración fallida en el servidor.
-					// Se procede a evaluar si puede desplegar el archivo solicitado.
-					$this->file_detected = $filename;
-				}
-			}
-
-			// No incluye primer "/" (a menos que solo contenga ese caracter)
-			if ($retornar != '' && $retornar != '/' && substr($retornar, 0, 1) === '/') {
-				$retornar = substr($retornar, 1);
-			}
 
 			// Asigna valor a 'PATH_INFO' para evitar repetir este ciclo si se invoca de nuevo
 			$this->request_uri = $retornar;
 		}
 
 		return $this->request_uri;
+	}
+
+	private function validateRequest(string &$request_action) {
+
+		// Archivo fisico detectado (si alguno)
+		$this->file_detected = '';
+
+		if ($request_action != '') {
+			// Complementa el path recibido para ubicar el archivo físico
+			$filename = $this->createPath($request_action);
+			// Valida si se ha recibido un path de un archivo valido y es el script actual.
+			if ($filename == $this->scriptFilename()) {
+				$request_action = '';
+			}
+			elseif (file_exists($filename) && is_file($filename)) {
+				// Nota: Los directorios reportan TRUE al usar file_exists()
+				// Se recibe como path uno que apunta a un archivo fisico del servidor.
+				// Esto no debería ocurrir ya que el servidor web debería proveerlo.
+				// Puede pasar debido a una configuración fallida en el servidor.
+				$this->file_detected = $filename;
+			}
+		}
+
+		// No incluye primer "/" (a menos que solo contenga ese caracter)
+		if ($request_action != '' && $request_action != '/' && substr($request_action, 0, 1) === '/') {
+			$request_action = substr($request_action, 1);
+		}
 	}
 
 	/**
@@ -286,6 +289,8 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 				$valor = trim($GLOBALS[$collector][$name]);
 			}
 		}
+
+		$this->validateRequest($valor);
 
 		if ($valor != '') {
 			$this->request = explode('/', strtolower($valor));
@@ -566,13 +571,15 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 */
 	public function runOnce(string $reference, string $action = '') {
 
+		$reference = trim($reference);
 		// Valida si ya fue ejecutado
-		if (!$this->continue()) { return false; }
+		if (!$this->continue() || $reference == '') { return false; }
 
 		$reference_arr = explode('/', strtolower($reference));
 		$nueva_reference = '';
 		$ultimo_path = '';
 		$capturando = false;
+
 		$this->params = array();
 		$this->ruta_usada = '';
 		// Inicializa arreglo con el valor recibido previamente
@@ -641,12 +648,16 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			}
 			// Si no se indica, evita ejecutar para no generar mensaje de error y permitir
 			// evaluar por fuera cuando no se encuentra coincidencia.
-			if ($action != '') {
-				return $this->runAction($action, '(default)');
-			}
+			return $this->runAction($action, '(default)');
 		}
 
 		return false;
+	}
+
+	private function existsHistory(string $reference) {
+
+		$llave_reference = md5($reference);
+		return isset($this->history[$llave_reference]);
 	}
 
 	/**
@@ -668,18 +679,21 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 */
 	public function runAction(string $action, string $reference) {
 
-		// Exporta parametros al request
-		if ($this->autoExport) {
-			$this->exportParamsInto($_REQUEST);
+		$filename = trim($action);
+		$reference = trim($reference);
+		$llave_reference = md5($reference);
+		// Nada que procesar
+		if ($filename === '' || $reference == '' || isset($this->history[$llave_reference])) {
+			return false;
 		}
 
 		$this->ruta_usada = $reference;
 
-		$filename = trim($action);
 		$funcion = '';
 		$path = '';
-		$pos = strrpos($action, ':');
 
+		// Busca referencia a funciones.
+		$pos = strrpos($filename, ':');
 		// Ignora casos como "C:/xxxx" que corresponde a un nombre de archivo
 		if ($pos !== false && ($pos === 0 || $pos > 1)) {
 			$filename = trim(substr($action, 0, $pos));
@@ -693,16 +707,23 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			}
 			if (!file_exists($path)) {
 				miframe_error('Archivo no encontrado para la referencia *$1*', $reference, debug: $path);
-				return false;
 			}
 		}
 		elseif ($funcion == '') {
 			// No define filename ni función y requiere alguna de las dos.
 			miframe_error('Acción "$1" no valida para la referencia *$2*', $action, $reference);
-			return false;
 		}
 
 		$ejecutado_local = false;
+
+		// Usado para prevenir que repita el mismo llamado varias veces DENTRO del mismo ciclo.
+		// Se libera al terminar la ejecución
+		$this->history[$llave_reference] = $filename;
+
+		// Exporta parametros al request
+		if ($this->autoExport) {
+			$this->exportParamsInto($_REQUEST);
+		}
 
 		// Ejecuta include asegurando que esté aislado para no acceder a elementos privados de esta clase
 		if ($this->include($path, 'INCLUDE ' . $reference . ' --> ' . $filename)) {
@@ -771,6 +792,9 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			$this->stop();
 		}
 
+		// Libera historial
+		unset($this->history[$llave_reference]);
+
 		return $this->matchSuccessful;
 	}
 
@@ -780,14 +804,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 */
 	public function stop() {
 
-		$accion = $this->rutas_privadas['before-stop'];
-		if ($accion != '' && !$this->deteniendo) {
-			// La elimina para evitar un ciclo infinito al reinvocar esta función include().
-			$this->deteniendo = true;
-			$this->runAction($accion, '(before-stop)');
-			$this->deteniendo = false;
-		}
-
+		$this->runAction($this->rutas_privadas['before-stop'], '(before-stop)');
 		exit;
 	}
 
@@ -850,35 +867,27 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 		error_log('ROUTER ABORT - ' . strip_tags($title . ': ' . $message));
 
-		$accion = $this->rutas_privadas['abort'];
-		if (!$this->abortando
-			&& $accion != ''
-			) {
-			$this->abortando = true; // Previene ciclo infinito si falla include()
-			$this->setParam('abort_title', $title);
-			$this->setParam('abort_message', $message);
-			$this->setParam('abort_footnote', $footnote);
-			// Siempre termina la ejecución al ejecutar la acción
-			$this->stopScript = true;
+		// Declara mensajes como elementos en params
+		$this->setParam('abort_title', $title);
+		$this->setParam('abort_message', $message);
+		$this->setParam('abort_footnote', $footnote);
 
-			if ($header != '' && !headers_sent()) {
-				header("HTTP/1.1 " . $header);
-			}
-
-			$ejecutado = $this->runAction($accion, '(abort)');
-			$this->abortando = false;
+		if ($header != '' && !headers_sent()) {
+			header("HTTP/1.1 " . $header);
 		}
+
+		$ejecutado = $this->runAction($this->rutas_privadas['abort'], '(abort)');
 
 		if (!$ejecutado) {
 			// Si no pudo ejecutar lo anterior, presenta mensaje base
 			// Mensaje con error a pantalla
 			$message = nl2br($message);
 			$this->printDebug(miframe_text('Ejecución cancelada'));
-			echo miframe_box($title, $message, '', $footnote);
+			echo miframe_box($title, $message, 'critical', $footnote);
 		}
 
 		// Si llega a este punto y no esta en otro proceso de abortar, termina el script.
-		if (!$this->abortando) { $this->stop(); }
+		if (!$this->existsHistory('(abort)')) { $this->stop(); }
 	}
 
 	/**

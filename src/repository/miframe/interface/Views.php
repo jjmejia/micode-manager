@@ -138,9 +138,9 @@ class Views extends \miFrame\Interface\Shared\BaseClass {
 
 		if ($this->debug) {
 			if (!miframe_is_web()) {
-				$salida = PHP_EOL . PHP_EOL . ">>> START MiFrame.section " . htmlspecialchars($namesection) . PHP_EOL .
+				$salida = PHP_EOL . PHP_EOL . ">>> START MiFrame.section " . $namesection . PHP_EOL .
 					$salida .
-					PHP_EOL . PHP_EOL . ">>> END MiFrame.section " . htmlspecialchars($namesection) . PHP_EOL . PHP_EOL;
+					PHP_EOL . PHP_EOL . ">>> END MiFrame.section " . $namesection . PHP_EOL . PHP_EOL;
 			}
 			else {
 				$salida = PHP_EOL . PHP_EOL . "<div style=\"border:1px dashed #333;padding:0;margin:0;margin-top:2px;\">" . PHP_EOL .

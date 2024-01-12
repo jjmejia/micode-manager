@@ -100,9 +100,8 @@ function miframe_debug_data_box() {
 
 function miframe_debug_pause(string $message = '') {
 
-	$title = trim("SCRIPT PAUSE");
+	$title = 'SCRIPT PAUSE';
 	$track_cadena = miframe_debug_backtrace_info();
-
 	exit(miframe_box($title, $message, 'mute', $track_cadena));
 }
 

@@ -4,16 +4,23 @@
  *
  * @micode-uses vendor/parsedown Markdown Parser, tomado de https://github.com/erusev/parsedown/. Usado para generar
  *      un texto HTML debidamente formateado. Si no existe esta librería, genera un texto HTML de formato limitado.
+ * @micode-uses miframe/inifiles
  * @author John Mejia
  * @since Abril 2022
  */
 
 namespace miFrame\Manager;
 
+include_once __DIR__ . '/../miframe/file/serialize.php'; // Serializar archivos de documentación
+
 class phpManager extends \miFrame\Manager\Shared\MiBaseManager {
+
+	private $pathCache = '';
 
 	public function __construct() {
 		$this->type = 'php';
+		// Path para archivos caché
+		$this->pathCache = miframe_temp_dir('cache-docs', true);
 	}
 
 	/**
@@ -27,6 +34,10 @@ class phpManager extends \miFrame\Manager\Shared\MiBaseManager {
 		if ($this->doc !== false) { return; }
 
 		$this->doc = new \miFrame\Utils\DocSimple\DocSimpleHTML();
+
+		// Define opciones para serialización de archivos
+		$this->doc->serializeFunction = array($this, 'serializeDocumentation');
+		$this->doc->unserializeFunction = array($this, 'unserializeDocumentation');
 
 		// Función para mostrar @micode-uses con enlace
 
@@ -74,9 +85,6 @@ class phpManager extends \miFrame\Manager\Shared\MiBaseManager {
 			$parser->setMarkupEscaped(true);
 			$this->doc->parserTextFunction = array($parser, 'text');
 		}
-
-		// Path para archivos caché
-		$this->doc->pathCache = miframe_temp_dir('cache-docs', true);
 	}
 
 	/**
@@ -131,7 +139,7 @@ class phpManager extends \miFrame\Manager\Shared\MiBaseManager {
 
 		$this->initialize_doc();
 		$documento = $this->doc->getDocumentation($filename);
-		$sumario = $this->doc->getSummary($filename);
+		$sumario =& $documento['main'];
 
 		// Evalua clases y namespaces
 		$namespace = '';
@@ -196,4 +204,43 @@ class phpManager extends \miFrame\Manager\Shared\MiBaseManager {
 		return $this->doc->render($filename);
 	}
 
+	public function serializeDocumentation($filename, $data) {
+
+		$resultado = false;
+
+		if ($this->pathCache != ''
+			&& is_dir($this->pathCache)
+			// && isset($data['file'])
+			// && function_exists('miframe_serialize')
+			) {
+			// Adiciona control para actualizar caché si se modifica este archivo
+			// $data['docmtime'] = filemtime(__FILE__);
+			$filecache = $this->pathCache . '/docsimple-' . md5($filename);
+			$resultado = miframe_serialize($filecache, $data);
+		}
+
+		return $resultado;
+	}
+
+	public function unserializeDocumentation($filename) {
+
+		$info = false;
+
+		if ($this->pathCache != ''
+			&& is_dir($this->pathCache)
+			// && function_exists('miframe_unserialize')
+			) {
+			// $encache es un arreglo con los datos del arreglo de documentacion
+			$filecache = $this->pathCache . '/docsimple-' . md5($filename);
+			// El archivo en disco debe tener fecha mayor o a la del original
+			if (file_exists($filecache)
+				&& filemtime($filecache) > filemtime($filename)
+				) {
+				// Usar miframe_data_call()?
+				$info = miframe_unserialize($filecache);
+			}
+		}
+
+		return $info;
+	}
 }

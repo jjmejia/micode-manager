@@ -50,7 +50,8 @@ class DocSimple {
 
 	public $debug = false;
 	public $evalRequiredItems = true;
-	public $pathCache = '';
+	public $serializeFunction = '';
+	public $unserializeFunction = '';
 
 	public function __construct() {
 
@@ -153,40 +154,33 @@ class DocSimple {
 
 		$documento = $this->getDocumentationScript($filename, '', true);
 
-		$retornar = array();
-		if (isset($documento['main'])) {
-			$retornar = $documento['main'];
-		}
-		if (!isset($retornar['summary'])) {
-			$retornar['summary'] = '';
-		}
-
-		return $retornar;
+		return $documento['main']['summary'];
 	}
 
 	/**
 	 * Guarda información de caché en disco.
+	 * Requiere se haya definido una función del tipo fun($filename, $data).
 	 *
 	 * @param string $filename Nombre del script del que se va a recuperar la documentación.
 	 * @return bool TRUE si pudo crear el caché en disco. FALSE en otro caso.
 	 */
 	public function serialize(array $data) {
 		// Guarda en disco
-		if ($this->pathCache != ''
-			&& is_dir($this->pathCache)
-			&& isset($data['file'])
-			&& function_exists('miframe_serialize')
-			) {
-			// Adiciona control para actualizar caché si se modifica este archivo
+		$resultado = false;
+
+		if (is_callable($this->serializeFunction) && isset($data['file'])) {
 			$data['docmtime'] = filemtime(__FILE__);
-			$filecache = $this->pathCache . '/docsimple-' . md5($data['file']);
-			miframe_serialize($filecache, $data);
+			$resultado = call_user_func($this->serializeFunction, $data['file'], $data);
 		}
+
+		return $resultado;
 	}
 
 	/**
 	 * Recupera información de caché en disco.
 	 * El archivo en disco debe tener fecha mayor o a la del original.
+	 * Debe definirse una función para deserializar del tipo $data_cache = fun($filename)
+	 * donde $data_cache es un arreglo con los datos esperados.
 	 *
 	 * @param string $filename Nombre del script del que se va a recuperar la documentación.
 	 * @param mixed $info Arreglo a recibir la información recuperada.
@@ -194,33 +188,21 @@ class DocSimple {
 	 */
 	public function unserialize(string $filename, mixed &$info) {
 
-		return false;
+		$resultado = false;
 
-		if ($this->pathCache != ''
-			&& is_dir($this->pathCache)
-			&& function_exists('miframe_unserialize')
+		if (is_callable($this->unserializeFunction)) {
+			$encache = call_user_func($this->unserializeFunction, $filename);
+			if (is_array($encache)
+				&& strtolower($encache['file']) === strtolower($filename)
+				&& isset($encache['docmtime'])
+				&& $encache['docmtime'] == filemtime(__FILE__)
 			) {
-			// $encache es un arreglo con los datos del arreglo de documentacion
-			$filecache = $this->pathCache . '/docsimple-' . md5($filename);
-			// El archivo en disco debe tener fecha mayor o a la del original
-			if (file_exists($filecache)
-				&& filemtime($filecache) > filemtime($filename)
-				) {
-				// Usar miframe_data_call()?
-				$encache = miframe_unserialize($filecache);
-				// Valida lectura (previene errores por colisiones de md5)
-				if (is_array($encache)
-					&& strtolower($encache['file']) === strtolower($filename)
-					&& isset($encache['docmtime'])
-					&& $encache['docmtime'] == filemtime(__FILE__)
-					) {
-					$info = $encache;
-					return true;
-				}
+				$info = $encache;
+				$resultado = true;
 			}
 		}
 
-		return false;
+		return $resultado;
 	}
 
 	/**
@@ -266,7 +248,7 @@ class DocSimple {
 
 		$documento = array(
 			'file' 		=> $filename,
-			'main' 		=> array(),
+			'main' 		=> array('summary' => ''),
 			'docs'  	=> array(),
 			'errors'	=> array(),
 			'index' 	=> array(),
@@ -281,7 +263,8 @@ class DocSimple {
 		// Valida si coincide con la más reciente captura.
 		// (no valida $only_summary porque puede ser invocada la clase durante getDocumentation() para
 		// recuperar resumenes de otros archivos, ejemplo al documentar tag "uses").
-		if ($this->enCache($filename) && !$only_summary) {
+		// if ($this->enCache($filename) && !$only_summary) {
+		if ($this->enCache($filename)) {
 			$documento = $this->cache;
 			$documento['cache'] = 'memory'; // Recuperado de caché en memoria
 		}
@@ -512,13 +495,17 @@ class DocSimple {
 					}
 				}
 
+				// Asegura existencia del "main" y "summary"
+				if (!isset($documento['main'])) { $documento['main'] = array(); }
+				if (!isset($documento['main']['summary'])) { $documento['main']['summary'] = ''; }
+
 				// Guarda en disco
 				$this->serialize($documento);
 			}
 		}
 
 		// Preserva captura actual (si se invoca desde otro llamado a getDocumentation() al
-		// final preserva la del primer archivo evaluado).
+		// final preservará la del primer archivo evaluado).
 		if (!$this->enCache($filename)) {
 			$this->cache = $documento;
 		}
@@ -918,4 +905,5 @@ class DocSimple {
 			$lines[$index - 1] .= "\n";
 		}
 	}
+
 }

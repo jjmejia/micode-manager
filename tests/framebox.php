@@ -44,6 +44,10 @@ if (miframe_test_option(
 	miframe_vscode_enable(true);
 }
 
+// Ejemplo de cómo definir estilos a usar
+// $estilos = 'url:'. dirname(dirname($_SERVER['SCRIPT_NAME'])) . '/src/repository/miframe/common/framebox.css';
+// miframe_box_css($estilos);
+
 miframe_test_start('Test Framebox');
 
 ?>

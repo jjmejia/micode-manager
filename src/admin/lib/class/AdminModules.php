@@ -211,7 +211,6 @@ class AdminModules {
 				}
 			}
 		}
-
 		return $retornar;
 	}
 
@@ -227,6 +226,7 @@ class AdminModules {
 
 		// Completa path de proyecto local
 		$path = micode_modules_path($app_name, false, $data_repo);
+
 
 		if (!is_array($this->locales) || $this->app_name_local != $app_name) {
 			$this->locales = array(
@@ -268,17 +268,17 @@ class AdminModules {
 				if (isset($this->listado[$modulo])) {
 					$info = $this->listado[$modulo];
 					// Complementa valores
-					$this->locales['pre'][$modulo]['description'] = $info['description'];
-					$this->locales['pre'][$modulo]['uses'] = array();
-					$this->locales['pre'][$modulo]['require-total'] = $info['require-total'];
-					$this->locales['pre'][$modulo]['sysdata'] = array(
+					$infolocal['description'] = $info['description'];
+					$infolocal['uses'] = array();
+					$infolocal['require-total'] = $info['require-total'];
+					$infolocal['sysdata'] = array(
 						'datetime' => $info['datetime'],
 						'size' => $info['size'],
 						'sha' => $info['sha']
 					);
 					// Valida si los "uses" estan definidos
 					if (isset($info['uses']) && is_array($info['uses'])) {
-						$this->locales['pre'][$modulo]['uses'] = $info['uses'];
+						$infolocal['uses'] = $info['uses'];
 						foreach ($info['uses'] as $u => $umodulo) {
 							if (!isset($this->locales['pre'][$umodulo])
 								&& !in_array($umodulo, $this->locales['add'])) {
@@ -286,18 +286,21 @@ class AdminModules {
 							}
 						}
 					}
-
-					// echo 'GET ' . $modulo . '<br>' ; print_r($info) ; echo '<hr>' ; print_r($infolocal) ; echo "<hr>";
+					// Adiciona dirbase
+					$infolocal['dirbase'] = $info['dirbase'];
 
 					// Valida cambios generales
 					if ($this->refreshInfo($info, $infolocal)) {
-						$this->locales['pre'][$modulo]['changed'] = true;
+						$infolocal['changed'] = true;
 						$this->locales['changes'] ++;
 					}
+
+					// Actualiza principal
+					$this->locales['pre'][$modulo] = $infolocal;
 				}
 				else {
 					// Posible modulo removido
-					echo "DEL $modulo "; print_r($infolocal); echo "<hr>";
+					// echo "DEL $modulo "; print_r($infolocal); echo "<hr>";
 					$this->locales['del'][$modulo] = $infolocal;
 					unset($this->locales['pre'][$modulo]);
 				}
@@ -519,7 +522,7 @@ class AdminModules {
 			}
 
 			// Elementos a remover
-			$mantener = array('datetime', 'size', 'sha', 'require-total');
+			$mantener = array('datetime', 'size', 'sha', 'require-total', 'dirbase');
 			foreach ($data as $modulo => $info) {
 				if (!is_array($info)) { continue; }
 				// Se asegura que existan los valores minimos y remueve el resto
@@ -778,7 +781,9 @@ class AdminModules {
 					if (isset($inforeq['php-namespaces'])) {
 						$info['php-namespaces'] = $inforeq['php-namespaces'] + $info['php-namespaces'];
 					}
+
 					$this->acumModuleInfo($info, $inforeq);
+
 					// captura información del archivo
 					if ($total_requeridos == 1
 						|| ($docfile != '' && strtolower($inforeq['path']) == $docfile)
@@ -860,8 +865,10 @@ class AdminModules {
 		}
 
 		if ($actualizar) {
+
 			// Recupera información directamente de la documentación en cada archivo
 			$clase_manejador = micode_modules_class($extension, false);
+
 			$documento = $clase_manejador->getSummary($filename);
 			// Limpia arreglo para prevenir mantenga valores anteriores
 			$listado['php-namespaces'] = array();
@@ -894,7 +901,7 @@ class AdminModules {
 		return (!isset($info['sha']) || 'x' . $info['sha'] !== 'x' . $listado['sha']
 			|| !isset($info['datetime']) || $info['datetime'] != $listado['datetime']
 			|| !isset($info['size']) || $info['size'] != $listado['size']
-			|| !isset($info['dirbase']) || (isset($listado['dirbase']) && $info['dirbase'] !== $listado['dirbase'])
+			|| !isset($info['dirbase']) || $info['dirbase'] !== $listado['dirbase']
 			|| (isset($info['require']) && (
 				!isset($info['require-total']) || $info['require-total'] != $listado['require-total']
 				))

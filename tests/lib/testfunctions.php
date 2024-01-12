@@ -92,8 +92,8 @@ function miframe_test_option(string $option, string $text_ok, string $text_nok, 
 		$data[$option] = '';
 	}
 
-	if ($enlace != '') { $enlace .= ' | '; }
-	$enlace .= miframe_test_datalink($info, $data);
+	if ($link != '') { $link .= ' | '; }
+	$link .= miframe_test_datalink($info, $data);
 
 	return $retornar;
 }

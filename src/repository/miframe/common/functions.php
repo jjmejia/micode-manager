@@ -9,11 +9,26 @@
 
 include_once __DIR__ . '/shared/functions.php';
 
+function miframe_box_css(string $html) {
+
+	if (strtolower(substr($html, 0, 4)) === 'url:') {
+		$path = trim(substr($html, 4));
+		$html = '';
+		if ($path != '') {
+			$html = '<link rel="stylesheet" href="' . $path . '">' . PHP_EOL;
+		}
+	}
+	elseif ($html !== '') {
+		$html = '<style>' . PHP_EOL . $html . PHP_EOL . '</style>' . PHP_EOL;
+	}
+
+	miframe_data_put('miframe-box-css', $html);
+}
+
 /**
  * Cajas de diálogo en pantalla.
  * Cuando se ejecuta desde consola, remueve los tags HTML.
- * Puede personalizar la salida web a pantalla definiendo manualmente una función miframe_data_fun('miframe-box-web')
- * con los mismos parámetros de esta función. Debe retornar un texto HTML.
+ * Puede personalizar la salida web a pantalla modificando los estilos usados.
  *
  * @param string $title Título de la presentación.
  * @param string $message Mensaje a mostrar.
@@ -29,15 +44,12 @@ function miframe_box(string $title, string $message, string $style = '', string 
 	// * @param bool $showscrolls TRUE para restringir la altura de la ventana con la información (si el contenido es mayor se habilitan scrolls
 	// *			en la ventana para permitir su visualización), FALSE para presentar el contenido sin restricción de altura (sin scrolls).
 
+	$fecha = date('Y/m/d H:i:s');
+
 	if (miframe_is_web()) {
 
-		if (miframe_data_call('miframe-box-web', $salida, $title, $message, $style, $footnote)) {
-			return $salida;
-		}
-
-		// $message = nl2br($message);
-
 		// Definición de la ventana a usar por defecto si no se personaliza
+		/*
 		$estilos = array(
 			'alert'		=> 'red',
 			'mute'		=> 'gray',
@@ -46,23 +58,34 @@ function miframe_box(string $title, string $message, string $style = '', string 
 			'critical'	=> 'darkred',
 			'console'	=> 'black'
 			);
-
-		$color = 'gray';
-		if (isset($estilos[$style])) { $color = $estilos[$style]; }
-
-		$max_alto = 'max-height:200px;';
+		*/
+		$max_alto = ' box-message-limited';
 		// if (!$showscrolls) { $max_alto = ''; }
 
 		if ($footnote != '') {
-			$footnote = "<hr size=\"1\" style=\"color:$color;margin-top:10px\"><small>$footnote</small>";
+			$footnote = "<div class=\"box-footnote box-$style\">$footnote</div>";
+			}
+
+		$fecha = date('Y/m/d H:i:s');
+		if ($title == '') { $title = '. . .'; }
+
+		$salida = miframe_data_get('miframe-box-css', '?');
+		if ($salida == '?') {
+			// No se encontró valor definido, lee archivo css
+			$html = file_get_contents(__DIR__ . '/framebox.css');
+			$salida = '<style>' . PHP_EOL . $html . PHP_EOL . '</style>' . PHP_EOL;
 		}
 
-		$salida = "<div style=\"font-family:Segoe UI,Arial;border:2px solid $color;padding:10px;margin:10px 0\">".
-			"<div><b>$title</b></div>" .
-			"<div style=\"$max_alto max-width:100%;overflow:auto;margin-top:5px\">" .
+		// Elimina estilos para no repetir carga
+		miframe_box_css('');
+
+		$salida .= "<div class=\"miframe-box box-$style\">" .
+			'<div class="box-title">' . $title . '</div>' .
+			'<div class="box-message' . $max_alto . '">'.
 			$message .
 			$footnote .
 			'</div>'.
+			'<div class="box-date">' . $fecha . '</div>' .
 			'</div>';
 	}
 	else {

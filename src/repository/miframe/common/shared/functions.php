@@ -19,6 +19,7 @@ function miframe_is_web() {
 }
 
 function miframe_set_noweb(bool $noweb) {
+
 	miframe_data_put('miframe-noweb', $noweb);
 }
 
@@ -286,10 +287,10 @@ function miframe_data_put_array(array $data, array $ignorar = array()) {
  * NOTA: $_SERVER está dentro de $GLOBALS.
  *
  * @param string $name Nombre de la variable a buscar.
- * @param string $default Valor a retornar si la variable no ha sido previamente registrada.
- * @return mixed Vaor de la variable.
+ * @param mixed $default Valor a retornar si la variable no ha sido previamente registrada.
+ * @return mixed Valor de la variable.
  */
-function miframe_data_get(string $name, string $default = '') {
+function miframe_data_get(string $name, mixed $default = '') {
 
 	$retornar = $default;
 	$name = strtoupper(miframe_only_alphanum($name, '_'));

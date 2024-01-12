@@ -34,8 +34,11 @@ class MiProyecto { // extends Router
 	private $config = false;		// Objeto interface/EditConfig
 	private $params = false;		// Objeto interface/Params
 	private $html = false;			// Objeto Utils/UI/HTMLSupport
+	private $date_start = 0;
 
 	public function __construct() {
+
+		$this->date_start = microtime(true);
 
 		// Inicializa suplementos
 		// Por principios SOLID esto debiera declararse fuera de esta clase
@@ -60,19 +63,24 @@ class MiProyecto { // extends Router
 		// Debe ir antes que se genere cualquier posible invocación a includes (sea por layout o error)
 		$this->view->setIncludeFun(array($this, 'includeFile'));
 
-		// Registra ventanas modales personalizadas
-		miframe_data_fun('miframe-box-web', array($this, 'localBox'));
+		// Registra estilos para boxes
+		miframe_data_put('miframe-box-css', $this->html->getStylesCSS());
+
 	}
 
+	public function executionTime() {
+		return (microtime(true) - $this->date_start);
+	}
+
+	public function showExecutionTime(string $text) {
+
+		$t = $this->executionTime();
+		echo miframe_debug_box($t, 'Execution Time (' . $text . ')');
+	}
 
 	public function initializeJson() {
 
 		$this->router->forceJSON(true);
-
-		// $this->router->strict = true;
-
-		// Registra ventanas modales personalizadas
-		miframe_data_fun('miframe-box-web', array($this, 'apiBox'));
 
 		// Informa que la salida es en JSON
 		header('Content-Type: application/json');
@@ -209,6 +217,7 @@ class MiProyecto { // extends Router
 	 * @param string $footnote Texto a mostrar en la parte baja de la ventana.
 	 * @return string Texto HTML.
 	 */
+	/*
 	public function localBox(string $title, string $message, string $style = '', string $footnote = '') {
 
 		$max_alto = ' box-message-limited';
@@ -253,6 +262,7 @@ class MiProyecto { // extends Router
 
 		return $salida;
 	}
+	*/
 
 	public function startEditConfig() {
 
