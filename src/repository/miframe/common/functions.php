@@ -66,7 +66,7 @@ function miframe_box(string $title, string $message, string $style = '', string 
 			$footnote = "<div class=\"box-footnote box-$style\">$footnote</div>";
 			}
 
-		$fecha = date('Y/m/d H:i:s');
+		// $fecha = date('Y/m/d H:i:s');
 		if ($title == '') { $title = '. . .'; }
 
 		$salida = miframe_data_get('miframe-box-css', '?');
@@ -80,12 +80,12 @@ function miframe_box(string $title, string $message, string $style = '', string 
 		miframe_box_css('');
 
 		$salida .= "<div class=\"miframe-box box-$style\">" .
-			'<div class="box-title">' . $title . '</div>' .
+			'<div class="box-title"><b>' . $title . '</b></div>' .
 			'<div class="box-message' . $max_alto . '">'.
 			$message .
 			$footnote .
 			'</div>'.
-			'<div class="box-date">' . $fecha . '</div>' .
+			// '<div class="box-date">' . $fecha . '</div>' .
 			'</div>';
 	}
 	else {

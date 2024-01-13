@@ -64,7 +64,7 @@ class MiProyecto { // extends Router
 		$this->view->setIncludeFun(array($this, 'includeFile'));
 
 		// Registra estilos para boxes
-		miframe_data_put('miframe-box-css', $this->html->getStylesCSS());
+		// miframe_data_put('miframe-box-css', $this->html->getStylesCSS());
 
 	}
 

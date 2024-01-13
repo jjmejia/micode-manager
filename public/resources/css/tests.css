@@ -13,7 +13,7 @@ body {
 	}
 h1 {
     /* padding-bottom: .3em; */
-    font-size: 2em;
+    font-size: 1.5em;
     /* border-bottom: 1px solid hsla(210,18%,87%,1); */
 	background-color: #000000;
 	color:#fefefe;
@@ -30,6 +30,7 @@ h1 small {
 }
 h2 {
 	margin-top: 24px;
+	font-size: 1.3em;
 }
 h1, h2 {
 	margin-bottom: 16px;
@@ -41,7 +42,7 @@ h1, h2 {
 }
 code {
 	background: rgba(175,184,193,0.2);
-	font-size: 14px;
+	font-size: 0.95em;
 	padding:0 5px;
 	font-family: Consolas;
 }
@@ -49,6 +50,7 @@ pre.code {
 	background: rgba(175,184,193,0.2);
 	border: 1px solid #d0d7de;
 	padding:16px;
+	font-size: 0.95em;
 }
 .foot {
 	font-size: 12px;

@@ -114,7 +114,8 @@ miframe_test_start('Test DocSimple');
 
 ?>
 
-<p>Uso:</p`>
+Uso:
+
 <pre class="code">
 	$doc = new \miFrame\Utils\DocSimple\DocSimpleHTML();
 	$documento = $doc->getDocumentationHTML($file);

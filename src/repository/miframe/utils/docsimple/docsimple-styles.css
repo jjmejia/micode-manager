@@ -1,22 +1,141 @@
-.docblock { border:1px solid #d0d7de; border-radius:6px; font-family: "Segoe UI"; font-size:16px; margin:32px; padding-bottom:20px; background-color: #ffffff; }
-.docblock div { padding: 10px 20px; }
-.docblock p { padding: 5px 10px; margin:0; border-radius:6px; }
-.docblock pre { border:1px dashed #d0d7de; margin:10px 64px; padding:14px; background-color:#f6f8fa; }
-.docblock code { background-color:#f6f8fa; }
-.docblock pre code { padding:0; }
-.docblock ul { padding: 5px 10px 5px 32px; margin:0; }
-.docblock li { padding-bottom: 5px; }
-.docblock h2, .docblock .docnonav h1 { color:#793862; font-size:20px; margin-top:20px; border-bottom:none; background-color: #ffffff; }
-.docblock .docfun .docfuntabla { font-size:18px; color:#333; font-weight:600; padding:20px 0 5px 0; border-radius:0; }
-.docblock .docfun ul { border-top:solid 1px #d0d7de; border-bottom: solid 1px #d0d7de; margin:5px 0; padding-bottom:20px; padding-top:20px; }
-.docblock .docnonav h2 { font-size:16px; margin-top:10px; }
-.docblock blockquote { border-left: 10px solid #d0d7de; padding:14px 15px; margin: 10px 64px; }
-.docblock .docfile { background-color:#f6f8fa; padding-left:20px; margin-bottom:10px; border-bottom:1px solid #d0d7de; font-weight:600; }
-.docblock .docfile a { display:block; float:right; font-size:14px; }
-.docblock .docinfo { padding-left:20px; }
-.docblock .docfunction { color:#793862; border-bottom:1px solid #d0d7de; font-weight:600; padding-left:20px; font-size:20px; padding-bottom:14px; margin-bottom:20px; border-radius:0; }
-.docblock .docseparator { margin:0; padding: 20px; font-size:24px; font-family:Arial; color:#d0d7de; text-align:center; letter-spacing:10px; }
-.docblock .docerrors { border:1px solid darkred; color:darkred; font-size:14px; margin:20px 10px;}
-.docblock li b { color:#369; }
-.docblock .docsintaxis b { color:#369; font-weight:normal; }
-.docblock .docsintaxis i { color:#693; font-style:normal; }
+.docblock {
+	border: 1px solid #d0d7de;
+	border-radius: 6px;
+	font-family: "Segoe UI";
+	font-size: 14px;
+	margin: 32px;
+	padding-bottom: 20px;
+	background-color: #ffffff;
+}
+
+.docblock div {
+	padding: 10px 20px;
+}
+
+.docblock p {
+	padding: 5px 10px;
+	margin: 0;
+	border-radius: 6px;
+}
+
+.docblock pre {
+	border: 1px dashed #d0d7de;
+	margin: 10px 64px;
+	padding: 14px;
+	background-color: #f6f8fa;
+}
+
+.docblock code {
+	background-color: #f6f8fa;
+	font-size: 0.95em;
+}
+
+.docblock pre code {
+	padding: 0;
+	font-size: 0.95em;
+}
+
+.docblock ul {
+	padding: 5px 10px 5px 32px;
+	margin: 0;
+}
+
+.docblock li {
+	padding-bottom: 5px;
+}
+
+.docblock h2,
+.docblock .docnonav h1 {
+	color: #793862;
+	font-size: 1.2em;
+	margin-top: 20px;
+	border-bottom: none;
+	background-color: #ffffff;
+}
+
+.docblock .docfun .docfuntabla {
+	font-size: 1.4em;
+	color: #333;
+	font-weight: 600;
+	padding: 20px 0 5px 0;
+	border-radius: 0;
+}
+
+.docblock .docfun ul {
+	border-top: solid 1px #d0d7de;
+	border-bottom: solid 1px #d0d7de;
+	margin: 5px 0;
+	padding-bottom: 20px;
+	padding-top: 20px;
+}
+
+.docblock .docnonav h2 {
+	font-size: 1.2em;
+	margin-top: 10px;
+}
+
+.docblock blockquote {
+	border-left: 10px solid #d0d7de;
+	padding: 14px 15px;
+	margin: 10px 64px;
+}
+
+.docblock .docfile {
+	background-color: #f6f8fa;
+	padding-left: 20px;
+	margin-bottom: 10px;
+	border-bottom: 1px solid #d0d7de;
+	font-weight: 600;
+}
+
+.docblock .docfile a {
+	display: block;
+	float: right;
+	/* font-size: 14px; */
+}
+
+.docblock .docinfo {
+	padding-left: 20px;
+}
+
+.docblock .docfunction {
+	color: #793862;
+	border-bottom: 1px solid #d0d7de;
+	font-weight: 600;
+	padding-left: 20px;
+	font-size: 1.4em;
+	padding-bottom: 14px;
+	margin-bottom: 20px;
+	border-radius: 0;
+}
+
+.docblock .docseparator {
+	margin: 0;
+	padding: 15px;
+	font-size: 1.8em;
+	font-family: Arial;
+	color: #d0d7de;
+	text-align: center;
+	letter-spacing: 10px;
+}
+
+.docblock .docerrors {
+	border: 1px solid darkred;
+	color: darkred;
+	/* font-size: 14px; */
+	margin: 20px 10px;
+}
+
+.docblock li b {
+	color: #369;
+}
+
+.docblock .docsintaxis b {
+	color: #369;
+	font-weight: normal;
+}
+
+.docblock .docsintaxis i {
+	color: #693;
+	font-style: normal;
+}
