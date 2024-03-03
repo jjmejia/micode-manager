@@ -14,7 +14,7 @@ $show_infotipo = ($tipo == '');
 
 if ($reponame != '') {
 	$this->params->set('page-buttons', array(
-		'modules/create/' . urlencode($reponame) => miframe_text('Nuevo módulo'),
+		'modules-create' => [ '_title' => miframe_text('Nuevo módulo'), 'name' => $reponame ],
 		));
 }
 

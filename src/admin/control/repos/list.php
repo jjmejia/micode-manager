@@ -14,11 +14,8 @@ $m->getAllModules();
 $listado = $m->getAllRepos();
 
 foreach ($listado as $clase => $data) {
-	$clase_encode = urlencode($clase);
-	$urlbase = "repositories/detail/{$clase_encode}";
-	$listado[$clase]['url'] = $this->router->getFormAction($urlbase, true);
+	$listado[$clase]['url'] = $this->router->createRouteURL('repositories-detail', [ 'name' => $clase, 'type' => '' ]);
 	$listado[$clase]['dirbase'] = miframe_path($_SERVER['DOCUMENT_ROOT'], $data['path']);
-	// $listado[$modulo]['dirdest'] = $m->getDirRemote($modulo);
 }
 
 $data_proyecto = array( 'listado' => $listado );

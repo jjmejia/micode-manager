@@ -241,7 +241,7 @@ if (count($fileList) > 0) {
 		$listado[$nombre] = array(
 			'datetime' => filemtime($filename),
 			'size' => filesize($filename),
-			'url' => $this->router->getFormAction('projects/packs/' . $app_name, true, array('down' => $nombre))
+			'url' => $this->router->createRouteURL('projects-packs', array( 'down' => $nombre, 'app' => $app_name))
 		);
 	}
 }

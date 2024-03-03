@@ -15,14 +15,13 @@ $app_name = $this->params->get('config->project-name');
 <?php
 
 $estado = $this->params->get('pack-status');
-$enlace = $this->router->getFormAction('projects/packs/' . $app_name, true);
-$regresar = $this->router->getFormAction('projects/packs/' . $app_name, true);
-$enlace_regresar = '<p><a href="' . $regresar . '">Regresar a listado de paquetes</a></p>';
+$enlace = $this->router->createRouteURL('projects-packs', [ 'app' => $app_name ]);
+$enlace_regresar = '<p><a href="' . $enlace . '">Regresar a listado de paquetes</a></p>';
 $filepack = $this->params->get('pack-file');
 
 if ($estado == 'CAMBIOS_PENDIENTES') {
 
-	$enlace = $this->router->getFormAction('projects/modules/' . $app_name, true);
+	$enlace = $this->router->createRouteURL('projects-modules', [ 'app' => $app_name ]);
 
 ?>
 	<p><b>Existen cambios no revisados</b></p>

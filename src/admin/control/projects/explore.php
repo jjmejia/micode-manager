@@ -16,7 +16,7 @@ if ($app_name == '') {
 $data_proyecto = micode_modules_project_data($app_name);
 
 $path = micode_modules_path($app_name, false, $data_proyecto['mirepo']);
-$enlace = $this->router->getFormAction('projects/explore/' . $app_name, true);
+$enlace = $this->router->createRouteURL('projects-explore', [ 'app' => $app_name ]);
 $data_proyecto['path-base'] = miframe_path($path, '..');
 
 $data_proyecto['html'] = micode_modules_explore($enlace, $data_proyecto['path-base']);

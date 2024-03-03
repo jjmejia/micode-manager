@@ -7,7 +7,7 @@
  */
 
 $this->params->set('page-buttons', [
-	'?new' => miframe_text('Nuevo paquete'),
+	'' => [ '_title' => miframe_text('Nuevo paquete'), 'new' => true ],
 	// '?export' => miframe_text('Exportar proyecto')
 ]);
 

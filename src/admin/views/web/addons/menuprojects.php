@@ -15,15 +15,15 @@ $arreglo = array();
 
 if (!$cfg_nuevo) {
 	$arreglo = array(
-		'projects/info/' . $cfg_name => miframe_text('Detalles'),
-		'projects/edit/' . $cfg_name => miframe_text('Editar'),
+		'projects-info' => miframe_text('Detalles'),
+		'projects-edit' => miframe_text('Editar'),
 	);
 
 	if ($cfg_type != '' && $cfg_type != '?') {
 		// $arreglo['projects/config/' . $cfg_name] = 'Configuración';
-		$arreglo['projects/modules/' . $cfg_name] = miframe_text('Módulos');
-		$arreglo['projects/explore/' . $cfg_name] = miframe_text('Explorar directorio');
-		$arreglo['projects/packs/' . $cfg_name] = miframe_text('Paquetes');
+		$arreglo['projects-modules'] = miframe_text('Módulos');
+		$arreglo['projects-explore'] = miframe_text('Explorar directorio');
+		$arreglo['projects-packs'] = miframe_text('Paquetes');
 		// $arreglo['projects/logs/' . $cfg_name] = 'Logs';
 	}
 }
@@ -33,11 +33,10 @@ if ($cfg_nuevo) { $tituloppal = 'Nuevo proyecto'; }
 
 // Enlaces
 $enlaces = array();
-$cmd = cmdPost($this->post);
 
-foreach ($arreglo as $llave => $titulo) {
-	$enlace = $this->router->getFormAction($llave, true);
-	$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($cmd == $llave));
+foreach ($arreglo as $alias => $titulo) {
+	$enlace = $this->router->createRouteURL($alias, [ 'app' => $cfg_name ]);
+	$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($this->router->selectedRoute() == $alias));
 }
 
 if (!$cfg_nuevo) {

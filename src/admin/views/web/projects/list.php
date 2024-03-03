@@ -6,7 +6,7 @@
  * @since Abril 2022
  */
 
-$this->params->set('page-buttons', [ "projects/create" => miframe_text('Nuevo proyecto') ]);
+$this->params->set('page-buttons', [ "projects-create" => miframe_text('Nuevo proyecto') ]);
 
 ?>
 

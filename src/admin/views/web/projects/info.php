@@ -37,7 +37,7 @@ $infotipo = micode_modules_types($type);
 
 ?>
 
-<link rel="stylesheet" href="<?= $this->router->createURL('/public/resources/css/docblock.css') ?>">
+<link rel="stylesheet" href="<?= $this->router->createURL('resources/css/docblock.css') ?>">
 
 <div class="docblock">
 <div class="docfile"><?= $this->params->get('config->project-title:e') ?></div>

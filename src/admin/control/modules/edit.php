@@ -207,15 +207,10 @@ if ($this->config->checkformRequest('configok') && ($modulo_name != '' || $modul
 
 	if ($redirigir) {
 		// Envia a detalle (fija $_REQUEST['app'] para que sea capturado al invocar $Router->param)
-		$cmd = 'modules/detail';
+		$cmd = 'modules-detail';
 		$params = array('module' => $repo_name . '/' . $modulo_name_nuevo );
-		$data = false;
-		// Guarda en temporal los mensajes y retorna un valor de caché
-		if ($this->config->existsMessages()) {
-			$data = array( 'msg' => $this->config->getMessages() );
-		}
 		// Crea pagina a recargar
-		$enlace = $this->router->reload($cmd, $params, $data);
+		$enlace = $this->reload($cmd, $params);
 	}
 }
 

@@ -17,7 +17,6 @@ else {
 
 // Enlaces
 $enlaces = array();
-$cmd = cmdPost($this->post, 'name');
 
 // Recupera tipos validos
 $validos = micode_modules_types();
@@ -25,12 +24,12 @@ $tiposvalidos = $this->params->get('tiposvalidos');
 foreach ($validos as $tipo => $titulo) {
 	if (is_array($tiposvalidos) && isset($tiposvalidos[$tipo])) {
 		$titulo .= ' (' . count($tiposvalidos[$tipo]) . ')';
-		$enlace = $this->router->getFormAction('repositories/detail/' . $cfg_module . '/' . $tipo, true);
+		$enlace = $this->router->createRouteURL('repositories-detail', [ 'name' => $cfg_module, 'type' => $tipo ]);
 		$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($this->params->get('type') == $tipo));
 	}
 }
 
 
-$enlace = $this->router->getFormAction('repositories/list', true);
+$enlace = $this->router->createRouteURL('repositories-list');
 
 menuApps($this->router, $tituloppal, $enlaces, "<a href=\"{$enlace}\">" . miframe_text('Listado de Repositorios') . "</a>");

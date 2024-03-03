@@ -24,9 +24,8 @@ if (count($fileList) > 0) {
 			// miframe_debug_box($data_repo, $filename);
 			$data = micode_modules_proyecto_ini($app_name, $data_repo);
 			// Complementa con los enlaces
-			$uname = urlencode($app_name);
 			$data['url'] = micode_modules_enlace($app_name, $data_repo);
-			$data['url-detail'] = $this->router->getFormAction("projects/info/{$uname}", true);
+			$data['url-detail'] = $this->router->createRouteURL("projects-info", [ 'app' => $app_name ]);
 		}
 		// Registra
 		$listado[$app_name] = $data;

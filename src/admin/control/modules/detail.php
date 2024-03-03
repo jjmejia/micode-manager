@@ -25,14 +25,13 @@ if ($modulo != '') {
 		$requeridos = $m->getRequiredFiles($modulo, true);
 		$total_requeridos = count($requeridos);
 		// Adiciona enlaces de consulta
-		$modulo_padre = urlencode($modulo);
+		// $modulo_padre = urlencode($modulo);
 		foreach ($requeridos as $modulo_req => $info_req) {
 			$enlace = false;
 			// if ($total_requeridos == 1) { $file = $modulo_req; }
 			if (isset($info_req['linkeable']) && $info_req['linkeable'] !== false) {
 				if ($modulo_req != $file) {
-					$urlbase = "modules/detail?file={$modulo_req}&module={$modulo_padre}";
-					$enlace = $this->router->getFormAction($urlbase, true);
+					$enlace = $this->router->createRouteURL('modules-detail', [ 'file' => $modulo_req, 'module' => $modulo ]);
 				}
 			}
 			// Adiciona enlace
@@ -40,8 +39,7 @@ if ($modulo != '') {
 		}
 		if ($file != '') {
 			// Enlace de regreso para detallado de "requeridos"
-			$urlbase = 'modules/detail?module=' . $modulo_padre;
-			$url_back = $this->router->getFormAction($urlbase, true);
+			$url_back = $this->router->createRouteURL('modules-detail', [ 'module' => $modulo ]);
 		}
 		if (isset($listado[$modulo]['uses'])
 			&& is_array($listado[$modulo]['uses'])
@@ -50,8 +48,7 @@ if ($modulo != '') {
 			$nuevos = $listado[$modulo]['uses'];
 			$listado[$modulo]['uses'] = array();
 			foreach ($nuevos as $modulo_req) {
-				$urlbase = "modules/detail?module={$modulo_req}";
-				$enlace = $this->router->getFormAction($urlbase, true);
+				$enlace = $this->router->createRouteURL('modules-detail', [ 'module' => $modulo_req ]);
 				$listado[$modulo]['uses'][$modulo_req] = $enlace;
 			}
 		}
@@ -93,7 +90,6 @@ $type_titulo = micode_modules_types($type);
 $data_proyecto = array(
 	'module' => $modulo,
 	'file' => $file,
-	// 'url-back' => $this->router->getFormAction('modules/list/' . $tipo_encode, true),
 	'url-back-file' => $url_back,
 	'type' => $type,
 	'title' => $type_titulo,

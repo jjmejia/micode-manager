@@ -119,14 +119,9 @@ if ($this->config->checkformRequest('configok') && ($clase != '' || $repo_nuevo)
 
 	if ($redirigir) {
 		// Envia a detalle (fija $_REQUEST['app'] para que sea capturado al invocar $Router->param)
-		$cmd = 'repositories/list';
-		$data = false;
-		// Guarda en temporal los mensajes y retorna un valor de caché
-		if ($this->config->existsMessages()) {
-			$data = array( 'msg' => $this->config->getMessages() );
-		}
+		$cmd = 'repositories-list';
 		// Crea pagina a recargar
-		$enlace = $this->router->reload($cmd, null, $data);
+		$enlace = $this->reload($cmd);
 	}
 }
 

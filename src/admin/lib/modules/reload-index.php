@@ -6,7 +6,7 @@
  * @since Septiembre 2023
  */
 
- $location = $_SERVER['REQUEST_URI'] . '/../../index.php';
+ $location = $_SERVER['REQUEST_URI'] . '/../public/index.php';
  $mensaje = "<script>window.location='{$location}';</script>" .
 	 "Esta página ha sido consultada de forma incorrecta (E1044). " .
 	 "<a href=\"{$location}\">Favor consultar desde esta página</a>.";

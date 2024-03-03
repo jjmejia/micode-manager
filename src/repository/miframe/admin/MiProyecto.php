@@ -19,7 +19,7 @@ namespace miFrame\Admin;
 
 use \miFrame\Interface\Views 	  as miViews;
 use \miFrame\Interface\Request 	  as miRequest;
-use \miFrame\Interface\Router 	  as miRouter;
+use \miFrame\Interface\RouterIni  as miRouter;
 use \miFrame\Interface\EditConfig as miEditConfig;
 use \miFrame\Interface\Params 	  as miParams;
 use \miFrame\Utils\UI\HTMLSupport as miHTML;
@@ -107,7 +107,7 @@ class MiProyecto { // extends Router
 
 		// Método para crear URLs (debe ir luego de la captura de datos de navegacion captureUsearAction() y no debe inicializar "form-action" en los defaults de las vistas)
 		if ($this->formAction == '') {
-			$this->formAction = $this->router->getFormAction();
+			$this->formAction = $this->router->createRouteURL(null, false);
 		}
 
 		// Inicializa parámetros
@@ -270,6 +270,18 @@ class MiProyecto { // extends Router
 			$this->config = new miEditConfig();
 			$this->config->debug = $this->router->debug;
 		}
+	}
+
+	public function reload(string $cmd, array $params = array()) {
+
+		$data = array();
+		// Guarda en temporal los mensajes y retorna un valor de caché
+		if ($this->config !== false && $this->config->existsMessages()) {
+			$data['msg'] = $this->config->getMessages();
+		}
+		// Crea pagina a recargar
+		$enlace = $this->router->reload($cmd, $params, $data);
+
 	}
 
 	public function __get(string $name) {

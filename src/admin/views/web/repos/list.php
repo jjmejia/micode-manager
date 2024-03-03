@@ -7,7 +7,7 @@
  */
 
 $this->params->set('page-buttons', [
-	"repositories/create" => miframe_text('Adicionar repositorio'),
+	"repositories-create" => miframe_text('Adicionar repositorio'),
 	// 'modules/newrepo' => miframe_text('Nuevo repositorio'),
 	// 'repositories/import' => miframe_text('Importar repositorio')
 ]);
@@ -36,7 +36,7 @@ if ($this->params->get('listado:count') > 0) {
 		if ($enlace_url != '') {
 			$enlace = "<a href=\"$enlace_url\">{$name} {$total}</a>";
 		}
-		$enlace_editar = $this->router->getFormAction('repositories/edit/' . $name, true);
+		$enlace_editar = $this->router->createRouteURL('repositories-edit', [ 'name' => $name ]);
 
 		$this->view->buffer(
 			"<div class=\"box\"><h3>" .

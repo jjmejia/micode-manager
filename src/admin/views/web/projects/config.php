@@ -8,7 +8,7 @@
 
 ?>
 
-<link rel="stylesheet" href="<?= $this->router->createURL('/public/resources/css/forms.css') ?>">
+<link rel="stylesheet" href="<?= $this->router->createURL('resources/css/forms.css') ?>">
 
 <?= $this->params->implode('mensajes', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
 

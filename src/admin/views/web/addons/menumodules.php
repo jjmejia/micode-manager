@@ -11,9 +11,9 @@ $cfg_module = $this->params->get('module');
 $paths = explode('/', $cfg_module);
 
 $arreglo = array(
-	'modules/detail?module=' . $cfg_module => miframe_text('Información'),
-	'modules/edit?module=' . $cfg_module => miframe_text('Editar'),
-	'modules/explore?module=' . $cfg_module => miframe_text('Explorar directorio')
+	'modules-detail' => miframe_text('Información'),
+	'modules-edit' => miframe_text('Editar'),
+	'modules-explore' => miframe_text('Explorar directorio')
 	);
 
 $tituloppal = '';
@@ -24,21 +24,16 @@ if (!$this->params->get('nuevo:bool')) {
 	$tituloppal = miframe_text('Módulo $1', htmlspecialchars($cfg_module));
 	// Enlaces
 	$enlaces = array();
-	$cmd = cmdPost($this->post);
 
-	foreach ($arreglo as $llave => $titulo) {
-		$enlace = $this->router->getFormAction($llave, true);
-		$comparar = explode('?', $llave);
-		$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($cmd == $comparar[0]));
+	foreach ($arreglo as $alias => $titulo) {
+		$enlace = $this->router->createRouteURL($alias, [ 'module' => $cfg_module ]);
+		// $comparar = explode('?', $llave);
+		$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($this->router->selectedRoute() == $alias));
 		// echo "$cmd -- {$comparar[0]}<hr>";
 	}
 
 	// Enlace a página de módulos
-	$enlace_modulos = 'modules/list';
-	if ($cfg_type != '') {
-		$enlace_modulos .= '/' . $cfg_type;
-	}
-	$enlace = $this->router->getFormAction($enlace_modulos, true);
+	$enlace = $this->router->createRouteURL('modules-list', [ 'type' => $cfg_type ]);
 	$enlace_modulos = "<a href=\"{$enlace}\">" . miframe_text('Listado de Módulos') . "</a> | ";
 }
 else {
@@ -49,7 +44,7 @@ else {
 	$tituloppal = miframe_text('Nuevo Módulo para repositorio $1', $repo_name);
 }
 
-$enlace_repo = $this->router->getFormAction('repositories/detail/' . urlencode($paths[0]) . '/' . $cfg_type, true);
+$enlace_repo = $this->router->createRouteURL('repositories-detail', [ 'name' => urlencode($paths[0]), 'type' => $cfg_type]);
 
 menuApps($this->router, $tituloppal, $enlaces,
 	$enlace_modulos .

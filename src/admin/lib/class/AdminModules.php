@@ -25,6 +25,11 @@
  * archivo contiene multiples clases y eso ocuparía menos memoria. También, indicar por ejemplo "claseB --> :claseA
  * indicando que la "claseB" lee el mismo archivo de "claseA".
  *
+ * PENDIENTE:
+ * Cuando lee por vez primera un repositorio, asigna un "slug" a cada libreria, de forma
+ * que refiere por ej. miframe/router como miframe-router, todo minusculas. Si adiciona una nueva
+ * y el slug ya existe (por ej. miframe/router-ini y miframe/router/ini) le asigna un consecutivo.
+ *
  * @author John Mejia
  * @since Junio 2022
  * @version 1.0.0
@@ -43,9 +48,9 @@ class AdminModules {
 	private $locales = false;
 	private $app_name_local = '';
 	private $externas = false;
-	private $repositories = false;
+	private bool|array $repositories = false;
 
-	public $clase_manejador = false;
+	public bool|object $clase_manejador = false;
 	public $manejadores = array();
 	public $manejador_any = false;
 
@@ -708,6 +713,10 @@ class AdminModules {
 
 	private function acumUses(&$info, array $inforeq) {
 
+		if (!isset($info['uses'])) {
+			$info['uses'] = array();
+		}
+
 		foreach ($inforeq as $usemod) {
 			$usemod = trim(strtolower($usemod));
 			if ($usemod != '' && !in_array($usemod, $info['uses'])) {
@@ -751,19 +760,25 @@ class AdminModules {
 				foreach ($documentar_params as $dparam) {
 					if (!isset($info[$dparam])) { $info[$dparam] = ''; }
 				}
+
+				// ********************************
+				// PENDIENTE: Evaluar usabilidad de este bloque
 				if (isset($info['micode-uses']) && trim($info['micode-uses']) != '') {
 					// Convierte en arreglo
 					$modulos_usados = explode("\n", $info['micode-uses']);
-					$info['uses'] = array();
 					$this->acumUses($info, $modulos_usados);
+
+					miframe_debug_pause('micode-uses');
+
 					// Libera memoria
 					unset($info['micode-uses']);
 				}
+				// ********************************
 
 				$info['datetime'] = 0;
 				$info['size'] = 0;
 				$info['sha'] = '';
-				$info['uses'] = array();
+				// $info['uses'] = array(); <-- Con esta linea aqui, lo de arriba acumUses() no sirve para nada...
 				$info['require-total'] = count($requeridos);
 
 				$primero = true;

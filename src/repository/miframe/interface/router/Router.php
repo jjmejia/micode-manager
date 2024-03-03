@@ -1,4 +1,7 @@
 <?php
+
+// CUANDO NO SEA URI, _router CONTIENE EL ALIAS, ASI FACILITA PROCESO DE BUSQUEDA. CUANDO ES URI, PASA EL ENLACE
+
 /**
  * Librería para control de enrutamientos de código.
  *
@@ -31,11 +34,6 @@ namespace miFrame\Interface;
  * Las siguientes propiedades públicas pueden ser usadas:
  * - $autoExport: boolean. TRUE carga los argumentos encontrados al validar el enrutamiento en la variable global $_REQUEST
  *   (no se modifica $_POST ni $_GET).
- * - $multipleMatch: boolean. TRUE para permitir que busque en todas las rutas programadas. FALSE suspende validaciones luego de la
- *   primer validación éxitosa.
- * - strict: boolean. TRUE requiere que se mapeen las rutas para cada método de acceso (GET, POST, etc.). FALSE permite mapeo genérico
- *  (puede representar un riesgo de seguridad según la aplicación).
- * - $stopScript: boolean. TRUE para terminar toda ejecución al encontrar la primer ruta valida.
  */
 class Router extends \miFrame\Interface\Shared\BaseClass {
 
@@ -45,7 +43,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	private $rutas_privadas = array();
 	private $rutas_publicas = array();
 	private $matchSuccessful = false;		// TRUE si encuentra al menos un match valido
-	private $method_bind = '';
+	private $use_request_uri = false;
 	private $ruta_usada = '';
 	private $dir_temp = '';
 	private $uri_base = '';
@@ -57,21 +55,20 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	private $force_json = false;
 	private $file_detected = '';
 	private $history = array();
+	private $rutas_alias = array();
+	private $form_post_params = array();
 
 	public $autoExport = false;
-	public $multipleMatch = false;
-	public $strict = false;
-	public $stopScript = true;
 
 	public function __construct() {
 
 		$this->setURIbase();
 		$this->initialize();
 		$this->clearRoutes();
-		$this->assignMode();
+		$this->useRequestURI(false);
 
 		// Definiciones
-		$this->script_filename = miframe_server_get('SCRIPT_FILENAME');
+		$this->script_filename = realpath(miframe_server_get('SCRIPT_FILENAME'));
 		$this->dir_base = realpath(dirname($this->script_filename));
 		$this->document_root = $this->createURL(basename($this->script_filename));
 
@@ -183,20 +180,18 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			// Si el index está en /cliente/app/index.php
 			// Y el recurso solicitado es /cliente/app/path1/path2
 			// Entonces PATH_INFO sería /path1/path2.
-			$retornar = strtolower(miframe_server_get('PATH_INFO'));
+			// Solamente retorna "?" si PATH_INFO no está definido en $_SERVER.
+			$this->request_uri = strtolower(miframe_server_get('PATH_INFO', '?'));
 
-			if ($retornar == '') {
+			if ($this->request_uri === '?') {
 				// Intenta recuperar manualmente.
 				// Recupera URI sin argumentos (ignora todo despues de "?")
-				$request_uri = parse_url(strtolower(miframe_server_get('REQUEST_URI')), PHP_URL_PATH);
-				// No está consultando el script base (usualmente "index.php")
-				// Recupera del URI la parte que identifica el recurso solicitado.
-				// Retorna vacio si no contiene la URI base.
-				$retornar = $this->removeURIbase($request_uri);
+				$this->request_uri = $this->removeURIbase(
+						parse_url(
+							strtolower(miframe_server_get('REQUEST_URI')),
+							PHP_URL_PATH
+						));
 			}
-
-			// Asigna valor a 'PATH_INFO' para evitar repetir este ciclo si se invoca de nuevo
-			$this->request_uri = $retornar;
 		}
 
 		return $this->request_uri;
@@ -235,58 +230,61 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 * @return array Arreglo de rutas.
 	 */
 	public function selectedRoute() {
-
 		return $this->ruta_usada;
 	}
 
+	public function requestParam() {
+		return $this->request_param;
+	}
+
+	// ********************************
+	// URI no discrimina GET/POST pero debería porque para las API pueden estar las dos...
+	// Revisar
+	// ********************************
+
 	/**
 	 * Captura valor de la referencia asociada al enrutamiento.
-	 * Sugerencia: Esta función debe ejecutarse después de $this->setURIbase(), especialmente cuando $this->method_bind = 'URI".
+	 * Sugerencia: Esta función debe ejecutarse después de $this->setURIbase(), especialmente cuando $this->use_request_uri = true.
 	 *
 	 * @param  string $name_post   Nombre del parámetro REQUEST asociado. Cuando se usa método "uri", el $name es usado para guardar
 	 *                             el valor capturado bajo ese nombre. Si no se designa valor y usa un método de captura
-	 *  						   diferente al "uri", asigna "mcmx".
-	 * @param  string $method_bind Restricción al origen del dato: "post", "get", "request" (POST o GET) o "uri". Si no se indica
-	 *                             valor alguno, usa por defecto "uri".
+	 *  						   diferente al "uri", asigna "_route".
+	 * @param  string $method_bind Restricción al origen del dato: "request" (POST o GET) o "uri". Si no se indica
+	 *                             valor alguno, usa por defecto "request".
 	 * @return bool                TRUE si fue posible capturar el valor de referencia.
 	 */
-	function assignMode(string $method_bind = '', string $name_post = '') {
+	public function useRequestURI(bool $use_request_uri = true, string $name_post = '') {
 
 		$this->request_param = trim($name_post);
 
-		if ($this->request_param == '') { $this->request_param = 'mcmx'; }
+		if ($this->request_param == '') { $this->request_param = '_route'; }
 
-		$valor = '';
-		// $method_bind = $this->method_bind;
-		$this->method_bind = strtolower(trim($method_bind));
-		if ($this->method_bind == '') {
-			// Autodetecta método (request/uri)
-			// $method_bind = $this->bindMethodAutoDetect();
-			// No ha definido el método a usar. Por defecto intenta en modo URI
-			$this->method_bind = 'uri';
-		}
+		$this->use_request_uri = $use_request_uri;
 	}
 
 	private function captureUserAction() {
 
 		$this->request = array();
 		$this->recibido = false;
+		$valor = '';
 
-		if ($this->method_bind == 'uri') {
+		if ($this->use_request_uri) {
 			$valor = $this->requestURI();
 		}
 		else {
-			$tipos = array('post' => '_POST', 'get' => '_GET', 'request' => '_REQUEST');
-			if (!isset($tipos[$this->method_bind])) {
-				// Error de configuración
-				miframe_error('Método de selección no reconocido: $1. Esperaba "$2" o "uri".', $filename, implode('", "', array_keys($tipos)));
-			}
-			$collector = $tipos[$this->method_bind];
+			// $tipos = array('post' => '_POST', 'get' => '_GET', 'request' => '_REQUEST');
+			// if (!isset($tipos[$this->method_bind])) {
+			// 	// Error de configuración
+			// 	miframe_error('Método de selección no reconocido: $1. Esperaba "$2" o "uri".', $this->method_bind, implode('", "', array_keys($tipos)));
+			// }
+			// $collector = $tipos[$this->method_bind];
+			$collector = '_REQUEST';
 			if (isset($GLOBALS[$collector])
-				&& isset($GLOBALS[$collector][$name])
-				&& is_string($GLOBALS[$collector][$name])
+				&& is_array($GLOBALS[$collector])
+				&& isset($GLOBALS[$collector][$this->request_param])
+				&& is_string($GLOBALS[$collector][$this->request_param])
 				) {
-				$valor = trim($GLOBALS[$collector][$name]);
+				$valor = trim($GLOBALS[$collector][$this->request_param]);
 			}
 		}
 
@@ -304,134 +302,24 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 		return $this->recibido;
 	}
 
-	/**
-	 * Realiza definición de enrutamientos contenidos en un archivo .ini.
-	 *
-	 * Para el archivo .ini se deben definir tres grupos: "config", "general" y "map" (y/o "map-xxxx").
-	 * El grupo "config" permite realizar configuraciones a la clase.
-	 * El grupo "map" puede personalizarse para un método request especifico, sea "GET", "POST", "PUT", "DELETE"
-	 * u otro. Para esto, se debe adicionar a "map" el nombre del método, por ejemplo: como "map-get". El método
-	 * se toma de la variable global $_SERVER['REQUEST_METHOD'].
-	 * El grupo "map" global (sin método asociado) deberá definirse primero de forma que puedan redefinirse
-	 * elementos en el "map" personalizado por método.
-	 * Ejemplo:
-	 *
-	 * 	   [config]
-	 * 	   debug = true
-	 * 	   method = uri/get/post/request
-	 *     name_post = cmd
-	 *
-	 *     [private]
-	 *     default = (script a ejecutar cuando no recibe enrutamiento o el enrutamiento apunta al index.php)
-	 *     abort = (script a ejecutar en respuesta a $this->abort())
-	 *
-	 *     [public]
-	 *     (enrutamiento) = (script a ejecutar)
-	 *     ...
-	 *
-	 *     [public-get]
-	 *     (enrutamiento) = (script a ejecutar)
-	 *     ...
-	 *
-	 * Las reglas para la declaración del enrutamiento se describen en la documentación de la función runOnce().
-	 *
-	 * El grupo "public" contiene declaración de enrutamientos aplicados para cualquier método de consulta sea web
-	 * (GET, POST) o los adiconales usados para servicios web (HEAD, DELETE, PUT, PATCH). Para definir el mapa de
-	 * enrutamientos propios de un método específico, use el grupo "map-xxxx" donde la "xxxx" corresponde al nombre
-	 * del método de interés.
-	 *
-	 * El grupo "config" permite realizar configuraciones a la clase. Las opciones validas para este grupo son:
-	 * - debug: boolean. TRUE para presentar mensajes de depuración.
-	 * - method: string. Puede ser "post", "get", "request" o "uri". Método usado para detectar el enrutamiento.
-	 * - name_post: string. Nombre de la variable asociada al modo de captura (no requerida para "uri").
-	 *
-	 * @param string $filename Nombre del archivo .ini a cargar,
-	 * @param string $dirbase  Path a usar para ubicar los scripts.
-	*/
-	public function loadConfig(string $filename) {
-
-		if (!file_exists($filename)) {
-			miframe_error('Archivo no encontrado: $1', $filename);
-		}
-
-		$data = parse_ini_file($filename, true, INI_SCANNER_RAW);
-
-		foreach ($data as $type => $group) {
-			$metodo_map = ''; // Usado en rutas publicas
-			if ($type == 'config') {
-				// Configura modo de captura
-				$method_bind = '';
-				$name_post = '';
-				if (isset($group['method'])) { $method_bind = $group['method']; }
-				if (isset($group['name_post'])) { $name_post = $group['name_post']; }
-				if ($method_bind != '' || $name_post != '') {
-					$this->assignMode($method_bind, $name_post);
-				}
-				// Configura modo debug
-				if (isset($group['debug'])) {
-					$this->debug = boolval($group['debug']);
-				}
-			}
-			elseif ($type == 'private') {
-				$this->addPrivateRoutes($group);
-			}
-			else {
-				if (strtolower(substr($type, 0, 7)) == 'public-') {
-					// MRuta pública asociada a un método particular
-					$metodo_map = strtolower(trim(substr($type, 7)));
-					$type = 'public';
-				}
-				if ($type == 'public') {
-					$this->addRoutes($group, $metodo_map);
-				}
-			}
-		}
-	}
-
-	private function addPrivateRoutes(array $data) {
-
-		// Metodos privados asociados
-		$privados = array(
-			'default' => 'addDefaultRoute',
-			'abort' => 'addAbortRoute',
-			'before_stop' => 'addBeforeStopRoute'
-		);
-
-		// Evalua contenido
-		foreach ($data as $reference => $accion) {
-			if (isset($privados[$reference])) {
-				$metodo_clase = $privados[$reference];
-				$this->$metodo_clase($accion);
-			}
-		}
-	}
-
 	public function clearRoutes() {
 
 		$this->rutas_privadas = array(
-			'default' => '',
+			'index' => '',
 			'abort' => '',
 			'before-stop' => ''
 			);
+
 		$this->rutas_publicas = array();
+		$this->rutas_alias = array();
 	}
 
-	/**
-	 * Carga enrutamientos definidos en un arreglo.
-	 *
-	 * @param array  $data 	  Arreglo de datos a cargar.
-	 * @param string $method  Método asociado (POST, GET, etc.). En blanco, cualquiera.
-	 * @param bool  		  TRUE si se pudo relacionar el arreglo, FALSE en otro caso.
-	*/
-	private function addRoutes(array $data, string $method = '') {
 
-		foreach ($data as $reference => $accion) {
-			// La descripción se indica separando con "|" (opcional)
-			$arreglo = explode('|', $accion . '|');
-			$this->addRoute($reference, $arreglo[0], $arreglo[1], $method);
+	public function addErrorRoute(int $code, string $action) {
+
+		if ($code > 0) {
+			$this->rutas_privadas['error-' . $code] = trim($action);
 		}
-
-		return true;
 	}
 
 	/**
@@ -445,22 +333,61 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 * @param string $description Descripción del elemento.
 	 * @param string $method 	  Método asociado (POST, GET, etc.). En blanco, cualquiera.
 	 */
-	private function addRoute(string $reference, string $action, string $description = '', string $method = '') {
+	protected function addRoute(string $reference, string $action, string $method = '', string $alias = '') {
 
 		$reference = strtolower(trim($reference));
 		$action = trim($action);
+
+		// Elimina cualquier "/" en el primer campo
+		while ($action !== '' && substr($action, 0, 1) == '/') {
+			$action = trim(substr($action, 1));
+		}
+
+		// Determina método asociado
 		$method = strtolower(trim($method));
 		if ($method == '') { $method = '@any'; }
 		if ($reference != '' && $action != '') {
+			$pos = strpos($reference, '?');
+			$llave = $reference;
+			if ($pos !== false) {
+				$llave = substr($reference, 0, $pos);
+				if (substr($llave, -1, 1) == '/') { $llave = substr($llave, 0, -1); }
+			}
+			// Valida el nombre
+			if ($alias == '') {
+				$alias = miframe_only_alphanum(str_replace('?', '', $llave), '-', '_');
+			}
+			if ($alias == 'index') {
+				miframe_error('Error al configurar rutas: El alias "index" no puede asignarse a rutas públicas');
+			}
+			elseif (isset($this->rutas_alias[$alias])) {
+				// El nombre dado ya existe, deberá fijar uno manualmente
+				miframe_error(
+					'Error al configurar rutas: El alias "$1" asignado a la referencia "$2" ya fue asignado a "$3"',
+					$alias,
+					$reference,
+					$this->rutas_alias[$alias]['reference']
+					);
+			}
 			// Incluye método de consulta. Separa el primer elemento
-			$arreglo = explode('/', $reference, 2);
-			$primero = strtolower($arreglo[0]);
-			$resto = '';
-			if (isset($arreglo[1])) { $resto = strtolower($arreglo[1]); }
-			$this->rutas_publicas[$primero][$resto][$method] = array(
+			// $arreglo = explode('/', $reference);
+			// $primero = strtolower($arreglo[0]);
+			// $resto = '';
+			// if (isset($arreglo[1])) { $resto = strtolower($arreglo[1]); }
+			$this->rutas_publicas[$method][$llave][] = $alias;
+			$this->rutas_alias[$alias] = array(
+				'action' => $action,
+				// 'description' => trim($description),
+				// 'alias' => $alias,
+				'reference' => $reference
+				);
+
+			/*
+			$this->rutas_publicas[$primero][$resto][$method] = new miAttributes([
 				'action' => $action,
 				'description' => trim($description)
-			);
+				]);
+			*/
 		}
 	}
 
@@ -479,32 +406,58 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 	/**
 	 * Confirma si puede proceder a validar enrutamiento.
-	 * Esto es, cuando no ha encontrado un enrutamiento valido ($this->matchSuccessful = true) o cuando se permite la ejecución de
-	 * múltiples enrutamientos ($this->multipleMatch = true).
+	 * Esto es, cuando no ha encontrado un enrutamiento valido ($this->matchSuccessful = true).
 	 *
 	 * @return bool TRUE si puede proceder a validar. FALSE en otro caso.
 	 */
 
 	public function continue() {
 
-		return ($this->file_detected == '' && (!$this->matchSuccessful || $this->multipleMatch));
+		return ($this->file_detected == '' && !$this->matchSuccessful);
 	}
 
-	private function getPublicRoute($reference, $startsWith = '') {
+	private function getPublicRoutes() {
 
-		$accion = '';
+		$rutas = array();
+		$metodo = strtolower($_SERVER['REQUEST_METHOD']);
+		// $reference .= '/';
+		$acum = '';
+		$metodo_any = '@any';
+
+		// echo "<pre>"; print_r($this->rutas_publicas); echo "</pre><hr>";
+
+		foreach ($this->request as $k => $path) {
+			if ($acum != '') { $acum .= '/'; }
+			$acum .= $path;
+			$aliases = array();
+			if (isset($this->rutas_publicas[$metodo][$acum])) {
+				$aliases = $this->rutas_publicas[$metodo][$acum];
+			}
+			elseif (isset($this->rutas_publicas[$metodo_any][$acum])) {
+				$aliases = $this->rutas_publicas[$metodo_any][$acum];
+			}
+			if (count($aliases) > 0) {
+				sort($aliases);
+				$rutas = array_merge($rutas, $aliases);
+			}
+		}
+
+		// print_r($rutas); echo "<hr>";
+
+		/*
 		if ($startsWith != '') {
 			$metodo = strtolower($_SERVER['REQUEST_METHOD']);
 			$metodo_any = '@any';
 			if (isset($this->rutas_publicas[$startsWith][$reference][$metodo])) {
-				$accion = $this->rutas_publicas[$startsWith][$reference][$metodo]['action'];
+				$accion = $this->rutas_publicas[$startsWith][$reference][$metodo];
 			}
-			elseif (!$this->strict && isset($this->rutas_publicas[$startsWith][$reference][$metodo_any])) {
-				$accion = $this->rutas_publicas[$startsWith][$reference][$metodo_any]['action'];
+			elseif (isset($this->rutas_publicas[$startsWith][$reference][$metodo_any])) {
+				$accion = $this->rutas_publicas[$startsWith][$reference][$metodo_any];
 			}
 		}
+		*/
 
-		return $accion;
+		return $rutas;
 	}
 
 	/**
@@ -516,36 +469,61 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 		$this->captureUserAction();
 
-		// Evalua si no hay datos recibidos, en ese caso ejecuta la opción "default"
+		// Evalua si no hay datos recibidos, en ese caso ejecuta la opción "index"
 		if ($this->continue()) {
-			$this->runDefault();
+			$this->runIndex();
 		}
 
 		// Evalua coincidencias de los datos recibidos con las rutas mapeadas
 		if ($this->continue()
 			&& count($this->rutas_publicas) > 0
-			&& count($this->request) >= 1
+			&& count($this->request) > 0
 			) {
-			// Usa una copia en caso que $this->rutas_publicas sea modificado al ejecutar algún include
-			$primero = strtolower($this->request[0]);
-			if (isset($this->rutas_publicas[$primero])) {
-				$rutas = array_keys($this->rutas_publicas[$primero]);
-				sort($rutas); // Asegura se evalue correctamente (primero las acciones sin args)
-				foreach ($rutas as $k => $reference) {
-					$accion = $this->getPublicRoute($reference, $primero);
-					// echo "PRIMERO $primero / $reference = $accion<hr>";
-					if ($accion != '') {
-						if ($reference != '') { $reference = '/' . $reference; }
-						// echo "PRIMERO $primero$reference = $accion<hr>";
-						if ($this->runOnce($primero . $reference, $accion)) {
-							if (!$this->multipleMatch) { break; }
-						}
+			// $primero = strtolower($this->request[0]);
+			if (!$this->use_request_uri) {
+				// Recibe el alias como referencia
+				return $this->runAlias($this->request[0]);
+			}
+			else {
+				// Usa una copia en caso que $this->rutas_publicas sea modificado al ejecutar algún include
+				// if (isset($this->rutas_publicas[$primero])) {
+					// PENDIENTE: Qué pasa si $primero es una variable??
+					$rutas = $this->getPublicRoutes();
+					// print_r($rutas); echo "<hr>";
+					// sort($rutas); // Asegura se evalue correctamente (primero las acciones sin args)
+					foreach ($rutas as $k => $alias) {
+						// $alias = $this->getPublicRoute($reference, $primero);
+						$this->runAlias($alias);
 					}
+				// }
+			}
+		}
+
+		// Si detectó algún archivo, pero no corresponde a los mapas de navegación lo intenta exportar
+		// usando $app->router->exportFileDetected() o lo reporta usando $app->router->reportFileDetected().
+		$this->exportFileDetected(true);
+
+		return $this->matchSuccessful;
+	}
+
+	private function runAlias($alias) {
+
+		if ($alias !== '' && isset($this->rutas_alias[$alias])) {
+			$accion = $this->rutas_alias[$alias]['action'];
+			$full_reference = $this->rutas_alias[$alias]['reference'];
+			// echo "PRIMERO $alias / $full_reference = $accion<hr>";
+			if ($accion != '') {
+				// if ($reference != '') { $reference = '/' . $reference; }
+				// $full_reference = $primero . $reference;
+				if ($this->runOnce($full_reference)) {
+					$this->ruta_usada = $alias;
+					// print_r($data_accion);
+					return $this->runAction($accion, $full_reference);
 				}
 			}
 		}
 
-		return $this->matchSuccessful;
+		return false;
 	}
 
 	/**
@@ -555,12 +533,10 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 *
 	 * - Path absoluto. Ej: "path1/path2". En este caso si recibe "path1/path2/valor1/valor2", no lo tomará como una
 	 *   coincidencia valida.
-	 * - Path relativo con parámetros variables, se indican con "?". Ej: "path1/path2/?arg1/arg2". El valor para "arg1" y "arg2"
+	 * - Path relativo con parámetros variables, se indican con "?". Ej: "path1/path2/?arg1/?arg2". El valor para "arg1" y "arg2"
 	 *   son registrados en el arreglo $this->params. Este enrutamiento se ejecutará tanto si se invoca "path1/path2/valor1/valor2", como si
 	 *   se invoca "path1/path2" ("arg1" y "arg2" se definen con valor en blanco). Si por el contrario, recibe "path1/path2/valor1/valor2/valor3"
-	 *   se almacenará "valor1" en "arg1" y en "arg2" almacenará "valor2/valor3". En este caso es también viabe que intente recuperar
-	 *   el valor de los argumentos de $_REQUEST, para cubrir el escenario en que hayan sido enviados a través de un formulario con los
-	 *   valores desglosados.
+	 *   se retornará como fallido ya que tiene más argumentos que los esperados.
 	 *
 	 * En caso de declarar `$this->autoExport` = true, cargará los valores de $this->params en $_REQUEST (no modifica $_POST ni $_GET).
 	 * Si la accion asociada es vacio, busca archivo usando como patron el valor de $reference (adicionando extensión ".php").
@@ -569,26 +545,95 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 * @param  string $action 	 Script y/o función a ejecutar.
 	 * @return bool 		 	 TRUE si encuentra un enrutamiento valido, FALSE en otro caso.
 	 */
-	public function runOnce(string $reference, string $action = '') {
+	private function runOnce(string $reference) {
 
 		$reference = trim($reference);
 		// Valida si ya fue ejecutado
 		if (!$this->continue() || $reference == '') { return false; }
 
-		$reference_arr = explode('/', strtolower($reference));
-		$nueva_reference = '';
-		$ultimo_path = '';
-		$capturando = false;
-
-		$this->params = array();
-		$this->ruta_usada = '';
 		// Inicializa arreglo con el valor recibido previamente
 		$this->setParam($this->request_param, $this->request());
 
+		// Cuando no es URI el método, simula respuesta para recuperar posibles variables
+		if  (!$this->use_request_uri && strpos($reference, '?') === false) {
+			// No hay variables que buscar
+			return true;
+		}
+
+		$reference_arr = explode('/', strtolower($reference));
+		// $nueva_reference = '';
+		// $ultimo_path = '';
+		// $capturando = false;
+
+		$this->params = array();
+		// $this->ruta_usada = '';
+
 		$count_request = count($this->request);
+		$ultima_posicion = count($reference_arr) - 1;
 
 		foreach ($reference_arr as $k => $path) {
+
 			$path = trim($path);
+
+			if (substr($path, 0, 1) == '?') {
+				// El contenido pasa a una variable.
+				// Si es el último, captura los campos restantes (al salir del ciclo)
+				// usando $ultimo_var como referencia de control.
+				$path = substr($path, 1);
+
+				// Solamente permite letras, numeros y "_". Cualquier otro caracter se remplaza por "_"
+				$npath = miframe_only_alphanum($path, '_', '_');
+
+				if ($path === '' || str_replace('_', '', $npath) === '') {
+					// No existe nombre valido para la variable a usar (sea vacio o algo como "___")
+					miframe_error('Error al validar atributos de ruta para la referencia $1 (item $2)', $reference, ($k + 1));
+				}
+				elseif (strtolower($path) == strtolower($this->request_param)) {
+					// No existe nombre valido para la variable a usar (sea vacio o algo como "___")
+					miframe_error('Error al validar atributos de ruta: uso de nombre no permitido ($1)', $path);
+				}
+
+				// Si contiene "*" al final, indica que debe capturar todo lo que
+				// encuentre de este punto en adelante (si alguno)
+				// $capturar_resto = ($k == $ultima_posicion && substr($path, -1, 1) == '*');
+
+				$valor = '';
+				if (!$this->use_request_uri) {
+					if (array_key_exists($path, $_REQUEST)) {
+						$valor = $_REQUEST[$path];
+					}
+				}
+				elseif (isset($this->request[$k])) {
+					$valor = trim($this->request[$k]);
+				}
+
+				if ($k == $ultima_posicion && $count_request > $k + 1) {
+					// Adiciona cualquier resto que queda
+					// $path = substr($path, 0, -1);
+					// if ($count_request > $k + 1) {
+						for ($k = $k + 1; $k < $count_request; $k ++) {
+							$valor .= '/' . trim($this->request[$k]);
+						}
+					// }
+				}
+
+				/*elseif ($path != '' && isset($_REQUEST[$path]) && !is_array($_REQUEST[$path])) {
+					// Captura los datos de entre los recibidos via POST/GET
+					$valor = trim($_REQUEST[$path]);
+				}*/
+
+				$this->setParam($npath, $valor);
+			}
+			elseif ($this->use_request_uri) {
+				// Debe ser un valor estático
+				if ($path === '' || !isset($this->request[$k]) || $this->request[$k] !== $path) {
+					return false;
+				}
+				// if ($nueva_reference != '') { $nueva_reference .= '/'; }
+				// $nueva_reference .= $path;
+			}
+
+			/*
 			if (substr($path, 0, 1) == '?') {
 				$capturando = true;
 				$path = trim(substr($path, 1));
@@ -609,10 +654,11 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 				$this->setParam($path, $valor);
 				$ultimo_path = $path;
 			}
+			*/
 		}
 
 		if ($count_request > $k + 1) {
-			if ($capturando) {
+			/* if ($capturando) {
 				// El último elemento fue una variable de captura, adiciona el resto
 				// del path a esa variable (ej: un path de archivo)
 				if ($ultimo_path != '') {
@@ -621,34 +667,34 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 					}
 				}
 			}
-			else {
+			else {*/
 				// Hay mas datos en lo recibido que en el patron de busqueda y el patron no tiene
 				// para capturar valores, luego lo da como fallido.
 				return false;
-			}
+			// }
 		}
 
 		// Si no definió acción, usa el mismo valor de referencia
-		if ($action == '') {
-			$action = $nueva_reference . '.php';
-		}
+		// if ($action == '') {
+		// 	$action = $nueva_reference . '.php';
+		// }
 
 		// Actualiza valor del parametro a buscar (no modifica $this->request)
-		$this->setParam($this->request_param, $nueva_reference);
+		// $this->setParam($this->request_param, $reference);
 
-		return $this->runAction($action, $reference);
+		return true;
 	}
 
-	public function runDefault(string $action = '') {
+	public function runIndex(string $action = '') {
 
 		if ($this->continue() && !$this->recibido) {
 			$action = trim($action);
 			if ($action == '') {
-				$action = $this->rutas_privadas['default'];
+				$action = $this->rutas_privadas['index'];
 			}
 			// Si no se indica, evita ejecutar para no generar mensaje de error y permitir
 			// evaluar por fuera cuando no se encuentra coincidencia.
-			return $this->runAction($action, '(default)');
+			return $this->runAction($action, '(index)');
 		}
 
 		return false;
@@ -683,11 +729,13 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 		$reference = trim($reference);
 		$llave_reference = md5($reference);
 		// Nada que procesar
+		// Valida history para prevenir ciclos infinitos en caso que se intente invocar nuevamente este método
+		// (stop() y abort() invocan este método)
 		if ($filename === '' || $reference == '' || isset($this->history[$llave_reference])) {
 			return false;
 		}
 
-		$this->ruta_usada = $reference;
+		// $this->ruta_usada = $reference;
 
 		$funcion = '';
 		$path = '';
@@ -724,9 +772,8 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 		if ($this->autoExport) {
 			$this->exportParamsInto($_REQUEST);
 		}
-
 		// Ejecuta include asegurando que esté aislado para no acceder a elementos privados de esta clase
-		if ($this->include($path, 'INCLUDE ' . $reference . ' --> ' . $filename)) {
+		if ($this->include($path, "INCLUDE {$reference} --> {$filename}")) {
 			// Reporta ejecución exitosa solamente si no debe ejecutar alguna función adicionalmente
 			if ($funcion == '') {
 				$this->matchSuccessful = true;
@@ -774,7 +821,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 				if ($this->debug) {
 					// error_log('MIFRAME/ROUTER FUNCION ' . $reference . ' --> ' . $funcion);
-					$this->printDebug('FUNCTION ' . $function . ': ' . $reference);
+					$this->printDebug('FUNCTION ' . $funcion . ': ' . $reference);
 				}
 
 				// La función usa esta clase como unico argumento
@@ -785,10 +832,10 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			$ejecutado_local = true;
 		}
 
-		// $this->matchSuccessful podria ser TRUE de un enrutamiento anterior pero haber fallado en este,
-		// por eso se valida $ejecutado_local
-		if ($ejecutado_local && $this->stopScript) {
-			// Valida si debe ejecutar algo antes
+		// $this->matchSuccessful puede ser TRUE de una ejecución previa pero no de esta (por ejemplo durante la ejecución
+		// de un "before-stop")
+		if ($ejecutado_local) {
+			// Valida si debe ejecutar algo antes (termina siempre porque la referencia coincidió, diferente si no coincide)
 			$this->stop();
 		}
 
@@ -804,8 +851,10 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 */
 	public function stop() {
 
-		$this->runAction($this->rutas_privadas['before-stop'], '(before-stop)');
-		exit;
+		if (!$this->existsHistory('(before-stop)')) {
+			$this->runAction($this->rutas_privadas['before-stop'], '(before-stop)');
+			exit;
+		}
 	}
 
 	/**
@@ -813,9 +862,9 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 *
 	 * @param string $action Script y/o función a ejecutar.
 	 */
-	public function addDefaultRoute(string $action) {
+	public function addIndexRoute(string $action) {
 
-		$this->rutas_privadas['default'] = trim($action);
+		$this->rutas_privadas['index'] = trim($action);
 	}
 
 	/**
@@ -876,18 +925,22 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			header("HTTP/1.1 " . $header);
 		}
 
-		$ejecutado = $this->runAction($this->rutas_privadas['abort'], '(abort)');
-
+		// Busca en errores
+		$error_code = intval($header);
+		if ($error_code > 0 && isset($this->rutas_privadas['error-' . $error_code])) {
+			$ejecutado = $this->runAction($this->rutas_privadas['error-' . $error_code], '(error ' . $error_code . ')');
+		}
+		if (!$ejecutado) {
+			$ejecutado = $this->runAction($this->rutas_privadas['abort'], '(abort)');
+		}
 		if (!$ejecutado) {
 			// Si no pudo ejecutar lo anterior, presenta mensaje base
 			// Mensaje con error a pantalla
-			$message = nl2br($message);
-			$this->printDebug(miframe_text('Ejecución cancelada'));
-			echo miframe_box($title, $message, 'critical', $footnote);
+			$this->printDebug('ROUTER ABORT');
+			echo miframe_box($title, nl2br($message), 'critical', $footnote);
+			// Termina el script
+			$this->stop();
 		}
-
-		// Si llega a este punto y no esta en otro proceso de abortar, termina el script.
-		if (!$this->existsHistory('(abort)')) { $this->stop(); }
 	}
 
 	/**
@@ -910,10 +963,10 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 		}
 	}
 
-	public function exportFileDetected(bool $export_direct = false) {
+	public function exportFileDetected() {
 
 		if ($this->file_detected != '' && !$this->matchSuccessful) {
-			$this->exportFile($this->file_detected, $export_direct);
+			$this->exportFile($this->file_detected, true);
 		}
 
 		return false;
@@ -1023,59 +1076,15 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 * valores a usar para crear un nuevo formulario.
 	 * En otro caso, retorna el enlace ya listo para su uso.
 	 *
-	 * @param string $request_param  Valor del parámetro principal. Puede contener parámetros adicionales
-	 *                               conectados por "?" y con formato "[nombre1]=[valor1]&[nombre2]=[valor2]...".
-	 *                               Complementa el listado de parámetros recibido en el argumento $params (si alguno).
-	 * @param bool   $force_get_mode Obliga el uso del método GET al momento de crear el enlace.
-	 * @param mixed  $params		 Parámetros adicionales a incluir en el enlace.
+	 * @param string $request_param  Valor del alias de ruta o URL. Si no se indica, usa el actual. Cadena vacia para "index".
+	 * @param bool   $force_get_mode Obliga el uso del método GET al momento de crear el enlace. FALSE usa el método prefijado.
+	 * @param mixed  $params		 Parámetros adicionales a incluir en el enlace. Puede ser un arreglo o una cadena del tipo "a=xx&b=xx..".
 	 * @return mixed                 Enlace a usar o arreglo de datos (método de detección "post")
 	 */
-	public function getFormAction(string $request_param = null, bool $force_get_mode = false, mixed $params = false) {
+	public function createRouteURL(string $request_param = null, mixed $params = '', bool $force_get_mode = true) {
 
 		$accion = $this->documentRoot();
-		if (is_null($request_param)) {
-			$request_param = $this->request();
-		}
-		if (is_array($params)) {
-			$params = http_build_query($params);
-		}
-		if ($request_param != '') {
-			// Valida si contiene "?"
-			$pos = strpos($request_param, '?');
-			if ($pos !== false) {
-				if ($params != '') { $params = '&' . $params; }
-				$params = substr($request_param, $pos + 1) . $params;
-				$request_param = substr($request_param, 0, $pos);
-			}
-		}
-		if ($this->method_bind == 'uri') {
-			$accion = $this->createURL($request_param);
-			if ($params != '') {
-				$accion .= '?' . $params;
-			}
-		}
-		elseif ($this->request_param != '') {
-			if ($this->method_bind != 'post' || $force_get_mode) {
-				$accion .= '?' . $this->request_param . '=' . urlencode($request_param);
-				if ($params != '') {
-					$accion .= '&' . $params;
-				}
-			}
-			else {
-				// Si forza el modo POST, la acción debe configurarse manualmente en el formulario.
-				// En este caso ignora $params.
-				$accion = array(
-					'action' => $accion,
-					'param' => $this->request_param,
-					'value' => $request_param
-					);
-			}
-		}
-
-		return $accion;
-	}
-
-	public function reload(string $request_param = null, mixed $params = false, mixed $data = false) {
+		$this->form_post_params = array();
 
 		if (!is_array($params)) {
 			// Asume es una cadena del tipo "a=xx&b=xx.."
@@ -1086,12 +1095,119 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			}
 		}
 
-		$filedata = $this->setDataBeforeReload($data);
-		if ($filedata !== '') {
-			$params['micodedata'] = $filedata;
+		if (is_null($request_param)) {
+			// $request_param = $this->request();
+			$request_param = $this->ruta_usada;
 		}
 
-		$location = $this->getFormAction($request_param, true, $params);
+		if ($request_param != '') {
+			// Remplaza alias por la ruta correcta
+			if ($request_param == 'index') {
+				$request_param = ''; // $this->rutas_privadas['index'];
+			}
+			elseif (isset($this->rutas_alias[$request_param])) {
+				// Si no está definida, usa la ruta tal cual fue recibida
+				// miframe_error('Ruta no especificada/alias no encontrado ($1)', $request_param);
+				$alias = $request_param;
+				if ($this->use_request_uri) {
+					$request_param = $this->rutas_alias[$alias]['reference'];
+					if (strpos($request_param, '?') !== false && count($params) > 0) {
+						// Remplaza los params
+						$remplazar = array();
+						foreach ($params as $k => $v) {
+							if (strpos($request_param, '?' . $k) !== false) {
+								// No remplaza directamente para prevenir que un valor de
+								// remplazo introduzca nuevas variables
+								$remplazar['?' . $k] = $v;
+								unset($params[$k]);
+							}
+						}
+						if (count($remplazar) > 0) {
+							$request_param = str_replace(array_keys($remplazar), $remplazar, $request_param);
+						}
+						if (strpos($request_param, '?') !== false) {
+							// No encontró las variables de remplazo? Debería dejarlas en blanco?
+							miframe_error('Error al generar URL, no pudo generar correctamente la URL ($1) para "$2"', $request_param, $alias);
+						}
+						// Remueve ultimo "/"
+						if (substr($request_param, -1, 1) == '/') { $request_param = substr($request_param, 0, -1); }
+					}
+				}
+			}
+
+			// Valida si contiene "?"
+			// $pos = strpos($request_param, '?');
+			// if ($pos !== false) {
+			// 	if ($params != '') { $params = '&' . $params; }
+			// 	$params = substr($request_param, $pos + 1) . $params;
+			// 	$request_param = substr($request_param, 0, $pos);
+			// }
+		}
+
+		if ($this->use_request_uri) {
+			$accion = $this->createURL($request_param);
+			// Valida si adiciona el resto de parámetros o los registra para uso posterior (formulario POST)
+			if (count($params) > 0) {
+				if ($force_get_mode) {
+					$params = http_build_query($params);
+					if ($params != '') {
+						$accion .= '?' . $params;
+					}
+				}
+				else {
+					// Guarda para uso posterior
+					$this->form_post_params = $params;
+				}
+			}
+		}
+		else {
+			// if (!is_array($params)) { $params = array(); }
+			$params[$this->request_param] = $request_param;
+			if ($force_get_mode) {
+				// Remueve enlace por visibilidad
+				if ($params[$this->request_param] == '') { unset($params[$this->request_param]); }
+				$params = http_build_query($params);
+				if ($params != '') {
+					$accion .= '?' . $params;
+				}
+			}
+			else {
+				// Si forza el modo POST, la acción debe configurarse manualmente en el formulario.
+				// PENDIENTE: PARA EL METODO POST ES NECESARIO UN METODO QUE RETORNE LOS PARAMETROS PROPIOS REQUERIDOS, INCLUIDO EL CSRF
+				// $accion = array(
+				// 	'action' => $accion,
+				// 	'params' => $params
+				// );
+
+				// Guarda para uso posterior
+				$this->form_post_params = $params;
+			}
+		}
+
+		return $accion;
+	}
+
+	public function getFormPostParams(bool $csrf = false) {
+
+		$params = $this->form_post_params;
+		// Adiciona otros elementos sugeridos
+		if ($csrf) {
+			// PENDIENTE...
+		}
+
+		return $params;
+	}
+
+	public function reload(string $request_param = null, mixed $params = '', array $data = null) {
+
+		if (is_array($data) && count($data) > 0) {
+			$filedata = $this->setDataBeforeReload($data);
+			if ($filedata !== '') {
+				$params['micodedata'] = $filedata;
+			}
+		}
+
+		$location = $this->createRouteURL($request_param, $params);
 
 		/*
 		$accion = $this->rutas_privadas['reload'];
@@ -1122,24 +1238,22 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 		exit($mensaje);
 	}
 
-	public function setDataBeforeReload(mixed $data = false) {
+	public function setDataBeforeReload(array $data) {
 
 		$filedata = '';
 
-		if ($data !== false) {
-			$dirname = miframe_temp_dir('micode-cache-reloads', true);
-			$basename = uniqid();
-			$m = intval(rand(0, 9));
+		$dirname = miframe_temp_dir('micode-cache-reloads', true);
+		$basename = uniqid();
+		$m = intval(rand(0, 9));
+		$filename = miframe_path($dirname , $basename . dechex($m));
+		while (file_exists($filename)) {
+			$m ++;
 			$filename = miframe_path($dirname , $basename . dechex($m));
-			while (file_exists($filename)) {
-				$m ++;
-				$filename = miframe_path($dirname , $basename . dechex($m));
-			}
-
-			miframe_serialize($filename, $data);
-
-			$filedata = basename($filename);
 		}
+
+		miframe_serialize($filename, $data);
+
+		$filedata = basename($filename);
 
 		return $filedata;
 	}
@@ -1185,8 +1299,8 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 		$this->uri_base = '/';
 		// Nombre de quien se invoca como el script base (puede ser diferente al SCRIPT_FILENAME).
 		// Ejemplo:
-		// SCRIPT_NAME = /micode-manager/index.php
-		// SCRIPT_FILENAME = C:\xxx\micode-manager\index.php
+		// SCRIPT_NAME = /micode-manager/public/index.php
+		// SCRIPT_FILENAME = C:\xxx\micode-manager\public\index.php
 		$script_name = strtolower(miframe_server_get('SCRIPT_NAME'));
 		$dirbase = dirname($script_name);
 		// Si no hay subdirectorios (ej. '/index.php'), dirbase() retorna "\". Lo ignora en ese caso.
@@ -1289,8 +1403,45 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 				// Cuando el parámetro return se usa, esta función utiliza el almacenamiento en búfer de salida interno,
 				// por lo que no puede usarse dentro de una función de llamada de retorno ob_start().
 				// https://www.php.net/manual/es/function.print-r.php
-				'<li><b>Rutas:</b><pre>' .			print_r($this->getLoadedRoutes(), true) . '</pre></li>' .
+				// '<li><b>Rutas:</b><pre>' .		print_r($this->getLoadedRoutes(), true) . '</pre></li>' .
+				'<li><b>Rutas:</b>' .				miframe_debug_dump($this->getLoadedRoutes()) . '</li>' .
+				'<li><b>Ruta usada:</b>' .			$this->ruta_usada . '</li>' .
 				'</ul>'
 				);
 	}
 }
+
+/*
+class miAttributes {
+
+	public $attribs = array();
+
+	public function __construct(array $attribs) {
+		// Define los atributos a manejar y sus valores por defecto
+		$this->attribs = $attribs;
+	}
+
+	/**
+	 * Recupera valor de un atributo
+	 *-/
+	public function __get(string $name) {
+
+		if (array_key_exists($name, $this->attribs)) {
+			return $this->attribs[$name];
+		}
+
+		return false;
+	}
+
+	/**
+	 * Para asignar un valor a un atributo se invoca como método
+	 *-/
+	public function __call(string $name, mixed $arguments) {
+
+		// Validar que sea del mismo tipo del definido?
+		if (array_key_exists($name, $this->attribs)) {
+			$this->attribs[$name] = $arguments;
+		}
+	}
+}
+*/

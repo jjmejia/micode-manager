@@ -10,11 +10,11 @@ $title = '';
 $pre = '';
 if ($this->router->requestStartWith('modules')) {
 	$title = miframe_text('Listado de Módulos');
-	$pre = 'modules/list';
+	$pre = 'modules-list';
 }
 elseif ($this->router->requestStartWith('localtests')) {
 	$title = miframe_text('Listado de Tests');
-	$pre = 'localtests/list';
+	$pre = 'localtests-list';
 }
 
 // Recupera tipos validos
@@ -28,7 +28,7 @@ foreach ($validos as $tipo => $titulo) {
 		if (!isset($tiposvalidos[$tipo])) { continue; }
 		$titulo .= ' (' . count($tiposvalidos[$tipo]) . ')';
 	}
-	$enlace = $this->router->getFormAction($pre . '/' . $tipo, true);
+	$enlace = $this->router->createRouteURL($pre, [ 'type' => $tipo ]);
 
 	$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($this->params->get('type') == $tipo));
 }

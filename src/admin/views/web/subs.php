@@ -47,16 +47,6 @@ if (!$this->params->exists('page-nomenu')) {
  * @return string HTML con la presentación alternativa.
  */
 
-function cmdPost($post, string $param_name = '') {
-
-	if ($param_name == '') { $param_name = 'app'; }
-	$cmd = strtolower($post->getString('cmd'));
-	$app = strtolower($post->getString($param_name));
-	if ($app != '') { $cmd .= '/' . $app; }
-
-	return $cmd;
-}
-
 function menuApps(&$router, string $title, array $enlaces, string $return = '') {
 
 	$return_enlace = '';
@@ -66,8 +56,6 @@ function menuApps(&$router, string $title, array $enlaces, string $return = '') 
 
 	// Menú de cada página
 	if (count($enlaces) > 0 || $title != '') {
-
-		$nav_add = '';
 		$subtitulo = '';
 		$enlace_secundario = '';
 		if ($return != '') {
@@ -75,9 +63,7 @@ function menuApps(&$router, string $title, array $enlaces, string $return = '') 
 		}
 
 		// Valida subtitulo para complementar la clase asociada al "nav"
-		// if ($this->params->get('page-subtitle') != '') {
 		if ($title != '') {
-			$nav_add = '-app';
 			$subtitulo = "
 			<h2>
 				$title
@@ -89,15 +75,12 @@ function menuApps(&$router, string $title, array $enlaces, string $return = '') 
 
 	?>
 
-	<!-- <nav class="nav-main<?= $nav_add ?>"> -->
-
 		<?= $subtitulo ?>
 
 		<ul class="app-list">
 
 			<?php
 
-			// $this->params->get('page-menu:foreach', '', function ($k, $info) {
 			foreach ($enlaces as $k => $info) {
 					$selecto = '';
 					if ($info['selecto']) { $selecto .= ' class="selected"'; }
@@ -113,12 +96,10 @@ function menuApps(&$router, string $title, array $enlaces, string $return = '') 
 			<?php
 
 			}
-			// return true; });
 
 			?>
 
 		</ul>
-	<!-- </nav> -->
 
 	<?php
 

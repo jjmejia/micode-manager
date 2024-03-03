@@ -10,7 +10,8 @@
 
 include_once __DIR__ . '/subs.php';
 
-$micode_logo = $this->router->createURL('public/favicon.png');
+// /public/favicon.png
+$micode_logo = $this->router->createURL('favicon.png');
 
 ?>
 <html>
@@ -18,7 +19,7 @@ $micode_logo = $this->router->createURL('public/favicon.png');
 	<title>miCode - <?= $this->params->get('author:e') ?></title>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<link rel="icon" type="image/x-icon" href="<?= $micode_logo ?>">
-	<link rel="stylesheet" href="<?= str_replace('/tests/', '/', $this->router->createURL('/public/resources/css/micode.css')) ?>">
+	<link rel="stylesheet" href="<?= str_replace('/tests/', '/', $this->router->createURL('resources/css/micode.css')) ?>">
 </head>
 
 
@@ -48,11 +49,17 @@ $micode_logo = $this->router->createURL('public/favicon.png');
 		$primero = true;
 		foreach ($this->params->get('page-buttons') as $enlace => $titulo) {
 			// Valida enlace
-			$llave = '';
-			$params = '';
-			if (substr($enlace, 0, 1) !== '?') { $llave = $enlace; }
-			else { $params = substr($enlace, 1); $llave = null; }
-			$enlace = $this->router->getFormAction($llave, true, $params);
+			$params = array();
+			if (is_array($titulo)) {
+				$params = $titulo;
+				$titulo = '';
+				// En este caso, espera recibir 'titulo' bajo "_title" y los demas elementos son parametros
+				if (isset($params['_title'])) {
+					$titulo = $params['_title'];
+					unset($params['_title']);
+				}
+			}
+			$enlace = $this->router->createRouteURL($enlace, $params);
 			// Procede a la presentación
 			$clase = 'btn';
 			if ($primero) {

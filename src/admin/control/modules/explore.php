@@ -35,7 +35,7 @@ if ($modulo == '' || !isset($listado[$modulo])) {
 		);
 }
 
-$enlace = $this->router->getFormAction('modules/explore?module=' . $modulo, true);
+$enlace = $this->router->createRouteURL('modules-explore', [ 'module' => $modulo ]);
 $data_proyecto['html'] = micode_modules_explore($enlace, $data_proyecto['dirbase']);
 
 $this->startView('projects\explore.php', $data_proyecto);

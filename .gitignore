@@ -5,3 +5,4 @@ data/projects/*
 soporte
 cmd/local-micode.bat
 data/base/repositories.ini
+.vscode/launch.json

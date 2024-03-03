@@ -91,7 +91,9 @@ if (!$proyecto_nuevo) {
 
 	// Permite editar tipo si no se ha declarado o si no hay modulos adicionados
 	$notype = ($type == '' || $type == '?' || count($data_proyecto['modules']['pre']) <= 0);
-	$lista_modulos = array_keys($data_proyecto['modules']['pre']);
+	// Invierte llaves y valor para agilizar las busquedas
+	$lista_modulos = array_flip(array_keys($data_proyecto['modules']['pre']));
+
 	$path_modulos = micode_modules_path($app_name, false, $data_repo);
 
 	if ($path_modulos == '') {
@@ -271,8 +273,11 @@ if (count($lista_modulos) > 0) {
 	$llaves = $this->config->getNames('miproyecto');
 
 	foreach ($llaves as $k => $name) {
-		$modulo = $this->config->getConfigAttrib($name, 'module');
-		if ($modulo != '' && !in_array(strtolower(trim($modulo)), $lista_modulos)) {
+		$modulo = strtolower(trim($this->config->getConfigAttrib($name, 'module')));
+		// if ($modulo != '' && !in_array(strtolower(trim($modulo)), $lista_modulos)) {
+		// array_key_exists will definitely tell you if a key exists in an array,
+		// whereas isset will only return true if the key/variable exists and is not null.
+		if ($modulo != '' && !isset($lista_modulos[$modulo])) {
 			// echo "REMOVER $modulo --> $name<hr>";
 			$this->config->removeConfig($name);
 		}
@@ -462,15 +467,10 @@ if ($this->config->checkformRequest('configok') && $app_name != '') {
 	}
 	else {
 		// Envia a detalle (fija $_REQUEST['app'] para que sea capturado al invocar $Router->param)
-		$cmd = 'projects/info/' . $app_name;
-		$params = false;
-		$data = false;
-		// Guarda en temporal los mensajes y retorna un valor de caché
-		if ($this->config->existsMessages()) {
-			$data = array( 'msg' => $this->config->getMessages() );
-		}
+		$cmd = 'projects-info';
+		$params = array( 'app' => $app_name );
 		// Crea pagina a recargar
-		$enlace = $this->router->reload($cmd, $params, $data);
+		$enlace = $this->reload($cmd, $params);
 	}
 }
 

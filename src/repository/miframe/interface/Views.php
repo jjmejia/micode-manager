@@ -207,21 +207,21 @@ class Views extends \miFrame\Interface\Shared\BaseClass {
 		if ($filename != '') {
 			// Captura desde un archivo en el directorio de vistas
 			$path = $this->fileView($filename);
-			if (file_exists($path)) {
-				// Ejecuta script
-				$this->start($namesection);
-				$this->include($path, 'CAPTURE ' . $filename);
-				$this->stop();
+			$info_path = 'CAPTURE ' . $filename;
+			if ($path == '' || !file_exists($path)) {
+				// Ejecuta script por defecto
+				$info_path = 'CAPTURE/DEFAULT';
+				if ($path != '') { $info_path .= " (IGNORA {$filename})"; }
+				$path = $this->layout['file-default'];
 			}
-			elseif ($this->layout['file-default'] != '') {
-				// Plantilla común a usar por defecto
+			if ($path !== '') {
 				$this->start($namesection);
-				$this->include($this->layout['file-default'], 'CAPTURE/DEFAULT ' . $filename);
+				$this->include($path, $info_path);
 				$this->stop();
 			}
 			else {
 				// Reporta error
-				miframe_error('No encontró archivo vista "$1"', $path, debug:dirname($filename));
+				miframe_error('No encontró archivo vista "$1"', $filename);
 			}
 		}
 		else {
@@ -334,19 +334,6 @@ class Views extends \miFrame\Interface\Shared\BaseClass {
 			miframe_error('No existe librería de rutinas **$1** (buscado en: $2)', basename($filename), implode(', ', [ dirname($filename), $this->path_files ]));
 		}
 	}*/
-
-	//OBVIEWSECTION section->capturesub
-	public function call(string $namesection, string $namesub, mixed ...$args) {
-
-		$namesub = strtolower(trim($namesub));
-		if (isset($this->contenedor[$namesub])) {
-			// Ejecuta la subrutina y almacena salida a pantalla en una sección temporal
-			// $this->put($namesection, '');
-			$this->start($namesection);
-			call_user_func($this->contenedor[$namesub], ...$args);
-			$this->stop();
-		}
-	}
 
 	public function buffer($buffer, bool $force_echo = false) {
 

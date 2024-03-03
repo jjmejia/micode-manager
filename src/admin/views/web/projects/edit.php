@@ -8,7 +8,7 @@
 
 ?>
 
-<link rel="stylesheet" href="<?= $this->router->createURL('/public/resources/css/forms.css') ?>">
+<link rel="stylesheet" href="<?= $this->router->createURL('resources/css/forms.css') ?>">
 
 <?php
 

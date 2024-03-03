@@ -41,6 +41,7 @@ $app = new \miFrame\Admin\MiProyecto();
 try {
 	// Habilita mensajes para depuración (se habilita por configuración de la aplicación)
 	// $app->debug(true);
+	$app->router->useRequestURI();
 
 	// CSS a usar por método $app->localBox()
 	// $app->framebox_css = $app->router->createURL('/public/resources/css/miframebox.css');
@@ -81,14 +82,10 @@ try {
 		// (solamente para consultas WEB)
 		if (!$app->existsDataProject()) {
 			$app->router->runAction('settings.php', '(settings-check)');
-			$app->router->stop();
 		}
 	}
 
 	// $app->router->showInfo();
-
-	// Procesa entrada
-	$app->router->run();
 
 	/*
 
@@ -101,58 +98,40 @@ try {
 		// Opcional: Acciones a ejecutar antes de detener la ejecución del script actual
 		$app->addBeforeStopRoute('xxxx');
 
-		// Asigna modo de captura del enlace de navegación (puede incluirse en el .ini)
+		// Asigna modo de captura del enlace de navegación
 		$app->router->assignMode('uri');
 
-		// OPCION 1:
 		// Definir todo el mapa de rutas manualmente
 
-			// Acción a realizar si no recibe parámetro POST/GET (por defecto)
-			$app->addDefaultRoute('actions/projects/list.php');
+		// Acción a realizar si no recibe parámetro POST/GET (por defecto)
+		$app->addDefaultRoute('actions/projects/list.php');
 
-			// Registrar los enrutamientos públicos uno a uno
-			$app->AddRoute('projects/create', 'actions/projects/create.php');
-			$app->AddRoute('modules/detail', 'actions/modules/detail.php');
+		// Registrar los enrutamientos públicos uno a uno
+		$app->AddRoute('projects/create', 'actions/projects/create.php');
+		$app->AddRoute('modules/detail', 'actions/modules/detail.php');
+		...
+
+		// o por medio de un arreglo asociativo (referencia => script)
+		// Este arreglo puede ser tomando por ejemplo de un archivo .ini diferente al esperado
+		// o de una base de datos.
+		$mapa = array(
+			'projects/create' => 'actions/projects/create.php',
+			'modules/detail' => 'actions/modules/detail.php',
 			...
-
-			// o por medio de un arreglo asociativo (referencia => script)
-			// Este arreglo puede ser tomando por ejemplo de un archivo .ini diferente al esperado
-			// o de una base de datos.
-			$mapa = array(
-				'projects/create' => 'actions/projects/create.php',
-				'modules/detail' => 'actions/modules/detail.php',
-				...
-				);
-			$app->AddRoutes($mapa);
-
-			// Ejecutar finalmente la validación en bloque
-			$app->run();
-
-		// OPCION 2:
-		// Ejecutar cada consulta manualmente
-		// (cuando encuentra coincidencia, ejecuta e ignora el resto)
-
-			// Captura seleccion del usuario
-			$this->captureUserAction();
-
-			$app->runOnce('projects/create', 'actions/projects/create.php');
-			$app->runOnce('modules/detail', 'actions/modules/detail.php');
-			...
-
-			// Ejecutar finalmente la opcion por defecto
-			$app->runDefault('actions/projects/list.php')
+			);
+		$app->AddRoutes($mapa);
 
 	*/
 
-	// Si detectó algún archivo, pero no corresponde a los mapas de navegación lo intenta exportar
-	// usando $app->router->exportFileDetected() o lo reporta usando $app->router->reportFileDetected().
-	$app->router->exportFileDetected(true);
+	// Procesa entrada
+	$app->router->run();
 
 	// Si nada funciona, presenta mensaje de error
 	$app->router->notFound(
 		miframe_text('Página no encontrada'),
 		miframe_text('La referencia **$1** no está asociada con una página valida.', $app->router->request())
 		);
+
 }
 catch (\Throwable | \Exception $e) {
 	// Throwable For PHP 7, Exception for PHP 5

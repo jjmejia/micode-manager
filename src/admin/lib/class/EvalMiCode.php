@@ -72,11 +72,12 @@ class EvalMiCode {
 		$retornar = true;
 		$install_info = parse_ini_file($inifile_modulos, true, INI_SCANNER_TYPED);
 		$startup_info = parse_ini_file($inifile_tpl, true, INI_SCANNER_TYPED);
-		$modulos_instalados = array_keys($install_info);
+		// array_flip() se segura que se usen los modulos como llaves
+		$modulos_instalados = array_flip(array_keys($install_info));
 		$modulos_requeridos = $startup_info['modules'];
 
 		foreach ($modulos_requeridos as $modulo) {
-			if (!in_array($modulo, $modulos_instalados)) {
+			if (!isset($modulos_instalados[$modulo])) {
 				$retornar = false;
 				break;
 			}
@@ -141,7 +142,7 @@ class EvalMiCode {
 
 			// Incluye manualmente librerá de documentación en caso que no se hayan creado las relaciones
 			// entre paths y clases (php-namespaces.ini)
-			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/utils/traits/HTMLSupportTrait.php';
+			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/utils/ui/HTMLSupportTrait.php';
 			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/utils/docsimple/DocSimple.php';
 			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/utils/docsimple/DocSimpleHTML.php';
 

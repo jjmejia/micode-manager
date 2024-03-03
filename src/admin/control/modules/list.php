@@ -22,12 +22,8 @@ $tiposvalidos = array();
 foreach ($listado as $modulo => $data) {
 	$tiposvalidos[$data['type']][] = $modulo;
 	if ($data['type'] == $type) {
-		$basename = urlencode($modulo);
-		// $tipo_encode = urlencode($data['type']);
-		$urlbase = "modules/detail?module={$basename}";
-		$listado[$modulo]['url'] = $this->router->getFormAction($urlbase, true);
+		$listado[$modulo]['url'] = $this->router->createRouteURL('modules-detail', [ 'module' => $modulo ]);
 		$listado[$modulo]['dirbase'] = $m->getDirBase($modulo);
-		// $listado[$modulo]['dirdest'] = $m->getDirRemote($modulo);
 	}
 	else {
 		unset($listado[$modulo]);
