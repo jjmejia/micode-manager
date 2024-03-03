@@ -6,3 +6,8 @@ soporte
 cmd/local-micode.bat
 data/base/repositories.ini
 .vscode/launch.json
+micode/config/php-namespaces.ini
+micode/config/sistema.ini
+micode/miframe/*
+micode/vendor/*
+micode.private/*

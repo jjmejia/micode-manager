@@ -10,6 +10,8 @@
 
 namespace miFrame\Check;
 
+define('MIFRAME_EVAL_BASEDIR', MIFRAME_ROOT);
+
 // Reconstruir php-namespaces.ini <-- OK.
 // Por facilidad al ejecutar autoload, dejar las rutas asociadas a DOCUMENT_ROOT?
 // Validar al reconstruir que exista un valor de referencia (puede ser la ruta a este check o al index de "admin" o al directorio que contiene "AdminModules"?)
@@ -39,24 +41,26 @@ class EvalMiCode {
 		if (file_exists($this->local_path)) {
 			// Valida que apunte a un directorio valido
 			$local = str_replace('..', '_', file_get_contents($this->local_path));
-			if ($local == '' || $local !== MIFRAME_BASEDIR) {
+			if ($local == '' || $local !== MIFRAME_EVAL_BASEDIR) {
 				$local = '';
 			}
 		}
 		if ($local == '') {
 			// Crea archivo con el path actual
-			$local = MIFRAME_BASEDIR;
+			$local = MIFRAME_EVAL_BASEDIR;
 			$dirname = dirname($this->local_path);
-			if (!is_dir($dirname)) {
-				@mkdir($dirname);
-			}
-			if (!@file_put_contents($this->local_path, $local)) {
-				$mensaje .= "<p>No pudo crear archivo requerido ({$this->local_path}).</p>" .
-					"<p>Compruebe que el directorio existe y que se tienen los permisos necesarios para crear directorios/archivos.</p>";
+			if (!miframe_mkdir($dirname)) {
+				if (!@file_put_contents($this->local_path, $local)) {
+					$mensaje .= "<p>No pudo crear archivo requerido ({$this->local_path}).</p>" .
+						"<p>Compruebe que el directorio existe y que se tienen los permisos necesarios para crear directorios/archivos.</p>";
+				}
+				else {
+					$this->mensajes['ok'] = "Creado archivo requerido por el sistema ({$this->local_path})";
+					$mensaje .= "<p>Referencia asociada al path <b>{$local}</b></p>";
+				}
 			}
 			else {
-				$this->mensajes['ok'] = "Creado archivo requerido por el sistema ({$this->local_path})";
-				$mensaje .= "<p>Referencia asociada al path <b>{$local}</b></p>";
+				$mensaje .= "<p>No pudo crear directorio {$dirname}</p>";
 			}
 		}
 		if ($mensaje != '') {
@@ -106,7 +110,7 @@ class EvalMiCode {
 		}
 
 		// Valida que exista php-namespaces.ini y modules-installed.ini
-		$inifile_namespaces = MIFRAME_BASEDIR . "/{$app_modules}/config/php-namespaces.ini";
+		$inifile_namespaces = MIFRAME_EVAL_BASEDIR . "/{$app_modules}/config/php-namespaces.ini";
 		$inifile_modulos = dirname($file_repo) . '/modules-installed.ini';
 
 		// Carga definiciones, incluidas en uno de los templates del sistema
@@ -136,13 +140,13 @@ class EvalMiCode {
 			define('MIFRAME_LOCALMODULES_PATH', MIFRAME_SRC . '/repository');
 
 			// Carga el resto de las librerías
-			include_once MIFRAME_BASEDIR . '/micode/initialize.php';
+			include_once MIFRAME_EVAL_BASEDIR . '/micode/initialize.php';
 			include_once MIFRAME_BASEDIR . '/lib/modules/admin.php';
 			include_once MIFRAME_BASEDIR . '/lib/class/AdminModules.php';
 
 			// Incluye manualmente librerá de documentación en caso que no se hayan creado las relaciones
 			// entre paths y clases (php-namespaces.ini)
-			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/utils/ui/HTMLSupportTrait.php';
+			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/utils/ui/HTMLSupport.php';
 			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/utils/docsimple/DocSimple.php';
 			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/utils/docsimple/DocSimpleHTML.php';
 
@@ -181,7 +185,7 @@ class EvalMiCode {
 
 	private function createRepoIni() {
 
-		$file_repo = str_replace(DIRECTORY_SEPARATOR, '/', MIFRAME_BASEDIR) . '/micode.private/repo.ini';
+		$file_repo = str_replace(DIRECTORY_SEPARATOR, '/', MIFRAME_EVAL_BASEDIR) . '/micode.private/repo.ini';
 
 		// Reconstruye archivo si falta
 		if (!file_exists($file_repo)) {
@@ -213,11 +217,23 @@ minimize="0"
 
 ; Creado en ' . date('Y/m/d H:i:s'). PHP_EOL;
 
-			if (!file_put_contents($file_repo, $contenido)) {
-				$this->mensajes['error'] = 'No pudo crear archivo ' . $file_repo;
+
+			// Librerias requeridas
+			define('MIFRAME_LOCALMODULES_PATH', MIFRAME_SRC . '/repository');
+			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/functions.php';
+
+
+			$dirname = dirname($file_repo);
+			if (miframe_mkdir($dirname)) {
+				if (!file_put_contents($file_repo, $contenido)) {
+					$this->mensajes['error'] = 'No pudo crear archivo ' . $file_repo;
+				}
+				else {
+					$this->mensajes['error'] = 'Archivo ' . $file_repo . ' creado con éxito';
+				}
 			}
 			else {
-				$this->mensajes['error'] = 'Archivo ' . $file_repo . ' creado con éxito';
+				$this->mensajes['error'] = 'No pudo crear el directorio ' . $dirname;
 			}
 			$this->checkMiCodeShow();
 		}

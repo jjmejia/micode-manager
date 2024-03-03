@@ -31,7 +31,7 @@ define('MIFRAME_PROJECTS_REPO', MIFRAME_DATA . DIRECTORY_SEPARATOR . 'projects')
 include_once MIFRAME_BASEDIR . '/lib/modules/check-externals.php';
 
 // Definiciones requeridas para uso de los archivos en el repositorio.
-include_once MIFRAME_BASEDIR . '/micode/initialize.php';
+include_once MIFRAME_ROOT . '/micode/initialize.php';
 
 // Funciones exclusivas del administrador web.
 include_once MIFRAME_BASEDIR . '/lib/modules/admin.php';
