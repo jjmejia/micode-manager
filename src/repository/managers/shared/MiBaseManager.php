@@ -71,10 +71,8 @@ class MiBaseManager {
 			$dest = miframe_path($dest);
 			// Valida destino
 			$destino_base = dirname($dest);
-			if (!is_dir($destino_base)) {
-				@mkdir($destino_base, 0777, true);
-			}
-			if (!is_dir($destino_base)) {
+
+			if (!miframe_mkdir($destino_base)) {
 				$this->last_error = miframe_text('Módulo $1: No pudo crear directorio "$2"', $module, $destino_base);
 			}
 			else {

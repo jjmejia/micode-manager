@@ -154,8 +154,9 @@ elseif ($this->config->formSubmitted('configok')) {
 		}
 		// Crea directorio destino
 		$path_repo = dirname($file_repo);
-		if (!is_dir($path_repo) && !@mkdir($path_repo, 0777, true)) {
-			$this->config->setMessage(miframe_text('No pudo crear directorio "$1"', $path_repo));
+
+		if (!miframe_mkdir($path_repo)) {
+			$this->config->setMessage(miframe_text('No pudo crear directorio $1.', $path_repo));
 			$app_name = '';
 		}
 		if ($app_name != '') {
@@ -182,7 +183,9 @@ elseif ($this->config->formSubmitted('configok')) {
 			$dirname = dirname($inifile);
 			if (!is_dir($dirname)) {
 				// Crea directorio destino
-				mkdir($dirname, 0777, true);
+				if (!miframe_mkdir($dirname)) {
+					$this->config->setMessage(miframe_text('No pudo crear directorio $1.', $dirname));
+				}
 			}
 			elseif (file_exists($inifile) && !$temporal) {
 				// Archivo ya creado y no está haciendo una actualización de datos ($temporal = true)
@@ -343,10 +346,10 @@ if ($this->config->checkformRequest('configok') && $app_name != '') {
 			$mensaje = '';
 			if (!file_exists($destino) || $evalpost) {
 				$dirname = dirname($destino);
-				if (!is_dir($dirname)) {
-					mkdir($dirname, 0777, true);
-				}
-				// $extension = str_replace('-dist', '', miframe_extension($path));
+
+				// Crea directorio destino
+				miframe_mkdir($dirname);
+
 				$extension = miframe_extension($origen);
 				// Lee contenido del archivo si es del tipo permitido
 				if ($extension == '.php') {

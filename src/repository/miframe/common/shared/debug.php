@@ -92,7 +92,7 @@ function miframe_debug_dump(mixed $data, bool $force = false) {
 			$debug_message = var_export($data, true);
 		}
 		else {
-			$debug_message = '<div class="mi-debug" style="background:#000;color:#eee;">' . miframe_var_export($data) . '</div>';
+			$debug_message = '<div class="mi-debug" style="background:#000;color:#eee;padding:5px 8px">' . miframe_var_export($data) . '</div>';
 		}
 	}
 
@@ -139,7 +139,7 @@ function miframe_var_export(mixed $data, bool $showtype = false) {
 				foreach ($data as $k => $v) {
 					$sub = '</td><td style="color:#ddd;padding:4px;' . $borde . '">' . miframe_var_export($v, true);
 					$text .= '<tr>' . PHP_EOL;
-					$text .= '<td style="color:#eee;padding:4px;width:100px;' . $borde . '" valign="top">' .
+					$text .= '<td style="color:#eee;padding:4px;min-width:100px;white-space:nowrap;' . $borde . '" valign="top">' .
 						'<b>' . $k . '</b>' .
 						$sub .
 						'</td>' . PHP_EOL;

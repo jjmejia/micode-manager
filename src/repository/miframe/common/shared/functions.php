@@ -33,7 +33,7 @@ function miframe_set_noweb(bool $noweb) {
  */
 function miframe_error(string $message, mixed ...$args) {
 
-	$debug_message = '';
+	// $debug_message = '';
 	if (isset($args['debug'])) {
 		miframe_data_put('error-debug', miframe_debug_dump($args['debug']));
 		unset($args['debug']);
@@ -391,14 +391,34 @@ function miframe_temp_dir(string $subdir = '', bool $create_dir = false) {
 	if ($subdir != '') {
 		// No permite el uso de ".." en $subdir para no mover la creación del directorio a otro lado
 		$dir = miframe_path($dir, str_replace('..', '', $subdir));
-		if (!is_dir($dir) && $create_dir) {
-			if (!@mkdir($dir, 0777, true)) {
-				miframe_error('No pudo crear subdirectorio Temporal requerido: $1', $subdir);
-			}
-		}
+		miframe_mkdir($dir, $create_dir, true);
 	}
 
 	return $dir;
+}
+
+// PENDIENTE: Función para capturar el ultimo mensaje de error o que la función retorne la cadena texto con el mensaje
+function miframe_mkdir(string $dir, bool $create_dir = true, bool $raise_error = false) {
+
+	$resultado = ($dir != '' && is_dir($dir));
+
+	// El directorio a crear debe estar contenido en $_SERVER['DOCUMENT_ROOT']
+	if (!$resultado && $create_dir) {
+		$ndir = miframe_path($dir);
+		if (strpos(strtolower($ndir), strtolower(miframe_path($_SERVER['DOCUMENT_ROOT']))) === false) {
+			if ($raise_error) {
+				miframe_error('No puede crear $1 porque el directorio base no es valido', $ndir);
+			}
+			return false;
+		}
+
+		$resultado = @mkdir($ndir, 0777, true);
+		if (!$resultado && $raise_error) {
+			miframe_error('No pudo crear directorio $1.', $ndir);
+		}
+	}
+
+	return $resultado;
 }
 
 function miframe_text(string $text, mixed ...$args) {

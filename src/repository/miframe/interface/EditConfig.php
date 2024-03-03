@@ -45,7 +45,7 @@
  *     ; Grupo a mostrar en edición
  *     group =
  *
- * @micode-uses miframe/common/functions
+ * @micode-uses miframe-common-functions
  * @author John Mejia
  * @since Mayo 2022.
  */
@@ -309,7 +309,7 @@ class EditConfig {
 
 	public function clearData() {
 
-		foreach ($config as $name => $info) {
+		foreach ($this->config as $name => $info) {
 			if (isset($info['#value'])) {
 				unset($this->config[$name]['#value']);
 			}
@@ -342,11 +342,7 @@ class EditConfig {
 			else {
 				// Puede ser un archivo nuevo, valida que el directorio destino exista
 				$inidir = dirname($filename);
-				if (!is_dir($inidir) && $this->createDirbase) {
-					// Intenta crear el directorio destino
-					!@mkdir($inidir, 0777, true);
-				}
-				if (is_dir($inidir)) {
+				if (miframe_mkdir($inidir, $this->createDirbase)) {
 					$this->file_data[$namecfg]['file'] = $filename;
 				}
 			}
@@ -842,7 +838,7 @@ class EditConfig {
 						// Ocurrió un error, $resultado contiene el mensaje con detalles del mismo.
 						// Fija $resultado a false para que no procese los datos.
 						$titulo = $this->getTitle($name);
-						$this->setMessag($titulo . ': ' . $res);
+						$this->setMessage($titulo . ': ' . $res);
 						$resultado = false;
 					}
 				}

@@ -267,10 +267,10 @@ function micode_modules_path(string $app_name, bool $create_dir = false, mixed $
 
 		$path_miframe = miframe_path($data_repo['path'], $appmodule_sub);
 
-		if ($create_dir && !is_dir($path_miframe)) {
-			if (!@mkdir($path_miframe, 0777, true)) {
-				$path_miframe = '';
-			}
+		// Si $create_dir = false no valida directorio pero retorna path, en true si falla
+		// no retorna path.
+		if ($create_dir && !miframe_mkdir($path_miframe)) {
+			$path_miframe = '';
 		}
 	}
 
