@@ -2,9 +2,9 @@
 /**
  * Configuración de módulos PHP.
  *
- * @micode-uses vendor/parsedown Markdown Parser, tomado de https://github.com/erusev/parsedown/. Usado para generar
+ * @micode-uses vendor-parsedown Markdown Parser, tomado de https://github.com/erusev/parsedown/. Usado para generar
  *      un texto HTML debidamente formateado. Si no existe esta librería, genera un texto HTML de formato limitado.
- * @micode-uses miframe/inifiles
+ * @micode-uses miframe-inifiles
  * @author John Mejia
  * @since Abril 2022
  */
@@ -52,25 +52,27 @@ class phpManager extends \miFrame\Manager\Shared\MiBaseManager {
 
 		$this->doc->setTagFunHTML('micode-uses', function ($main, $clickable) {
 			foreach ($main as $modulo => $info) {
-				if ($modulo != '' && $clickable) {
-					// Recupera información en miFrame
-					$infomodulo = '';
-					$filename = $this->doc->filename();
-					$fileuses = miframe_path(dirname($filename), '..', $modulo . miframe_extension($filename));
-					if (file_exists($fileuses)) {
-						$summary = $this->doc->getSummary($fileuses);
-						$infomodulo = trim($summary['summary'] . "\n\n" . $infomodulo);
+				if ($this->doc !== false) {
+					if ($modulo != '' && $clickable) {
+						// Recupera información en miFrame
+						$infomodulo = '';
+						$filename = $this->doc->filename();
+						$fileuses = miframe_path(dirname($filename), '..', $modulo . miframe_extension($filename));
+						if (file_exists($fileuses)) {
+							$summary = $this->doc->getSummary($fileuses);
+							$infomodulo = trim($summary['summary'] . "\n\n" . $infomodulo);
+						}
+						$tipo = 'php'; // $_REQUEST['type']
+						$main[$modulo] = $this->doc->parserLink($modulo, $modulo, 'module');
+						if ($infomodulo != '') {
+							$main[$modulo] .= $this->doc->parserText($infomodulo);
+						}
 					}
-					$tipo = 'php'; // $_REQUEST['type']
-					$main[$modulo] = $this->doc->parserLink($modulo, $modulo, 'module');
-					if ($infomodulo != '') {
-						$main[$modulo] .= $this->doc->parserText($infomodulo);
-					}
-				}
-				else {
-					$main[$modulo] = '<b>' . htmlspecialchars(strtolower($modulo)) . '</b>';
-					if ($info != '') {
-						$main[$modulo] .= ' ' . $this->parserText($info);
+					else {
+						$main[$modulo] = '<b>' . htmlspecialchars(strtolower($modulo)) . '</b>';
+						if ($info != '') {
+							$main[$modulo] .= ' ' . $this->doc->parserText($info);
+						}
 					}
 				}
 			}
@@ -137,9 +139,12 @@ class phpManager extends \miFrame\Manager\Shared\MiBaseManager {
 	 */
 	public function getSummary(string $filename) {
 
+		$sumario = array();
 		$this->initialize_doc();
-		$documento = $this->doc->getDocumentation($filename);
-		$sumario =& $documento['main'];
+		if ($this->doc !== false) {
+			$documento = $this->doc->getDocumentation($filename);
+			$sumario =& $documento['main'];
+		}
 
 		// Evalua clases y namespaces
 		$namespace = '';
@@ -181,8 +186,13 @@ class phpManager extends \miFrame\Manager\Shared\MiBaseManager {
 	 * @return array Arreglo con todos los documentos recuperados.
 	 */
 	public function getDocumentation(string $filename, string $search_function = '') {
+
 		$this->initialize_doc();
-		return $this->doc->getDocumentation($filename, $search_function);
+		if ($this->doc !== false) {
+			return $this->doc->getDocumentation($filename, $search_function);
+		}
+
+		return false;
 	}
 
 	/**
@@ -197,11 +207,13 @@ class phpManager extends \miFrame\Manager\Shared\MiBaseManager {
 	 * @return string Texto HTML.
 	 */
 	public function getDocumentationHTML(string $filename, bool $clickable = false, bool $show_errors = true, bool $with_styles = true) {
+
 		$this->initialize_doc();
-		// $this->doc->ignoreLocalStyles = !$with_styles;
-		$this->doc->clickable = $clickable;
-		$this->doc->showErrors = $show_errors;
-		return $this->doc->render($filename);
+		if ($this->doc !== false) {
+			$this->doc->clickable = $clickable;
+			$this->doc->showErrors = $show_errors;
+			return $this->doc->render($filename);
+		}
 	}
 
 	public function serializeDocumentation($filename, $data) {

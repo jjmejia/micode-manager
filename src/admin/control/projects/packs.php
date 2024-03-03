@@ -37,11 +37,9 @@ elseif ($this->post->exists('new')) {
 	$basepack = strtolower($app_name) . '-' . date('Ymd');
 	$filepack = miframe_path($path_packs, $basepack . '.zip');
 	$dirname = dirname($filepack);
-	if (!is_dir($dirname)) {
-		if (!@mkdir($dirname, 0777, true)) {
-			miframe_error('No pudo crear directorio requerido: $1', $dirname);
-		}
-	}
+
+	// Crea directorio, si falla genera un error
+	miframe_mkdir($dirname, true, true);
 
 	$conteo = 0;
 	$estado = '';

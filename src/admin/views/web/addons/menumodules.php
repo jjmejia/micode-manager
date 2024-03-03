@@ -8,7 +8,8 @@
 
 $cfg_type = $this->params->get('type');
 $cfg_module = $this->params->get('module');
-$paths = explode('/', $cfg_module);
+// $paths = explode('/', $cfg_module);
+$repo_name = '';
 
 $arreglo = array(
 	'modules-detail' => miframe_text('Información'),
@@ -34,19 +35,19 @@ if (!$this->params->get('nuevo:bool')) {
 
 	// Enlace a página de módulos
 	$enlace = $this->router->createRouteURL('modules-list', [ 'type' => $cfg_type ]);
-	$enlace_modulos = "<a href=\"{$enlace}\">" . miframe_text('Listado de Módulos') . "</a> | ";
+	$enlace_modulos = "<a href=\"{$enlace}\">" . miframe_text('Listado de Módulos') . "</a>";
 }
 else {
 	$repo_name = $this->router->param('name');
 	// $paths[0] contiene el nombre del repositorio, lo toma del "Router"
 	// (en este caso se invoca desde "modules/create/[repositorio]")
-	$paths = array($repo_name);
+	// $paths = array($repo_name);
 	$tituloppal = miframe_text('Nuevo Módulo para repositorio $1', $repo_name);
+
+	$enlace_repo = $this->router->createRouteURL('repositories-detail', [ 'name' => $repo_name, 'type' => $cfg_type]);
+	$enlace_modulos = "<a href=\"{$enlace_repo}\">" . miframe_text('Repositorio $1', $paths[0]) . "</a>";
 }
 
-$enlace_repo = $this->router->createRouteURL('repositories-detail', [ 'name' => urlencode($paths[0]), 'type' => $cfg_type]);
-
 menuApps($this->router, $tituloppal, $enlaces,
-	$enlace_modulos .
-	"<a href=\"{$enlace_repo}\">" . miframe_text('Repositorio $1', $paths[0]) . "</a>"
+	$enlace_modulos
 );

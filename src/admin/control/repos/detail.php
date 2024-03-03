@@ -17,7 +17,7 @@ $listado = $m->getAllRepos($clase);
 if ($clase == '' || !isset($listado[$clase])) {
 	$this->router->abort(
 		miframe_text('Parámetros incompletos'),
-		miframe_text('No se ha definido un nombre de repositorio válido')
+		miframe_text('No se ha definido un nombre de repositorio válido ($1)', $clase)
 		);
 }
 
