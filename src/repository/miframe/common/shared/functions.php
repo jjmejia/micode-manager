@@ -255,7 +255,7 @@ function miframe_include_file(string $filename, mixed $args = false) {
 function miframe_data_put(string $name, mixed $value, bool $rewrite = true) {
 
 	if (!array_key_exists('MIFRAMEDATA', $GLOBALS)) { $GLOBALS['MIFRAMEDATA'] = array(); }
-	$name = strtoupper(miframe_only_alphanum($name, '_'));
+	$name = strtoupper(miframe_only_alphanum($name));
 	if (!array_key_exists($name, $_SERVER) || $rewrite) {
 		$GLOBALS['MIFRAMEDATA'][$name] = $value;
 	}
@@ -293,7 +293,7 @@ function miframe_data_put_array(array $data, array $ignorar = array()) {
 function miframe_data_get(string $name, mixed $default = '') {
 
 	$retornar = $default;
-	$name = strtoupper(miframe_only_alphanum($name, '_'));
+	$name = strtoupper(miframe_only_alphanum($name));
 	if (miframe_data_exists($name)) {
 		$retornar = $GLOBALS['MIFRAMEDATA'][$name];
 	}
@@ -309,7 +309,7 @@ function miframe_data_get(string $name, mixed $default = '') {
  */
 function miframe_data_exists(string $name) {
 
-	$name = strtoupper(miframe_only_alphanum($name, '_'));
+	$name = strtoupper(miframe_only_alphanum($name));
 	return (isset($GLOBALS['MIFRAMEDATA']) && array_key_exists($name, $GLOBALS['MIFRAMEDATA']));
 }
 
@@ -456,7 +456,7 @@ function miframe_text(string $text, mixed ...$args) {
 }
 
 // https://alvinalexander.com/php/php-string-strip-characters-whitespace-numbers/
-function miframe_only_alphanum(string $string, string $replace = '', string $allowed_cars = '') {
+function miframe_only_alphanum(string $string, string $replace = '_', string $allowed_cars = '') {
 
 	// Cómo evitar que "/", "-", "[", "]" y otros usados por preg_replace() sean usados y generen conflicto?
 	// Usualmente se usaría \- pero no estoy seguro de cómo implementarlo apropiadamente. Sorry...

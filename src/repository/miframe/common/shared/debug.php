@@ -88,15 +88,92 @@ function miframe_debug_dump(mixed $data, bool $force = false) {
 
 	$debug_message = '';
 	if ($force || miframe_is_debug_on()) {
-		if (!is_string($data) && !is_numeric($data)) {
-			$debug_message = print_r($data, true);
+		if (!miframe_is_web()) {
+			$debug_message = var_export($data, true);
 		}
 		else {
-			$debug_message = $data;
+			$debug_message = '<div class="mi-debug" style="background:#000;color:#eee;">' . miframe_var_export($data) . '</div>';
 		}
 	}
 
 	return $debug_message;
+}
+
+function miframe_var_export(mixed $data, bool $showtype = false) {
+
+	$text = '';
+	$total = 0;
+	$pre = '';
+	// $pos = '';
+
+	if (!isset($GLOBALS['miframe_var_export_count'])) {
+		$GLOBALS['miframe_var_export_count'] = 0;
+	}
+
+	$GLOBALS['miframe_var_export_count'] ++;
+	$id = 'mivex' . $GLOBALS['miframe_var_export_count'];
+
+	if (!isset($GLOBALS['miframe_var_export_script'])) {
+		$GLOBALS['miframe_var_export_script'] = true;
+		$pre = '<script>function shvex(id) { if (document.getElementById(id).style.display != "block") { document.getElementById(id).style.display = "block"; } else { document.getElementById(id).style.display = "none"; } }</script>' . PHP_EOL;
+	}
+
+	$type = '';
+	if ($showtype) {
+		$type = '<i style="color:#999">(' . gettype($data) . ')</i> ';
+		if (is_bool($data)) { $data = ($data === true) ? 'true' : 'false'; }
+		elseif (is_string($data) && strlen($data) > 0) { $type = str_replace(')', ':' . strlen($data) . ')', $type); }
+		elseif (is_array($data) && count($data) > 0) { $type = str_replace(')', ':' . count($data) . ')', $type); }
+	}
+
+	if (is_array($data)) {
+		$borde = '';
+		if (count($data) > 0) {
+
+			// Limita cantidad máxima en caso que haya recursión
+			if ($GLOBALS['miframe_var_export_count'] >= 500) {
+				$text = '<span style="color:darkred"><b>Aviso:</b> Suspende DEBUG porque alcanzó tope máximo de items a mostrar.</span>';
+			}
+			else {
+				// Lista elementos
+				foreach ($data as $k => $v) {
+					$sub = '</td><td style="color:#ddd;padding:4px;' . $borde . '">' . miframe_var_export($v, true);
+					$text .= '<tr>' . PHP_EOL;
+					$text .= '<td style="color:#eee;padding:4px;width:100px;' . $borde . '" valign="top">' .
+						'<b>' . $k . '</b>' .
+						$sub .
+						'</td>' . PHP_EOL;
+					$text .= '</tr>' . PHP_EOL;
+					$borde = 'border-top:1px solid #ccc;';
+					$total ++;
+				}
+
+				$visible = 'block';
+
+				if ($id != 'mivex1' || $total > 3) {
+					$pre .= '<span style="font-size:12px;"><a href="javascript:shvex(\'' . $id . '\')" style="color:#ccffff">' .
+						miframe_text('Mostrar/Ocultar') .
+						'</a></span></td></tr>' . PHP_EOL .
+						'<tr><td colspan="2">';
+					$visible = 'none';
+				}
+
+				$text = $pre.
+					'<table id="' . $id. '" border="0" cellspacing="0" style="font-family:Monospace;margin:5px 0 5px 30px;display:' . $visible . ';">' . PHP_EOL .
+					$text .
+					'</table>' . PHP_EOL;
+			}
+		}
+		$text = $type . $text;
+	}
+	elseif (is_object($data)) {
+		$text = $pre . '<pre style="font-size:12px;">' . var_export($data, true) . '</pre>';
+	}
+	else {
+		$text = $type . nl2br(htmlspecialchars(wordwrap(trim($data), 75, PHP_EOL, true)));
+	}
+
+	return $text;
 }
 
 function miframe_debug_error_code($errno) {

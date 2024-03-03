@@ -12,10 +12,97 @@
 // Funciones debug compartidas con otras aplicaciones
 include_once __DIR__ . '/shared/debug.php';
 
+function miframe_box_css(string $html) {
+
+	if (strtolower(substr($html, 0, 4)) === 'url:') {
+		$path = trim(substr($html, 4));
+		$html = '';
+		if ($path != '') {
+			$html = '<link rel="stylesheet" href="' . $path . '">' . PHP_EOL;
+		}
+	}
+	elseif ($html !== '') {
+		$html = '<style>' . PHP_EOL . $html . PHP_EOL . '</style>' . PHP_EOL;
+	}
+
+	miframe_data_put('miframe-box-css', $html);
+}
+
+/**
+ * Cajas de diálogo en pantalla.
+ * Cuando se ejecuta desde consola, remueve los tags HTML.
+ * Puede personalizar la salida web a pantalla modificando los estilos usados.
+ *
+ * @param string $title Título de la presentación.
+ * @param string $message Mensaje a mostrar.
+ * @param string $style Define el tema usado para mostrar la ventana (colores). Puede ser uno de los siguientes:
+ * 			mute (estilo por defecto), info, warning, alert, critical, console.
+ * @param string $footnote Texto a mostrar en la parte baja de la ventana.
+ * @return string Texto HTML para consultas web, texto regular para consola.
+ */
+function miframe_box(string $title, string $message, string $style = '', string $footnote = '') {
+
+	$salida = '';
+	// $showscrolls = true;
+	// * @param bool $showscrolls TRUE para restringir la altura de la ventana con la información (si el contenido es mayor se habilitan scrolls
+	// *			en la ventana para permitir su visualización), FALSE para presentar el contenido sin restricción de altura (sin scrolls).
+
+	$fecha = date('Y/m/d H:i:s');
+
+	if (miframe_is_web()) {
+
+		// Definición de la ventana a usar por defecto si no se personaliza
+		/*
+		$estilos = array(
+			'alert'		=> 'red',
+			'mute'		=> 'gray',
+			'info'		=> 'blue',
+			'warning'	=> 'brown',
+			'critical'	=> 'darkred',
+			'console'	=> 'black'
+			);
+		*/
+		$max_alto = ' box-message-limited';
+		// if (!$showscrolls) { $max_alto = ''; }
+
+		if ($footnote != '') {
+			$footnote = "<div class=\"box-footnote box-$style\">$footnote</div>";
+			}
+
+		// $fecha = date('Y/m/d H:i:s');
+		if ($title == '') { $title = '. . .'; }
+
+		$salida = miframe_data_get('miframe-box-css', '?');
+		if ($salida == '?') {
+			// No se encontró valor definido, lee archivo css
+			$html = file_get_contents(__DIR__ . '/framebox.css');
+			$salida = '<style>' . PHP_EOL . $html . PHP_EOL . '</style>' . PHP_EOL;
+		}
+
+		// Elimina estilos para no repetir carga
+		miframe_box_css('');
+
+		$salida .= "<div class=\"miframe-box box-$style\">" .
+			'<div class="box-title"><b>' . $title . '</b></div>' .
+			'<div class="box-message' . $max_alto . '">'.
+			$message .
+			'</div>'.
+			$footnote .
+			// '<div class="box-date">' . $fecha . '</div>' .
+			'</div>';
+	}
+	else {
+		// Salida por consola
+		$message = strip_tags($message);
+		$salida = "\n\n---\n$title\n$message\n---\n\n";
+	}
+
+	return $salida;
+}
+
 /**
  * Presenta en pantalla una ventana HTML con la descripción (contenido) de la expresión indicada.
  * Enmascara tags HTML incluidos en la expresión para prevenir comportamientos no deseados.
- * Se apoya en la función miframe_box() para la presentación en pantalla.
  *
  * @param mixed $expression Variable con el contenido que se quiere mostrar en pantalla.
  * @param string $title Título para la presentación.
@@ -29,16 +116,14 @@ function miframe_debug_box(mixed $expression, string $title = '', bool $limited 
 	if ($force || miframe_is_debug_on()) {
 		$title = trim("DEBUG $title");
 		$track_cadena = miframe_debug_backtrace_info();
-		$salida = '<pre>' .
-			htmlspecialchars(miframe_debug_dump($expression, true)) .
-			'</pre>';
+		$salida = miframe_debug_dump($expression, true);
 
 		echo miframe_box($title, $salida, 'mute', $track_cadena, $limited);
 	}
 }
 
 function debug_warning(string $text, string $function) {
-	$track_cadena = miframe_debug_backtrace_info(false, $function);
+	$track_cadena = miframe_debug_backtrace_info(null, $function);
 	echo miframe_box($text, '', 'mute', $track_cadena);
 }
 /**
@@ -115,15 +200,3 @@ function miframe_debug_defines($full = false) {
 	}
 	miframe_debug_box($defines, 'DEFINES ' . $titulo);
 }
-
-/*
-function debug_basename(string $filename) {
-
-	if ($filename != '' && !miframe_is_debug_on()) {
-		error_log('DEBUG: Path ' . $filename);
-		$filename = basename($filename);
-	}
-
-	return $filename;
-}
-*/
