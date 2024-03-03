@@ -4,8 +4,8 @@
  * Requiere constantes MIFRAME_SRC y MIFRAME_LOCALCONFIG_PATH para leer namespaces asociados al
  * proyecto local.
  *
- * @micode-uses miframe/common/functions
- * @micode-uses miframe/common/debug
+ * @micode-uses miframe-common-functions
+ * @micode-uses miframe-common-debug
  * @author John Mejia
  * @since Enero 2023
  */

@@ -3,8 +3,8 @@
  * Librería para registro de una función propietaria para manejo de errores y una mejor presentación de estos
  * mensajes en pantalla.
  *
- * @micode-uses miframe/common/functions
- * @micode-uses miframe/common/debug
+ * @micode-uses miframe-common-functions
+ * @micode-uses miframe-common-debug
  * @author John Mejia
  * @since Abril 2022
  */

@@ -3,7 +3,7 @@
  * Librería de funciones requeridas para salida a pantalla.
  * 'MIFRAME_ABORT_VIEW'
  *
- * @micode-uses miframe/interface/request
+ * @micode-uses miframe-interface-request
  * @author John Mejia
  * @since Abril 2022.
  */

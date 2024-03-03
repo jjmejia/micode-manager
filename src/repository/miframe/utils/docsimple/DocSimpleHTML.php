@@ -2,8 +2,8 @@
 /**
  * Da formato HTML a documentación de código obtenida con la clase DocSimple.
  *
- * @micode-uses miframe/common/functions
- * @micode-uses miframe/utils/htmlsupport
+ * @micode-uses miframe-common-functions
+ * @micode-uses miframe-utils-htmlsupport
  * @author John Mejia
  * @since Febrero 2023
  */

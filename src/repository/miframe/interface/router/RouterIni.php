@@ -2,7 +2,7 @@
 /**
  * Librería para control de enrutamientos de código a través de archivos INI.
  *
- * @micode-uses miframe/interface/router
+ * @micode-uses miframe-interface-router
  * @author John Mejia
  * @since Abril 2022
  */

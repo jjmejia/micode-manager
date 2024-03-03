@@ -2,7 +2,7 @@
 /**
  * Librería de funciones requeridas para las aplicaciones nativas de miFrame.
  *
- * @micode-uses miframe/common/shared
+ * @micode-uses miframe-common-shared
  * @author John Mejia
  * @since Abril 2022
  */

@@ -76,21 +76,6 @@ class AdminModules {
 		return ($this->clase_manejador !== false);
 	}
 
-	/*private function moduleCRC(string $desc, array $info) {
-
-		$text = '';
-		$items = array('dirbase', 'datetime', 'size', 'sha', 'require', 'require-total');
-		foreach ($items as $k => $name) {
-			if (isset($info[$name])) {
-				if (is_array($info[$name])) { $text .= implode(',', $info[$name]); }
-				else { $text .= $info[$name]; }
-			}
-			$text .= '|';
-		}
-
-		return md5($text);
-	}*/
-
 	public function clearRepos() {
 		$this->repositories = false;
 	}
@@ -135,7 +120,6 @@ class AdminModules {
 		}
 		if (isset($this->repositories[$base])) {
 			$info = $this->repositories[$base];
-			// $filename = miframe_path($_SERVER['DOCUMENT_ROOT'], $info['path'], 'micode-repository.ini');
 			$filename = $info['path'] . '/micode-repository.ini';
 			$listado = miframe_inifiles_get_data($filename);
 		}
@@ -143,7 +127,7 @@ class AdminModules {
 		return $listado;
 	}
 
-	public function getAllModules(string $type = '', string $module = '') { // }, bool $documentar = null) {
+	public function getAllModules(string $type = '', string $search_alias = '') {
 
 		$retornar = array();
 
@@ -171,15 +155,25 @@ class AdminModules {
 						}
 						// Recupera path real del directorio asociado al modulo
 						$dirbase = $this->evalDirBase($modulo, $v);
+						$alias = '';
+						if (!isset($v['alias'])) {
+							$alias = miframe_only_alphanum($modulo, '-', '_');
+						}
+						else {
+							$alias = $v['alias'];
+							unset($v['alias']);
+						}
 						// Redefine "dirbase" para apuntar al repositorio comun
-						if (!isset($this->listado[$modulo])) {
+						if (!isset($this->listado[$alias])) {
 							$v['repo-local'] = $base;
 							$v['module-name'] = $k;
 							$v['module-base'] = $modbase;
-							$this->listado[$modulo] = $v;
+							// $v['module-full'] = $modulo;
+							$this->listado[$alias] = $v;
 						}
 						else {
-							miframe_error('El módulo "$1" ya está definido', $modulo);
+							miframe_error('El alias "$1" para el módulo "$2" ya está definido ($3)',
+								$alias, $modulo, $this->listado[$alias]['module-full']);
 						}
 						if ($dirbase !== 'external') {
 							if (!isset($this->listabase[$modbase])) {
@@ -193,37 +187,38 @@ class AdminModules {
 					}
 				}
 			}
+			// miframe_debug_box($this->listado, 'modulos-pre');
 		}
 
 		// miframe_debug_box($this->listabase, 'listabase');
-		// miframe_debug_box($this->listado, 'modulos-pre');
 		// exit;
 
-		if ($module !== '') {
-			$module = strtolower(trim($module));
-			$this->buildModuleArray($module, $retornar);
+		$search_alias = strtolower(trim($search_alias));
+		if ($search_alias !== '') {
+			$this->buildModuleArray($search_alias, $retornar);
 		}
 		else {
 			$type = strtolower(trim($type));
-			foreach ($this->listado as $modulo2 => $info) {
+			foreach ($this->listado as $alias => $info) {
 				// $extension = strtolower(pathinfo($modulo2, PATHINFO_EXTENSION));
 				$tipo_modulo = 'php';
 				if (isset($info['type'])) {
 					$tipo_modulo = strtolower($info['type']);
 				}
 				if ($type == '' || ($type == $tipo_modulo)) {
-					$this->buildModuleArray($modulo2, $retornar);
+					$this->buildModuleArray($alias, $retornar);
 				}
 			}
 		}
+
 		return $retornar;
 	}
 
-	private function buildModuleArray(string $module, array &$data) {
+	private function buildModuleArray(string $search_alias, array &$data) {
 
-		if ($module != '' && isset($this->listado[$module])) {
-			$this->evalModuleInfo($module);
-			$data[$module] = $this->listado[$module];
+		$this->evalModuleInfo($search_alias);
+		if ($search_alias != '' && isset($this->listado[$search_alias])) {
+			$data[$search_alias] = $this->listado[$search_alias];
 		}
 	}
 
@@ -243,7 +238,7 @@ class AdminModules {
 			);
 
 			$this->app_name_local = $app_name;
-			$listado = $this->getAllModules();
+			$this->getAllModules();
 
 			// Busca los modulos instalados en el .ini. Si no lo encuentra, intenta reconstruirlo
 			$inifile = miframe_path(dirname($data_repo['inifile']), 'modules-installed.ini');
@@ -265,7 +260,7 @@ class AdminModules {
 			if (!is_array($this->locales['pre'])
 				|| ($total_validos_pre <= 0 && count($this->locales['pre']) > 0)
 				) {
-				$this->getRemoteModules($path, $listado);
+				$this->getRemoteModules($path);
 			}
 
 			// Valida información
@@ -317,7 +312,7 @@ class AdminModules {
 		return $this->locales;
 	}
 
-	private function getRemoteModules(string $path, array $listado) {
+	private function getRemoteModules(string $path) {
 
 		// Hace revisión manual de todos los módulos creados y busca cuáles están en el directorio remoto
 		// solamente si no hay valores en "pre" o si existe el .ini pero todo está errado
@@ -326,77 +321,80 @@ class AdminModules {
 			$this->locales['pre'] = array();
 		}
 
-		foreach ($listado as $modulo => $info) {
-			// Busca localmente
-			if (isset($this->locales['pre'][$modulo])
-				&& (!isset($this->locales['pre'][$modulo]['auto-recover']))
-			) {
-				// Módulo pre-existente, no autorecuperado
-				continue;
-			}
+		if (is_array($this->listado)) {
+			foreach ($this->listado as $alias => $info) {
+				// Busca localmente
+				if (isset($this->locales['pre'][$alias])
+					&& (!isset($this->locales['pre'][$alias]['auto-recover']))
+				) {
+					// Módulo pre-existente, no autorecuperado
+					continue;
+				}
 
-			$dirbase = $this->getDirBase($modulo);
-			$dirdestino = $this->getDirRemote($modulo, $path);
-			$requeridos = $this->addFiles($modulo, $info['require'], $dirbase);
+				$dirbase = $this->getDirBase($alias);
+				// $dirdestino = $this->getDirRemote($modulo, $path);
+				$dirdestino = miframe_path($path, $info['module-base']);
+				$requeridos = $this->addFiles($info['require'], $dirbase);
 
-			foreach ($requeridos as $basename => $filename) {
-				$fileremote = miframe_path($dirdestino, $basename);
-				if (file_exists($fileremote)) {
-					// El archivo existe localmente en el proyecto
-					$inforeq = array(
-						'datetime' => filemtime($fileremote),
-						'size' => filesize($fileremote),
-						'sha' => sha1_file($fileremote),
-						'require-total' => 1,
-						'changed' => false,
-						'auto-recover' => true,
-						// 'files' => array($basename)
-						);
-					if (!isset($this->locales['pre'][$modulo])) {
-						$this->locales['pre'][$modulo] = $inforeq;
+				foreach ($requeridos as $basename => $filename) {
+					$fileremote = miframe_path($dirdestino, $basename);
+					if (file_exists($fileremote)) {
+						// El archivo existe localmente en el proyecto
+						$inforeq = array(
+							'datetime' => filemtime($fileremote),
+							'size' => filesize($fileremote),
+							'sha' => sha1_file($fileremote),
+							'require-total' => 1,
+							'changed' => false,
+							'auto-recover' => true,
+							// 'files' => array($basename)
+							);
+						if (!isset($this->locales['pre'][$alias])) {
+							$this->locales['pre'][$alias] = $inforeq;
+						}
+						else {
+							// No procesa los ya existentes
+							$this->acumModuleInfo($this->locales['pre'][$alias], $inforeq);
+							$this->locales['pre'][$alias]['require-total'] ++;
+							// $this->locales['pre'][$modulo]['files'][] = $basename;
+						}
+						// Ya validó el módulo, no necesita revisar más requeridos
+						break;
 					}
-					else {
-						// No procesa los ya existentes
-						$this->acumModuleInfo($this->locales['pre'][$modulo], $inforeq);
-						$this->locales['pre'][$modulo]['require-total'] ++;
-						// $this->locales['pre'][$modulo]['files'][] = $basename;
-					}
-					// Ya validó el módulo, no necesita revisar más requeridos
-					break;
 				}
 			}
 		}
 	}
 
-	public function exportRemoteFiles(string $app_name, array $modules, string $startup = '', bool $return_files = false) {
+	public function exportRemoteFiles(string $app_name, array $modules_alias, string $startup = '', bool $return_files = false) {
 
 		$datamodules = array();
 		$requeridos  = array();
 
-		$repositorios = $this->getAllRepos();
+		// $repositorios = $this->getAllRepos();
 		$data_repo = micode_modules_repo($app_name);
 		$path_modulos = micode_modules_path($app_name, false, $data_repo);
 		$resultado = '';
 
 		$k = 0;
-		while (isset($modules[$k])) {
-			$modulo = $modules[$k];
-			$listado = $this->getAllModules('', $modulo);
-			if (isset($listado[$modulo])) {
-				$info = $listado[$modulo];
+		while (isset($modules_alias[$k])) {
+			$alias = $modules_alias[$k];
+			$this->getAllModules('', $alias);
+			if (isset($this->listado[$alias])) {
+				$info = $this->listado[$alias];
 				// Acumula resultado para generar luego el .ini de instalados
-				$datamodules[$modulo] = $info;
+				$datamodules[$alias] = $info;
 				// Busca modulos adicionales
 				if (isset($info['uses'])) {
 					foreach ($info['uses'] as $p => $umodulo) {
-						if (!in_array($umodulo, $modules)) {
+						if (!in_array($umodulo, $modules_alias)) {
 							// Adiciona al listado de modulos a capturar
-							$modules[] = $umodulo;
+							$modules_alias[] = $umodulo;
 						}
 					}
 				}
 				// Lista requeridos
-				$requeridos_local = $this->getRequiredFiles($modulo, true);
+				$requeridos_local = $this->getRequiredFiles($alias, true);
 				foreach ($requeridos_local as $basename => $inforeq) {
 					// Usa destino para generar la llave porque al crear paquetes es fácil asociarlo
 					// ya que allá se remplaza el path real aqui listado, pero asociado al path
@@ -405,17 +403,18 @@ class AdminModules {
 					$dmodulo = md5(strtolower($destino));
 					// $dmodulo se usa como control de duplicados
 					$requeridos[$dmodulo] = array(
-						'module' => $modulo,
+						'module-alias' => $alias,
+						'module' => '',
 						'src' => $inforeq['path'],
 						'dest' => $destino
 						);
 				}
 			}
 			elseif ($startup != '') {
-				$resultado = miframe_text('El modulo "$1" indicado en el modelo de inicio "$2" no existe.', $modulo, $startup);
+				$resultado = miframe_text('El modulo "$1" indicado en el modelo de inicio "$2" no existe.', $alias, $startup);
 			}
 			else {
-				$resultado = miframe_text('El modulo "$1" solicitado no existe.', $modulo);
+				$resultado = miframe_text('El modulo "$1" solicitado no existe.', $alias);
 			}
 			// Incrementa arreglo base (modulos)
 			$k ++;
@@ -433,15 +432,15 @@ class AdminModules {
 		if ($resultado === '') {
 			// Realiza copias de trabajo
 			foreach ($requeridos as $dmodulo => $inforeq) {
-				$modulo = $inforeq['module'];
-				$resultado_exportar = $this->exportRemoteModules($modulo, $inforeq['src'], $inforeq['dest']);
+				$alias = $inforeq['module-alias'];
+				$resultado_exportar = $this->exportRemoteModules($alias, $inforeq['src'], $inforeq['dest']);
 				if ($resultado_exportar === true) {
-					if (!isset($resultmodules[$modulo])) { $resultmodules[$modulo] = 0; }
-					$resultmodules[$modulo] ++;
+					if (!isset($resultmodules[$alias])) { $resultmodules[$alias] = 0; }
+					$resultmodules[$alias] ++;
 				}
 				else {
-					if (isset($resultmodules[$modulo])) {
-						unset($resultmodules[$modulo]);
+					if (isset($resultmodules[$alias])) {
+						unset($resultmodules[$alias]);
 					}
 					// Retorna mensaje de error
 					$resultado = $resultado_exportar;
@@ -480,7 +479,7 @@ class AdminModules {
 					$modulo,
 					$src,
 					$dest,
-					$this->clase_manejador->getError()
+					$this->clase_manejador->getLastError()
 					);
 			}
 		}
@@ -661,43 +660,42 @@ class AdminModules {
 		if (!is_dir($dirbase)) {
 			miframe_error('El directorio base "$1" para el módulo local "$2" no existe', $dirbase, $module);
 		}
-		// YA NO VALIDA DOCUMENT_ROOT!
-		// elseif (strpos(strtolower($dirbase), strtolower(miframe_path($_SERVER['DOCUMENT_ROOT']))) === false) {
-		// 	miframe_error('El directorio base para el módulo local "$1" no es valido', $module);
-		// }
 
 		// echo "$tipodir: $dirbase<hr>";
 
 		return $dirbase;
 	}
 
-	public function getDirBase(string $module) {
+	public function getDirBase(string $alias) {
 
 		$dirbase = false;
-		$arreglo = explode('/', $module);
-		$modulo = $arreglo[0] . '/' . $arreglo[1];
-		$modulo_externo = str_replace('miframe/', '', $module);
-		if (isset($this->externas[$modulo_externo])) {
-			$dirbase = miframe_path($_SERVER['DOCUMENT_ROOT'], $this->externas[$modulo_externo]);
+		if (isset($this->listado[$alias])) {
+			// $module =
+			// $arreglo = explode('/', $module);
+			$modulo = $this->listado[$alias]['module-base']; // $arreglo[0] . '/' . $arreglo[1];
+			$modulo_externo = $this->listado[$alias]['module-name']; // str_replace('miframe/', '', $module);
+			if (isset($this->externas[$modulo_externo])) {
+				$dirbase = miframe_path($_SERVER['DOCUMENT_ROOT'], $this->externas[$modulo_externo]);
+			}
+			elseif (isset($this->listabase[$modulo])) {
+				$dirbase = $this->listabase[$modulo];
+			}
 		}
-		elseif (isset($this->listabase[$modulo])) {
-			$dirbase = $this->listabase[$modulo];
-		}
-		else {
-			miframe_error('Directorio base no encontrado para "$1"', $module);
+		if ($dirbase === false) {
+			miframe_error('Directorio base no encontrado para "$1"', $alias);
 		}
 
 		return $dirbase;
 	}
 
-	public function getDirRemote(string $module, string $path = '', string $basename = '') {
+	/*public function getDirRemote(string $module, string $path = '', string $basename = '') {
 
 		$arreglo = explode('/', $module);
 		// Solamente usa dos elementos de $module
 		$path = miframe_path($path, $arreglo[0], $arreglo[1], $basename);
 
 		return $path;
-	}
+	}*/
 
 	private function acumModuleInfo(&$info, $inforeq) {
 
@@ -725,18 +723,17 @@ class AdminModules {
 		}
 	}
 
-	private function evalModuleInfo(string $module) {
+	private function evalModuleInfo(string $search_alias) {
 
 		$modulo_valido = false;
 
-		// Realiza copia para no afectar el valor original
-		$info = array();
+		if ($search_alias != '' &&
+			isset($this->listado[$search_alias]) &&
+			!isset($this->listado[$search_alias]['sha'])
+			) {
+			// Realiza copia para no afectar el valor original hasta terminar
+			$info = $this->listado[$search_alias];
 
-		if (isset($this->listado[$module])) {
-			$info = $this->listado[$module];
-		}
-
-		if (!isset($info['sha'])) {
 			if (!isset($info['type'])) {
 				$info['type'] = 'php'; // Por defecto asume PHP
 			}
@@ -745,16 +742,16 @@ class AdminModules {
 				// miframe_error('Módulo local "$1" definido para un tipo no soportado ($2)', $module, $info['type']);
 			}
 			elseif (!isset($info['require']) || trim($info['require']) == '') {
-				miframe_error('Módulo local "$1" definido sin archivos asociados', $module);
+				miframe_error('Módulo local "$1" definido sin archivos asociados', $search_alias);
 			}
 			else {
 				// Procesa información
 
 				$info['php-namespaces'] = array();
 
-				$dirbase = $this->getDirBase($module);
+				$dirbase = $this->getDirBase($search_alias);
 
-				$requeridos = $this->addFiles($module, $info['require'], $dirbase, true);
+				$requeridos = $this->addFiles($info['require'], $dirbase, true);
 
 				$documentar_params = [ 'description', 'author', 'since' ];
 				foreach ($documentar_params as $dparam) {
@@ -812,7 +809,8 @@ class AdminModules {
 					}
 				}
 
-				$this->listado[$module] = $info;
+				// Actualiza listado
+				$this->listado[$search_alias] = $info;
 			}
 		}
 
@@ -967,28 +965,28 @@ class AdminModules {
 		return miframe_serialize($filename, $info);
 	}
 
-	public function getRequiredFiles(string $module, bool $full = false) {
+	public function getRequiredFiles(string $alias, bool $full = false) {
 
 		$requeridos = array();
 
 		$this->getAllModules();
-		if (isset($this->listado[$module])) {
-			$info = $this->listado[$module];
-			$dirbase = $this->getDirBase($module);
-			$requeridos = $this->addFiles($module, $info['require'], $dirbase, $full);
+		if (isset($this->listado[$alias])) {
+			$info = $this->listado[$alias];
+			$dirbase = $this->getDirBase($alias);
+			$requeridos = $this->addFiles($info['require'], $dirbase, $full);
 		}
 
 		return $requeridos;
 	}
 
-	private function addFiles(string $module, string $require, string $path, bool $full = false) {
+	private function addFiles(string $require, string $path, bool $full = false) {
 
 		// Busca archivos asociados (algunos se indican con "*")
 		$requeridos = array();
 		$require = explode("\n", $require);
 		if (count($require) > 0 && $path != '') {
 			$lenpath = strlen($path);
-			$subdir = dirname($module);
+			// $subdir = dirname($module);
 			foreach ($require as $a => $add_path) {
 				// Limpia linea y valida
 				$add_path = trim($add_path);

@@ -2,12 +2,12 @@
 /**
  * Librería de funciones para proyectos que usen Router y Views integrados.
  *
- * @micode-uses miframe/file/inifiles
- * @micode-uses miframe/interface/router
- * @micode-uses miframe/interface/views
- * @micode-uses miframe/interface/request
- * @micode-uses miframe/interface/editconfig
- * @micode-uses miframe/utils/htmlsupport
+ * @micode-uses miframe-file-inifiles
+ * @micode-uses miframe-interface-router
+ * @micode-uses miframe-interface-views
+ * @micode-uses miframe-interface-request
+ * @micode-uses miframe-interface-editconfig
+ * @micode-uses miframe-utils-htmlsupport
  * @author John Mejia
  * @since Abril 2022
  * @version 1.0.0

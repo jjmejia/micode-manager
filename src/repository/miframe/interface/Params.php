@@ -2,8 +2,8 @@
 /**
  * Librería de funciones requeridas para manejo de variables en templates.
  *
- * @micode-uses miframe/interface/request
- * @micode-uses miframe/common/functions
+ * @micode-uses miframe-interface-request
+ * @micode-uses miframe-common-functions
  * @author John Mejia
  * @since Noviembre 2023.
  */
@@ -347,7 +347,7 @@ class Params { // extends \miFrame\Interface\Shared\BaseClass
 			$valor = $this->get($param);
 			if (is_array($valor) && count($valor) > 0) {
 				// En este caso, $template es el usado por "implode"
-				$text .= $this->implode($valor, $template);
+				$text .= $this->implode($param, $template);
 			}
 			elseif ($valor != '') {
 				$text .= trim(str_replace(array('$1', '$2'), array($valor, $param), $template));

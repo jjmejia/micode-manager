@@ -4,7 +4,7 @@
  * Estas funciones en general se usan para presentar información de depuración en pantalla. Para que funcionen se
  * requiere se haya definido externamente una constante "MIFRAME_DEBUG_ON" con valor TRUE.
  *
- * @micode-uses miframe/common/shared
+ * @micode-uses miframe-common-shared
  * @author John Mejia
  * @since Abril 2022
  */

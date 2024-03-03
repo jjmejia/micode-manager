@@ -2,8 +2,8 @@
 /**
  * Clase para generar salida HTML a los datos generados por la clase Explorer.
  *
- * @micode-uses miframe/common/shared
- * @micode-uses miframe/utils/htmlsupport
+ * @micode-uses miframe-common-shared
+ * @micode-uses miframe-utils-htmlsupport
  * @author John Mejia
  * @since Julio 2022
  */

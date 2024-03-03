@@ -22,8 +22,8 @@
  *
  * En caso de encontrar documentación faltante, se reportan en el arreglo de salida agrupados bajo el item "errors".
  *
- * @micode-uses miframe/common/functions
- * @micode-uses miframe/file/serialize
+ * @micode-uses miframe-common-functions
+ * @micode-uses miframe-file-serialize
  * @author John Mejia
  * @since Abril 2022
  */
