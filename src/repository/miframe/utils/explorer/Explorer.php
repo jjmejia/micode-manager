@@ -71,11 +71,13 @@ class Explorer {
 			'htm'  => 'html',
 			'html' => 'html',
 			'php'  => 'html',
+			'xml'  => 'html',
 			'txt'  => 'text',
 			'md'   => 'text',
 			'ini'  => 'text',
 			'json' => 'text',
 			'css'  => 'text',
+			'log'  => 'text',
 			'jpg'  => 'image',
 			'jpeg' => 'image',
 			'gif'  => 'image',
@@ -85,11 +87,9 @@ class Explorer {
 			'pdf'  => 'pdf'
 		);
 		// Predefine enlaces para los que permite ejecución o seguimiento de links
-		$this->followLinks = array(
-			'html',
-			'htm',
-			'php'
-		);
+		$this->addFollowLink('html');
+		$this->addFollowLink('htm');
+		$this->addFollowLink('php');
 	}
 
 	/**
@@ -100,8 +100,8 @@ class Explorer {
 	public function addFollowLink(string $extension) {
 
 		$extension = strtolower(trim($extension));
-		if ($extension != '' && !in_array($extension, $this->followLinks)) {
-			$this->followLinks[] = $extension;
+		if ($extension != '') {
+			$this->followLinks[$extension] = '.' . $extension;
 		}
 	}
 
@@ -113,9 +113,8 @@ class Explorer {
 	public function removeFollowLink(string $extension) {
 
 		$extension = strtolower(trim($extension));
-		$pos = array_search($extension, $this->followLinks);
-		if ($extension != '' && $pos !== false) {
-			unset($this->followLinks[$pos]);
+		if ($extension != '' && isset($this->followLinks[$extension])) {
+			unset($this->followLinks[$extension]);
 		}
 	}
 
@@ -214,6 +213,29 @@ class Explorer {
 		}
 	}
 
+	private function getFavorites() {
+		$this->arreglofav = array();
+		// Captura listado de favoritos
+		if ($this->useFavorites && $this->fileFavorites != '' && file_exists($this->fileFavorites)) {
+			$this->arreglofav = file($this->fileFavorites, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+		}
+
+	}
+
+	private function saveFavorites(string $action, string $filename) {
+
+		$resultado = @file_put_contents($this->fileFavorites, implode("\n", $this->arreglofav));
+		// Si $resultado === false no pudo guardar archivo.
+		if (!$resultado) {
+			$this->error_data['code'] = 4;
+			// $this->error_data['details']['path'] = $this->fileFavorites;
+			$this->error_data['details']['param'] = $action;
+			$this->error_data['details']['value'] = $filename;
+		}
+
+		return $resultado;
+	}
+
 	/**
 	 * Recupera el listado de archivos o contenido asociado a un archivo.
 	 *
@@ -229,11 +251,7 @@ class Explorer {
 			if (strpos($baselink, '?') !== false) { $this->baselink = $baselink . '&'; }
 			else { $this->baselink = $baselink . '?'; }
 
-			$this->arreglofav = array();
-			// Captura listado de favoritos
-			if ($this->useFavorites && $this->fileFavorites != '' && file_exists($this->fileFavorites)) {
-				$this->arreglofav = file($this->fileFavorites, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-			}
+			$this->getFavorites();
 
 			$salida = $this->getBaseDir();
 
@@ -300,14 +318,7 @@ class Explorer {
 					if (!in_array($favorito, $this->arreglofav)) {
 						$this->arreglofav[] = $favorito;
 						if ($this->useFavorites && $this->fileFavorites != '') {
-							$resultado = @file_put_contents($this->fileFavorites, implode("\n", $this->arreglofav));
-							// Si $resultado === false no pudo guardar archivo.
-							if (!$resultado) {
-								$this->error_data['code'] = 4;
-								// $this->error_data['details']['path'] = $this->fileFavorites;
-								$this->error_data['details']['param'] = 'favadd';
-								$this->error_data['details']['value'] = $favorito;
-							}
+							$resultado = $this->saveFavorites('favadd', $favorito);
 						}
 					}
 				}
@@ -328,16 +339,9 @@ class Explorer {
 							unset($this->arreglofav[$posfav]);
 							$guardar = true;
 						}
-					} while ($posfav != false);
+					} while ($posfav !== false);
 					// Guarda archivo
-					$resultado = @file_put_contents($this->fileFavorites, implode("\n", $this->arreglofav));
-					// Si $resultado === false no pudo guardar archivo
-					if (!$resultado) {
-						$this->error_data['code'] = 4;
-						// $this->error_data['details']['path'] = $this->fileFavorites;
-						$this->error_data['details']['param'] = 'favrem';
-						$this->error_data['details']['value'] = $favorito;
-					}
+					$resultado = $this->saveFavorites('favrem', $favorito);
 				}
 			}
 		}
@@ -367,18 +371,22 @@ class Explorer {
 		}
 
 		if ($this->continue() && $this->basedir != '') {
-			// Adiciona enlaces a directorios previos
+			// Adiciona enlaces a directorios previos (siempre que no esté en el raiz)
+			// NOTA: Al adicionar o eliminar un favorito de la raiz, $this->basedir toma
+			// el path de dicho archivo.
 			$dirname = dirname($this->basedir);
-			$acum = '';
-			$salida['paths']['.'] = substr($this->baselink, 0, -1);
-			if ($dirname != '.') {
-				$predir = explode('/', $dirname);
-				foreach ($predir as $k => $path) {
-					$salida['paths'][$path] = $this->baselink . 'dir=' . urlencode($acum . $path);
-					$acum .= $path . '/';
+			if ($dirname != DIRECTORY_SEPARATOR) {
+				$acum = '';
+				$salida['paths']['.'] = substr($this->baselink, 0, -1);
+				if ($dirname != '.') {
+					$predir = explode('/', $dirname);
+					foreach ($predir as $k => $path) {
+						$salida['paths'][$path] = $this->baselink . 'dir=' . urlencode($acum . $path);
+						$acum .= $path . '/';
+					}
 				}
+				$salida['paths'][basename($this->basedir)] = '';
 			}
-			$salida['paths'][basename($this->basedir)] = '';
 		}
 
 		if (!$this->continue()) {
@@ -530,7 +538,7 @@ class Explorer {
 					'add-fav' => '',
 					'in-fav' => false
 				);
-				$seguir_enlace = (in_array($extension, $this->followLinks));
+				$seguir_enlace = isset($this->followLinks[$extension]);
 				if ($this->useFavorites) {
 					if (!in_array($ufilename, $this->arreglofav)) {
 						if ($seguir_enlace) {
@@ -566,7 +574,7 @@ class Explorer {
 				if ($filename != '') {
 					$extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 					$enlace = $this->url($filename);
-					$indirecto = ($enlace == '' || !in_array($extension, $this->followLinks));
+					$indirecto = ($enlace == '' || !isset($this->followLinks[$extension]));
 					if ($indirecto) {
 						// Remplaza el link por el visualizador indirecto
 						$enlace = $this->baselink . 'file=' . urlencode($ufilename);
