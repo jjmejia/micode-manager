@@ -8,4 +8,8 @@
  * @since Abril 2022
  */
 
-exit("Esta página ha sido consultada de forma incorrecta (E1041).");
+// Directorio principal
+define('MIFRAME_ROOT', dirname(__DIR__));
+
+// Consulta script principal
+include_once MIFRAME_ROOT . '/src/admin/index.php';

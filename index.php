@@ -13,8 +13,5 @@
  * @since Abril 2022
  */
 
-// Directorio principal
-define('MIFRAME_ROOT', __DIR__);
-
 // Consulta script principal
 include_once __DIR__ . '/src/admin/index.php';

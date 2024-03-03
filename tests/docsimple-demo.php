@@ -94,7 +94,6 @@ if (file_exists($parsedown_include)) {
 	}
 }
 
-
 // Adiciona listas de ejemplos
 $ejemplos = '';
 $data = $_REQUEST;
