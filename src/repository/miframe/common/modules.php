@@ -4,7 +4,7 @@
  *
  * @micode-uses miframe-common-functions
  * @micode-uses miframe-common-debug
- * @micode-uses-optional miframe/common/phpsettings
+ * @micode-uses-optional miframe-common-phpsettings
  * @author John Mejia
  * @since Abril 2022.
  */

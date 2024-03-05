@@ -131,19 +131,25 @@ function miframe_tree_directory(string $path, string $pattern = '', bool $ignore
 	return $dirs;
 }
 
-function register_main_app(object $app) {
+function miframe_register_app(string $app_classname, ...$args) {
 
-	$GLOBALS['MIFRAMEMAINAPP'] = $app;
+	if (class_exists($app_classname)) {
+		$app = new $app_classname($args);
+		$GLOBALS['MIFRAMEMAINAPP'] = $app;
+	}
+	else {
+		miframe_error('MIFRAMEMAINAPP no pudo crear objeto $1', $app_classname);
+	}
 }
 
-function check_main_app() {
+function miframe_check_app() {
 	return (isset($GLOBALS['MIFRAMEMAINAPP']) && is_object($GLOBALS['MIFRAMEMAINAPP']));
 }
 
-function app() {
+function miframe_app() {
 
 	// Si no está definida o no es un objeto, genera error
-	if (!check_main_app()) {
+	if (!miframe_check_app()) {
 		miframe_error('MIFRAMEMAINAPP no definida correctamente');
 	}
 

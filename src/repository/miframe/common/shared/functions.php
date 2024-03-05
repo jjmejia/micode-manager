@@ -219,30 +219,25 @@ function miframe_include_args(string $name, mixed &$value, bool $replace = false
  * @param mixed $args Arreglo con los nombres de variables globales a usar en el script.
  * @return bool TRUE si el script existe. FALSE en otro caso.
  */
-/*
-function miframe_include_file(string $filename, mixed $args = false) {
+function miframe_include_file(string $include_filename, array $include_args = null) {
 
-	if ($filename != '' && file_exists($filename)) {
-		if (is_array($args) && isset($GLOBALS['MIFRAMEARGS'])) {
-			foreach ($args as $k => $v) {
-				if (array_key_exists($v, $GLOBALS['MIFRAMEARGS'])) {
-					// Lo pasa por referencia para mantener una única copia
-					$$v =& $GLOBALS['MIFRAMEARGS'][$v];
-				}
-			}
+	if ($include_filename != '' && file_exists($include_filename)) {
+		if (is_array($include_args) && count($include_args) > 0) {
+			// EXTR_SKIP previene use $filename o $args y genere colisión de valores
+			extract($include_args, EXTR_SKIP);
 		}
 
 		// Libera memoria
-		unset($args);
+		unset($include_args);
 
-		include_once $filename;
+		// Incluye librería y retorna
+		include_once $include_filename;
 
 		return true;
 	}
 
 	return false;
 }
-*/
 
 /**
  * Almacena valor para su uso global durante la ejecución actual.

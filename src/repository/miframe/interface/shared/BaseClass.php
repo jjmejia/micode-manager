@@ -18,7 +18,7 @@ namespace miFrame\Interface\Shared;
  */
 class BaseClass {
 
-	private $include_fun = false;
+	// private $include_fun = false;
 	private $secuencia = 0;
 
 	protected $path_files = '';
@@ -73,12 +73,12 @@ class BaseClass {
 		}
 	}
 
-	public function setIncludeFun(callable $fun) {
+	// public function setIncludeFun(callable $fun) {
+	// 	$this->include_fun = $fun;
+	// }
 
-		$this->include_fun = $fun;
-	}
-
-	protected function include(string $filename, string $text = '', string $footnote = '', bool $private = false) {
+	// PENDIENTE: DEFINIR COMO HELPER?
+	/*protected function include(string $filename, string $text = '', string $footnote = '', bool $private = false) {
 
 		if (!file_exists($filename)) {
 			return false;
@@ -94,10 +94,10 @@ class BaseClass {
 				include_once $filename;
 			};
 		}
-		elseif ($this->include_fun !== false) {
-			// Ejecuta la función definida por el usuario
-			$include_fun =& $this->include_fun;
-		}
+		// elseif ($this->include_fun !== false) {
+		// 	// Ejecuta la función definida por el usuario
+		// 	$include_fun =& $this->include_fun;
+		// }
 		else {
 			// En este escenario, puede accederse a este objeto en $filename usando $this
 			$include_fun = function ($filename) {
@@ -107,8 +107,11 @@ class BaseClass {
 
 		call_user_func($include_fun, $filename);
 
+		// miframe_include_file($filename);
+
 		return true;
 	}
+	*/
 
 	/**
 	 * Asigna directorio a usar para ubicar los scripts.

@@ -5,9 +5,9 @@
  * @author John Mejia (C) Abril 2022.
  */
 
-$app_name = strtolower($this->router->param('app'));
+$app_name = strtolower(miframe_app()->router->param('app'));
 if ($app_name == '') {
-	$this->router->abort(
+	miframe_app()->router->abort(
 		miframe_text('Parámetros incompletos'),
 		miframe_text('No se ha definido nombre del Proyecto a actualizar')
 	);
@@ -20,19 +20,19 @@ $type = $data_repo['type'];
 $path_packs = miframe_path(dirname($data_repo['inifile']), 'packs');
 // print_r($data_repo); exit;
 
-if ($this->post->exists('down')) {
-	$basename = $this->post->getString('down');
+if (miframe_app()->post->exists('down')) {
+	$basename = miframe_app()->post->getString('down');
 	$filename = miframe_path($path_packs, $basename);
 	if ($basename == '' || !file_exists($filename)) {
-		$this->router->abort(
+		miframe_app()->router->abort(
 			miframe_text('Parámetros incorrectos'),
 			miframe_text('La descarga de paquete solicitada no está disponible')
 		);
 	}
 
-	$this->router->exportFile($filename);
+	miframe_app()->router->exportFile($filename);
 }
-elseif ($this->post->exists('new')) {
+elseif (miframe_app()->post->exists('new')) {
 	// Nuevo paquete
 	$basepack = strtolower($app_name) . '-' . date('Ymd');
 	$filepack = miframe_path($path_packs, $basepack . '.zip');
@@ -224,7 +224,7 @@ elseif ($this->post->exists('new')) {
 	$data_proyecto['pack-file'] = $filepack;
 	$data_proyecto['pack-errorfile'] = $errorfile;
 
-	$this->startView('projects\newpack.php', $data_proyecto);
+	miframe_app()->startView('projects\newpack.php', $data_proyecto);
 
 	return;
 }
@@ -239,7 +239,7 @@ if (count($fileList) > 0) {
 		$listado[$nombre] = array(
 			'datetime' => filemtime($filename),
 			'size' => filesize($filename),
-			'url' => $this->router->createRouteURL('projects-packs', array( 'down' => $nombre, 'app' => $app_name))
+			'url' => miframe_app()->router->createRouteURL('projects-packs', array( 'down' => $nombre, 'app' => $app_name))
 		);
 	}
 }
@@ -249,4 +249,4 @@ krsort($listado);
 
 $data_proyecto['listado'] = $listado;
 
-$this->startView('projects\packs.php', $data_proyecto);
+miframe_app()->startView('projects\packs.php', $data_proyecto);

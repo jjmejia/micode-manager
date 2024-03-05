@@ -6,12 +6,12 @@
  */
 
 // Modulo selecto
-$modulo = $this->post->getString('module');
+$modulo = miframe_app()->post->getString('module');
 
 // Tipo selecto
-$type = $this->router->param('type', 'php');
+$type = miframe_app()->router->param('type', 'php');
 if (!micode_modules_eval_type($type)) {
-	$this->router->abort(
+	miframe_app()->router->abort(
 			miframe_text('Parámetros incorrectos'),
 			miframe_text('Tipo de módulos a recuperar no es valido ($1).', $type)
 			);
@@ -29,13 +29,13 @@ if ($modulo != '') {
 }
 
 if ($modulo == '' || !isset($listado[$modulo])) {
-	$this->router->abort(
+	miframe_app()->router->abort(
 		miframe_text('Parámetros incompletos'),
 		miframe_text('No se ha definido nombre del módulo a visualizar')
 		);
 }
 
-$enlace = $this->router->createRouteURL('modules-explore', [ 'module' => $modulo ]);
+$enlace = miframe_app()->router->createRouteURL('modules-explore', [ 'module' => $modulo ]);
 $data_proyecto['html'] = micode_modules_explore($enlace, $data_proyecto['dirbase']);
 
-$this->startView('projects\explore.php', $data_proyecto);
+miframe_app()->startView('projects\explore.php', $data_proyecto);

@@ -38,7 +38,7 @@ function checkModules(&$params, string $param_name, string $default = '') {
 			if (isset($info['datetime']) && $info['datetime'] > 0) {
 				$modificado .= '<div class="box-data"><b>Fecha instalación/modificación:</b> ' . date('Y/m/d H:i:s', $info['datetime']) . '</div>';
 			}
-			// Ojo que $name contiene "/" y eso afecta la lectura de $this->params->get()
+			// Ojo que $name contiene "/" y eso afecta la lectura de miframe_app()->params->get()
 			if (isset($info['changed']) && $info['changed'] !== false) {
 				$modificado .= '<div class="box-data box-alert"><b>Repositorio actualizado</b> en ' .
 					date('Y/m/d H:i:s', $info['sysdata']['datetime']) .
@@ -67,26 +67,26 @@ function checkModules(&$params, string $param_name, string $default = '') {
 
 ?>
 
-<link rel="stylesheet" href="<?= $this->router->createURL('resources/css/forms.css') ?>">
+<link rel="stylesheet" href="<?= miframe_app()->router->createURL('resources/css/forms.css') ?>">
 
-<?= $this->params->implode('mensajes', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
+<?= miframe_app()->params->implode('mensajes', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
 
 
-<form action="<?= $this->params->get('form-action') ?>" method="POST">
+<form action="<?= miframe_app()->params->get('form-action') ?>" method="POST">
 
-	<h3>Módulos instalados (<?= $this->params->get('modules->pre:count') ?>)</h3>
+	<h3>Módulos instalados (<?= miframe_app()->params->get('modules->pre:count') ?>)</h3>
 
-	<?= $this->params->iif(
+	<?= miframe_app()->params->iif(
 			'ini_datetime:!empty',
 			'<p class="separator">Última modificación realizada en {{ ini_datetime:date }}</p>'
 			) ?>
 	<?php
 
-	if ($this->params->get('modules->pre:!empty')) {
+	if (miframe_app()->params->get('modules->pre:!empty')) {
 		$reconstruir_parcial = '';
-		if ($this->params->get('modules->changes:!empty')) {
+		if (miframe_app()->params->get('modules->changes:!empty')) {
 			echo miframe_box('Aviso importante',
-					'Hay ' . $this->params->get('modules->changes') . ' modulos instalados que presentan cambios respecto al Repositorio. Verifique.',
+					'Hay ' . miframe_app()->params->get('modules->changes') . ' modulos instalados que presentan cambios respecto al Repositorio. Verifique.',
 					'warning'
 					);
 			$reconstruir_parcial = '<option value="changed">Reconstruir los módulos que reportan cambios respecto al Repositorio</option>' . PHP_EOL;
@@ -106,19 +106,19 @@ function checkModules(&$params, string $param_name, string $default = '') {
 
 	<?php
 	/*
-	<h3>Módulos adicionales sugeridos (<?= $this->params->get('modules->add:count') ?>)</h3>
+	<h3>Módulos adicionales sugeridos (<?= miframe_app()->params->get('modules->add:count') ?>)</h3>
 
-	<?= $this->params->iif(
+	<?= miframe_app()->params->iif(
 			'modules->add:!empty',
 			'<p class="separator">Los módulos instalados pueden requerir de algunos de los siguientes módulos:</p>'
 			) ?>
 
-	<?= $this->view->checkModules('add') ?>
+	<?= miframe_app()->view->checkModules('add') ?>
 	*/ ?>
 
-	<h3>Módulos removidos del repositorio principal (<?= $this->params->get('modules->del:count') ?>)</h3>
+	<h3>Módulos removidos del repositorio principal (<?= miframe_app()->params->get('modules->del:count') ?>)</h3>
 
-	<?= $this->params->iif(
+	<?= miframe_app()->params->iif(
 			'modules->del:!empty',
 			'<p class="separator">Estos módulos fueron instalados pero ya no se encuentran disponibles en el repositorio. ' .
 			'Deseleccione para removerlos del proyecto.</p>'
@@ -127,7 +127,7 @@ function checkModules(&$params, string $param_name, string $default = '') {
 	<?= checkModules($this->params, 'del', 'checked') ?>
 
 
-	<h3>Módulos disponibles (<?= $this->params->get('modules->new:count') ?>)</h3>
+	<h3>Módulos disponibles (<?= miframe_app()->params->get('modules->new:count') ?>)</h3>
 
 	<?= checkModules($this->params, 'new') ?>
 

@@ -36,56 +36,44 @@ include_once MIFRAME_ROOT . '/micode/initialize.php';
 // Funciones exclusivas del administrador web.
 include_once MIFRAME_BASEDIR . '/lib/modules/admin.php';
 
-$app = new \miFrame\Admin\MiProyecto();
-
 try {
+	// Crea la aplicación principal, referida a la clase MiProyecto
+	miframe_register_app(\miFrame\Admin\MiProyecto::class);
+
 	// Habilita mensajes para depuración (se habilita por configuración de la aplicación)
-	// $app->debug(true);
-	$app->router->useRequestURI();
+	// miframe_app()->debug(true);
+	// miframe_app()->router->useRequestURI(false); // Usa _route para indicar las rutas
 
-	// CSS a usar por método $app->localBox()
-	// $app->framebox_css = $app->router->createURL('/public/resources/css/miframebox.css');
-	// $app->setFilenameCSS(MIFRAME_ROOT . '/public/resources/css/miframebox.css');
+	// CSS a usar por método miframe_app()->localBox()
+	// miframe_app()->framebox_css = miframe_app()->router->createURL('/public/resources/css/miframebox.css');
+	// miframe_app()->setFilenameCSS(MIFRAME_ROOT . '/public/resources/css/miframebox.css');
 
-	// Inicializa directorios para vistas y base para ejecución de rutas
-	$app->view->setPathFiles(miframe_path(MIFRAME_BASEDIR, 'views'));
-	$app->router->setPathFiles(miframe_path(MIFRAME_BASEDIR, 'control'));
+	// Inicializa directorio base para ejecución de rutas (en este caso, es el mismo para APIs y WEB)
+	miframe_app()->router->setPathFiles(miframe_path(MIFRAME_BASEDIR, 'control'));
 
 	// Valida si es una solicitud de API o JSON
-	if ($app->router->requestStartWith('api') || $app->router->jsonRequest()) {
-
-		$app->initializeJson();
+	if (miframe_app()->validateJSONRequest('api')) {
 
 		// Carga rutas para consultas API
-		$app->loadRoutes(miframe_path(MIFRAME_DATA, 'routes', 'api.ini'));
+		miframe_app()->loadRoutes(miframe_path(MIFRAME_DATA, 'routes', 'api.ini'));
 
-		// Configuración de vistas para API
-		$app->loadView('api');
-
-		// Si no ha configurado datos, genera error
-		if (!$app->existsDataProject()) {
-			$app->router->abort(
-				miframe_text('Error: Datos de proyecto no configurados'),
-				miframe_text('Ingrese por Web y configure el sistema.')
-				);
-		}
+		// Inicializa directorios para vistas
+		miframe_app()->loadViews(miframe_path(MIFRAME_BASEDIR, 'views', 'api'));
 	}
 	else {
 		// Carga rutas para consultas WEB
-		$app->loadRoutes(miframe_path(MIFRAME_DATA, 'routes', 'web.ini'));
+		miframe_app()->loadRoutes(miframe_path(MIFRAME_DATA, 'routes', 'web.ini'));
 
 		// Configuración de vistas para Web
 		// (si hay multiples directorios de vistas para Web, indicar el path a la vista deseada)
-		$app->loadView('web');
-
-		// Se asegura que haya configurado valores registrados en "sistema.ini"
-		// (solamente para consultas WEB)
-		if (!$app->existsDataProject()) {
-			$app->router->runAction('settings.php', '(settings-check)');
-		}
+		miframe_app()->loadViews(miframe_path(MIFRAME_BASEDIR, 'views', 'web'));
 	}
 
-	// $app->router->showInfo();
+	// Se asegura que haya configurado valores registrados en "sistema.ini"
+	// (solamente para consultas WEB, para JSON genera error)
+	miframe_app()->validateDataProject('settings.php');
+
+	// miframe_app()->router->showInfo();
 
 	/*
 
@@ -93,22 +81,22 @@ try {
 
 
 		// Recomendado: Registrar script a ejecutar al invocar abort()
-		$app->addAbortRoute('actions/projects/error.php');
+		miframe_app()->addAbortRoute('actions/projects/error.php');
 
 		// Opcional: Acciones a ejecutar antes de detener la ejecución del script actual
-		$app->addBeforeStopRoute('xxxx');
+		miframe_app()->addBeforeStopRoute('xxxx');
 
 		// Asigna modo de captura del enlace de navegación
-		$app->router->assignMode('uri');
+		miframe_app()->router->assignMode('uri');
 
 		// Definir todo el mapa de rutas manualmente
 
 		// Acción a realizar si no recibe parámetro POST/GET (por defecto)
-		$app->addDefaultRoute('actions/projects/list.php');
+		miframe_app()->addDefaultRoute('actions/projects/list.php');
 
 		// Registrar los enrutamientos públicos uno a uno
-		$app->AddRoute('projects/create', 'actions/projects/create.php');
-		$app->AddRoute('modules/detail', 'actions/modules/detail.php');
+		miframe_app()->AddRoute('projects/create', 'actions/projects/create.php');
+		miframe_app()->AddRoute('modules/detail', 'actions/modules/detail.php');
 		...
 
 		// o por medio de un arreglo asociativo (referencia => script)
@@ -119,23 +107,28 @@ try {
 			'modules/detail' => 'actions/modules/detail.php',
 			...
 			);
-		$app->AddRoutes($mapa);
+		miframe_app()->AddRoutes($mapa);
 
 	*/
 
 	// Procesa entrada
-	$app->router->run();
+	miframe_app()->router->run();
 
 	// Si nada funciona, presenta mensaje de error
-	$app->router->notFound(
-		miframe_text('Página no encontrada'),
-		miframe_text('La referencia **$1** no está asociada con una página valida.', $app->router->request())
-		);
+	miframe_app()->router->notFound();
 
 }
 catch (\Throwable | \Exception $e) {
 	// Throwable For PHP 7, Exception for PHP 5
 	// Captura excepción manual (throw new Exception)
 	// https://stackoverflow.com/a/51700135
-	$app->abort($e);
+
+	if (miframe_check_app()) {
+		miframe_app()->abort($e);
+	}
+	else {
+		// No se ha definido objeto principal
+		$data = miframe_error_info($e);
+		echo miframe_box($data['title'], nl2br($data['message']), 'critical', $data['trace']);
+	}
 }

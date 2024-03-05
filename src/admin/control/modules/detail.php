@@ -7,11 +7,11 @@
  */
 
 // Modulo selecto
-$modulo = $this->post->getString('module');
-$file = $this->post->getString('file');
+$modulo = miframe_app()->post->getString('module');
+$file = miframe_app()->post->getString('file');
 
 // Tipo selecto
-$type = $this->router->param('type', 'php');
+$type = miframe_app()->router->param('type', 'php');
 
 $filename = '';
 $listado = array();
@@ -31,7 +31,7 @@ if ($modulo != '') {
 			// if ($total_requeridos == 1) { $file = $modulo_req; }
 			if (isset($info_req['linkeable']) && $info_req['linkeable'] !== false) {
 				if ($modulo_req != $file) {
-					$enlace = $this->router->createRouteURL('modules-detail', [ 'file' => $modulo_req, 'module' => $modulo ]);
+					$enlace = miframe_app()->router->createRouteURL('modules-detail', [ 'file' => $modulo_req, 'module' => $modulo ]);
 				}
 			}
 			// Adiciona enlace
@@ -39,7 +39,7 @@ if ($modulo != '') {
 		}
 		if ($file != '') {
 			// Enlace de regreso para detallado de "requeridos"
-			$url_back = $this->router->createRouteURL('modules-detail', [ 'module' => $modulo ]);
+			$url_back = miframe_app()->router->createRouteURL('modules-detail', [ 'module' => $modulo ]);
 		}
 		if (isset($listado[$modulo]['uses'])
 			&& is_array($listado[$modulo]['uses'])
@@ -48,7 +48,7 @@ if ($modulo != '') {
 			$nuevos = $listado[$modulo]['uses'];
 			$listado[$modulo]['uses'] = array();
 			foreach ($nuevos as $modulo_req) {
-				$enlace = $this->router->createRouteURL('modules-detail', [ 'module' => $modulo_req ]);
+				$enlace = miframe_app()->router->createRouteURL('modules-detail', [ 'module' => $modulo_req ]);
 				$listado[$modulo]['uses'][$modulo_req] = $enlace;
 			}
 		}
@@ -58,7 +58,7 @@ if ($modulo != '') {
 }
 
 if ($modulo == '' || !isset($listado[$modulo])) {
-	$this->router->abort(
+	miframe_app()->router->abort(
 		miframe_text('Parámetros incompletos'),
 		miframe_text('No se ha definido nombre de módulo válido ($1)', $modulo)
 		);
@@ -80,7 +80,7 @@ elseif ($filename != '') {
 }
 
 if (!micode_modules_eval_type($type)) {
-	$this->router->abort(
+	miframe_app()->router->abort(
 			miframe_text('Parámetros incorrectos'),
 			miframe_text('Tipo de módulos a recuperar no es valido ($1).', $type)
 			);
@@ -100,9 +100,9 @@ $data_proyecto = array(
 	);
 
 // if (isset($mensajes)) { $data_proyecto['mensajes'] = $mensajes; }
-$data = $this->router->getDataReloaded(true);
+$data = miframe_app()->router->getDataReloaded(true);
 if ($data !== false && is_array($data) && isset($data['msg'])) {
 	$data_proyecto['mensajes'] = $data['msg'];
 }
 
-$this->startView('modules/detail.php', $data_proyecto);
+miframe_app()->startView('modules/detail.php', $data_proyecto);

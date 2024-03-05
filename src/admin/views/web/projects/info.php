@@ -17,7 +17,7 @@ if ($sizelog == '') {
 
 */
 
-$readme = $this->params->get('readme');
+$readme = miframe_app()->params->get('readme');
 
 if ($readme != '') {
 	$readme = '<div class="docblock">' . PHP_EOL .
@@ -26,38 +26,38 @@ if ($readme != '') {
 		'</div></div>';
 }
 
-$type = $this->params->get('mirepo->type');
+$type = miframe_app()->params->get('mirepo->type');
 
 $opciones = miframe_debug_config_options();
-$valor = $this->params->get('config->debug');
+$valor = miframe_app()->params->get('config->debug');
 
-$startup = $this->params->get('startup->title');
+$startup = miframe_app()->params->get('startup->title');
 
 $infotipo = micode_modules_types($type);
 
 ?>
 
-<link rel="stylesheet" href="<?= $this->router->createURL('resources/css/docblock.css') ?>">
+<link rel="stylesheet" href="<?= miframe_app()->router->createURL('resources/css/docblock.css') ?>">
 
 <div class="docblock">
-<div class="docfile"><?= $this->params->get('config->project-title:e') ?></div>
+<div class="docfile"><?= miframe_app()->params->get('config->project-title:e') ?></div>
 <div>
 
-<?= $this->params->implode('mensajes', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
+<?= miframe_app()->params->implode('mensajes', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
 
-<!-- <div class="app-desc"><?= $this->params->get('config->project-desc-info') ?></div> -->
+<!-- <div class="app-desc"><?= miframe_app()->params->get('config->project-desc-info') ?></div> -->
 
-<p><b>Path:</b> <?= $this->params->get('mirepo->path') ?></p>
+<p><b>Path:</b> <?= miframe_app()->params->get('mirepo->path') ?></p>
 
-<p><b>Path módulos miCode:</b> <?= $this->params->get('mirepo->app-modules') ?>
-	(<?= $this->params->get('modules->pre:count') ?> módulos instalados)
+<p><b>Path módulos miCode:</b> <?= miframe_app()->params->get('mirepo->app-modules') ?>
+	(<?= miframe_app()->params->get('modules->pre:count') ?> módulos instalados)
 </p>
 
 <p><b>Tipo (Lenguaje de programación usado):</b> <?= htmlspecialchars($infotipo) ?></p>
 
-<?= $this->params->iif(($startup != ''), '<p><b>Modelo inicial:</b> ' . htmlspecialchars($startup) . '</p>') ?>
+<?= miframe_app()->params->iif(($startup != ''), '<p><b>Modelo inicial:</b> ' . htmlspecialchars($startup) . '</p>') ?>
 
-<p><b>Creado en:</b> <?= $this->params->get('mirepo->since:date') ?></p>
+<p><b>Creado en:</b> <?= miframe_app()->params->get('mirepo->since:date') ?></p>
 
 </div>
 </div>

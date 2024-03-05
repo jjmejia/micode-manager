@@ -25,11 +25,11 @@ if (count($fileList) > 0) {
 			$data = micode_modules_proyecto_ini($app_name, $data_repo);
 			// Complementa con los enlaces
 			$data['url'] = micode_modules_enlace($app_name, $data_repo);
-			$data['url-detail'] = $this->router->createRouteURL("projects-info", [ 'app' => $app_name ]);
+			$data['url-detail'] = miframe_app()->router->createRouteURL("projects-info", [ 'app' => $app_name ]);
 		}
 		// Registra
 		$listado[$app_name] = $data;
 	}
 }
 
-$this->startView('projects/list.php', [ 'listado' => $listado ]);
+miframe_app()->startView('projects/list.php', [ 'listado' => $listado ]);

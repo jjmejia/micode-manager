@@ -6,7 +6,7 @@
  * @since Abril 2022
  */
 
-$app_name = $this->params->get('config->project-name');
+$app_name = miframe_app()->params->get('config->project-name');
 
 ?>
 
@@ -14,14 +14,14 @@ $app_name = $this->params->get('config->project-name');
 
 <?php
 
-$estado = $this->params->get('pack-status');
-$enlace = $this->router->createRouteURL('projects-packs', [ 'app' => $app_name ]);
+$estado = miframe_app()->params->get('pack-status');
+$enlace = miframe_app()->router->createRouteURL('projects-packs', [ 'app' => $app_name ]);
 $enlace_regresar = '<p><a href="' . $enlace . '">Regresar a listado de paquetes</a></p>';
-$filepack = $this->params->get('pack-file');
+$filepack = miframe_app()->params->get('pack-file');
 
 if ($estado == 'CAMBIOS_PENDIENTES') {
 
-	$enlace = $this->router->createRouteURL('projects-modules', [ 'app' => $app_name ]);
+	$enlace = miframe_app()->router->createRouteURL('projects-modules', [ 'app' => $app_name ]);
 
 ?>
 	<p><b>Existen cambios no revisados</b></p>
@@ -41,7 +41,7 @@ elseif ($estado == 'NOFILES') {
 	<p><b>No se encontraron archivos</b></p>
 	<p>
 		No se encontraron archivos al explorar el directorio del proyecto.
-		Revise el directorio <i><?= $this->params->get('config->path:e') ?></i> y confirme que existen archivos.
+		Revise el directorio <i><?= miframe_app()->params->get('config->path:e') ?></i> y confirme que existen archivos.
 		Revise también la configuración de archivos a ser ignorados (sección <b>Paquetes de distribución</b>
 		del menú de edición de proyecto) no los esté excluyendo todos.
 	</p>
@@ -77,7 +77,7 @@ elseif ($estado == 'ZIP_VALIDO') {
 }
 elseif ($estado == 'ZIP_FALLIDO') {
 
-	$errorfile = $this->params->get('pack-errorfile');
+	$errorfile = miframe_app()->params->get('pack-errorfile');
 
 ?>
 	<p><b>No pudo crear paquete de distribución</b></p>

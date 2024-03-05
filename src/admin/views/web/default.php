@@ -5,4 +5,4 @@
 
 echo "Hola mundo!";
 
-echo $this->params->show('Parámetros');
+echo miframe_app()->params->show('Parámetros');

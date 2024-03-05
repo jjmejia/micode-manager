@@ -6,9 +6,9 @@
  * @since Diciembre 2022
  */
 
-$cfg_module = $this->params->get('reponame');
+$cfg_module = miframe_app()->params->get('reponame');
 $tituloppal = '';
-if ($this->params->get('nuevo', false)) {
+if (miframe_app()->params->get('nuevo', false)) {
 	$tituloppal = miframe_text('Nuevo Repositorio');
 }
 else {
@@ -20,16 +20,16 @@ $enlaces = array();
 
 // Recupera tipos validos
 $validos = micode_modules_types();
-$tiposvalidos = $this->params->get('tiposvalidos');
+$tiposvalidos = miframe_app()->params->get('tiposvalidos');
 foreach ($validos as $tipo => $titulo) {
 	if (is_array($tiposvalidos) && isset($tiposvalidos[$tipo])) {
 		$titulo .= ' (' . count($tiposvalidos[$tipo]) . ')';
-		$enlace = $this->router->createRouteURL('repositories-detail', [ 'name' => $cfg_module, 'type' => $tipo ]);
-		$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($this->params->get('type') == $tipo));
+		$enlace = miframe_app()->router->createRouteURL('repositories-detail', [ 'name' => $cfg_module, 'type' => $tipo ]);
+		$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => (miframe_app()->params->get('type') == $tipo));
 	}
 }
 
 
-$enlace = $this->router->createRouteURL('repositories-list');
+$enlace = miframe_app()->router->createRouteURL('repositories-list');
 
-menuApps($this->router, $tituloppal, $enlaces, "<a href=\"{$enlace}\">" . miframe_text('Listado de Repositorios') . "</a>");
+menuApps($tituloppal, $enlaces, "<a href=\"{$enlace}\">" . miframe_text('Listado de Repositorios') . "</a>");

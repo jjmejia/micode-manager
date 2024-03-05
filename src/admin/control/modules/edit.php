@@ -15,16 +15,16 @@ $listado = array();
 $m = new \miFrame\Local\AdminModules(true);
 
 // El nombre del repositorio lo tiene el Router
-$repo_name = $this->router->param('name');
+$repo_name = miframe_app()->router->param('name');
 $repo_info = false;
 $modulo_name = '';
 
 if (!$modulo_nuevo) {
 	// Clase selecta
-	$modulo = $this->post->getString('module');
+	$modulo = miframe_app()->post->getString('module');
 	$listado = $m->getAllModules('', $modulo);
 	if ($modulo == '' || !isset($listado[$modulo])) {
-		$this->router->abort(
+		miframe_app()->router->abort(
 			miframe_text('Parámetros incompletos'),
 			miframe_text('No se ha definido un nombre de módulo válido ($1)', $modulo)
 			);
@@ -35,7 +35,7 @@ if (!$modulo_nuevo) {
 }
 
 if ($repo_name == '') {
-	$this->router->abort(
+	miframe_app()->router->abort(
 		miframe_text('Parámetros incompletos'),
 		miframe_text('No se ha definido un nombre de repositorio válido')
 		);
@@ -54,35 +54,35 @@ if (!isset($datamodulo['type']) || $datamodulo['type'] == '') {
 	$datamodulo['type'] = 'php';
 }
 
-$this->startEditConfig();
+miframe_app()->startEditConfig();
 
 // Define valores iniciales
-$this->config->setDataValues($datamodulo, true);
+miframe_app()->config->setDataValues($datamodulo, true);
 
 $repo_path = miframe_path($_SERVER['DOCUMENT_ROOT'], $repo_info[$repo_name]['path']);
 
 // Configura validadores y helpers del objeto EditConfig
-$this->config->addValidator('newmodule', $modulo_nuevo);
-$this->config->addHelper('REPOSITORY_PATH', $repo_path);
-$this->config->addHelper('DOCUMENT_ROOT', $_SERVER['DOCUMENT_ROOT']);
+miframe_app()->config->addValidator('newmodule', $modulo_nuevo);
+miframe_app()->config->addHelper('REPOSITORY_PATH', $repo_path);
+miframe_app()->config->addHelper('DOCUMENT_ROOT', $_SERVER['DOCUMENT_ROOT']);
 
 $inifile = micode_modules_dataconfig_path('modules-repo-cfg.ini');
-$this->config->addConfigFile('miclase', $inifile);
+miframe_app()->config->addConfigFile('miclase', $inifile);
 
 // print_r($listado[$modulo]); echo "<hr>";
 // print_r($datamodulo); echo "<hr>";
 // print_r($this->config); echo "<hr>";
 
-if ($this->config->checkformRequest('configok') && ($modulo_name != '' || $modulo_nuevo)) {
+if (miframe_app()->config->checkformRequest('configok') && ($modulo_name != '' || $modulo_nuevo)) {
 
 	$redirigir = true;
 	$mensaje = '';
 	$modulo_name_nuevo = $modulo_name;
 
-	if ($this->config->unsaved('miclase')) {
+	if (miframe_app()->config->unsaved('miclase')) {
 		// Actualiza instancia actual
 
-		$arreglo = $this->config->getValues('miclase');
+		$arreglo = miframe_app()->config->getValues('miclase');
 		$dirbase = trim(str_replace('..', '_', $arreglo['dirbase']));
 
 		// module-name solo permite el "/" como carácter no alfanumerico
@@ -203,7 +203,7 @@ if ($this->config->checkformRequest('configok') && ($modulo_name != '' || $modul
 		$mensaje = miframe_text('Nada que actualizar');
 	}
 
-	$this->config->setMessage($mensaje);
+	miframe_app()->config->setMessage($mensaje);
 
 	if ($redirigir) {
 		// Envia a detalle (fija $_REQUEST['app'] para que sea capturado al invocar $Router->param)
@@ -218,4 +218,4 @@ if ($modulo == '') { $modulo = '?'; } // Se asegura muestre menu de repo
 
 $data_proyecto = array('nuevo' => $modulo_nuevo, 'module' => $modulo, 'form-hidden' => array('module' => $modulo));
 
-$this->startView('projects/edit.php', $data_proyecto);
+miframe_app()->startView('projects/edit.php', $data_proyecto);

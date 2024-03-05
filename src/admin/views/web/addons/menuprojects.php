@@ -6,10 +6,10 @@
  * @since Diciembre 2022
  */
 
-$cfg_type = $this->params->get('mirepo->type');
-$cfg_name = $this->params->get('config->project-name');
-$cfg_nuevo = $this->params->get('nuevo:bool');
-$data_repo = $this->params->get('mirepo', false);
+$cfg_type = miframe_app()->params->get('mirepo->type');
+$cfg_name = miframe_app()->params->get('config->project-name');
+$cfg_nuevo = miframe_app()->params->get('nuevo:bool');
+$data_repo = miframe_app()->params->get('mirepo', false);
 
 $arreglo = array();
 
@@ -35,8 +35,8 @@ if ($cfg_nuevo) { $tituloppal = 'Nuevo proyecto'; }
 $enlaces = array();
 
 foreach ($arreglo as $alias => $titulo) {
-	$enlace = $this->router->createRouteURL($alias, [ 'app' => $cfg_name ]);
-	$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($this->router->selectedRoute() == $alias));
+	$enlace = miframe_app()->router->createRouteURL($alias, [ 'app' => $cfg_name ]);
+	$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => (miframe_app()->router->selectedRoute() == $alias));
 }
 
 if (!$cfg_nuevo) {
@@ -48,4 +48,4 @@ if (!$cfg_nuevo) {
 	}
 }
 
-menuApps($this->router, $tituloppal, $enlaces);
+menuApps($tituloppal, $enlaces);

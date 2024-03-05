@@ -65,7 +65,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 		$this->setURIbase();
 		$this->initialize();
 		$this->clearRoutes();
-		$this->useRequestURI(false);
+		$this->useRequestURI();
 
 		// Definiciones
 		$this->script_filename = realpath(miframe_server_get('SCRIPT_FILENAME'));
@@ -741,11 +741,13 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 		$path = '';
 
 		// Busca referencia a funciones.
-		$pos = strrpos($filename, ':');
+		// "[archivo]::[función]" ó simplemente "::[función]"
+		$pos = strrpos($filename, '::');
 		// Ignora casos como "C:/xxxx" que corresponde a un nombre de archivo
+		// o "file://xxxx" o "https://xxxx" que serían referencias posiblemente válidas también.
 		if ($pos !== false && ($pos === 0 || $pos > 1)) {
 			$filename = trim(substr($action, 0, $pos));
-			$funcion = trim(substr($action, $pos + 1));
+			$funcion = trim(substr($action, $pos + 2));
 		}
 
 		if ($filename != '') {
@@ -773,7 +775,8 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 			$this->exportParamsInto($_REQUEST);
 		}
 		// Ejecuta include asegurando que esté aislado para no acceder a elementos privados de esta clase
-		if ($this->include($path, "INCLUDE {$reference} --> {$filename}")) {
+		$this->printDebug("INCLUDE {$reference} --> {$filename}");
+		if (miframe_include_file($path)) {
 			// Reporta ejecución exitosa solamente si no debe ejecutar alguna función adicionalmente
 			if ($funcion == '') {
 				$this->matchSuccessful = true;
@@ -894,9 +897,14 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 	 * @param string $message Mensaje
 	 * @param string $footnote Mensaje adicional (usualmente para mostrar en diferente formato)
 	 */
-	public function notFound(string $title, string $message, string $footnote = '') {
+	public function notFound(string $title = '', string $message = '', string $footnote = '') {
 
 		if (!$this->matchSuccessful) {
+			// Si no recibe título y mensaje, asigna automáticamente
+			if ($title == '' && $message == '') {
+				$title = miframe_text('Página no encontrada');
+				$message = miframe_text('La referencia **$1** no está asociada con una página valida.', $this->request());
+			}
 			$this->abort($title, $message, $footnote, '404 Not Found');
 		}
 	}
@@ -987,15 +995,12 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 			// En teoría, todo archivo script debería ser invocado por el WebServer y no pasado a este script
 			if (strtolower(substr($filename, -4)) == '.php' && $export_direct) {
-				// Cambia al directorio del archivo
-				chdir(dirname($filename));
-				// Ejecuta en modo privado
-				$this->include(
-					basename($filename),
-					miframe_text('READFILE: Script ejecutado localmente'),
-					miframe_text('Archivo $1', $filename),
-					true
+				$this->printDebug(miframe_text('READFILE: Script ejecutado localmente'),
+					miframe_text('Archivo $1', $filename)
 					);
+				// Cambia al directorio del archivo para que los enrutamiento en el archivo funcionen correctamente
+				chdir(dirname($filename));
+				miframe_include_file(basename($filename));
 			}
 			else {
 				// Envia archivo directamente a pantalla o para guardar
@@ -1220,7 +1225,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 
 		$mensaje = '';
 
-		if (!$this->jsonRequest()) {
+		if (!$this->isJSONRequest()) {
 			$mensaje = "<script>window.location='{$location}';</script>" .
 				miframe_text('Se está redireccionando a una nueva página.') .
 				"<a href=\"{$location}\">" . miframe_text('En caso que no se cargue la nueva página, puede hacerlo manualmente haciendo click aquí.') . "</a>.";
@@ -1349,7 +1354,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 		return $protocol . '://' . $server . $port . $path;
 	}
 
-	public function jsonRequest() {
+	public function isJSONRequest() {
 
 		$retornar = false;
 
@@ -1397,7 +1402,7 @@ class Router extends \miFrame\Interface\Shared\BaseClass {
 				'<li><b>Path base:</b> ' .			$this->getDirbase() . '</li>' . PHP_EOL .
 				'<li><b>Document Root:</b> ' .		$this->documentRoot() . '</li>' . PHP_EOL .
 				'<li><b>Script:</b> ' .				$this->scriptFilename() . '</li>' . PHP_EOL .
-				'<li><b>JSON:</b> ' .				($this->jsonRequest() ? 'true' : 'false') . '</li>' . PHP_EOL .
+				'<li><b>JSON:</b> ' .				($this->isJSONRequest() ? 'true' : 'false') . '</li>' . PHP_EOL .
 				'<li><b>Parámetros:</b> ' . 		$this->request() . '</li>' . PHP_EOL .
 				// Este print_r() puede hacer que la salida a pantalla se altere. Porqué?
 				// Cuando el parámetro return se usa, esta función utiliza el almacenamiento en búfer de salida interno,

@@ -16,7 +16,7 @@ class Views extends \miFrame\Interface\Shared\BaseClass {
 	private $seccion_default = array();
 	private $layout = array();
 	private $buffer = '';
-	private $view_name = '';
+	// private $view_name = '';
 	private $view_title = '';
 	private $start_engine = false;
 
@@ -42,13 +42,13 @@ class Views extends \miFrame\Interface\Shared\BaseClass {
 		}
 	}
 
-	public function setViewName(string $name) {
-		$this->view_name = $name;
-	}
+	// public function setViewName(string $name) {
+	// 	$this->view_name = $name;
+	// }
 
 	public function fileView(string $basename) {
 
-		return miframe_path($this->path_files, $this->view_name, $basename);
+		return miframe_path($this->path_files, $basename);
 	}
 
 	/**
@@ -216,7 +216,8 @@ class Views extends \miFrame\Interface\Shared\BaseClass {
 			}
 			if ($path !== '') {
 				$this->start($namesection);
-				$this->include($path, $info_path);
+				$this->printDebug($info_path);
+				miframe_include_file($path);
 				$this->stop();
 			}
 			else {
@@ -309,7 +310,7 @@ class Views extends \miFrame\Interface\Shared\BaseClass {
 		}
 		else {
 			// Salida a pantalla final
-			$this->include($this->layout['file']); //, 'LAYOUT ' . $this->layout['file']);
+			miframe_include_file($this->layout['file']); //, 'LAYOUT ' . $this->layout['file']);
 
 			// Limpia ya que terminó
 			$this->layout['file'] = '';

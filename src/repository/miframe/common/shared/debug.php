@@ -49,10 +49,7 @@ function miframe_debug_backtrace_info(array $track = null, string $function = ''
 	// Retorna invocacion hacia atras
 	$ultimo_track = '';
 	foreach ($track as $idebug => $infotrack) {
-		if ($infotrack['function'] == __FUNCTION__
-			// Ignora si es miframe_error() invocado desde functions.php?
-			// || ($infotrack['function'] == 'miframe_error' && basename($infotrack['file']) == 'functions.php')
-			) {
+		if ($infotrack['function'] == __FUNCTION__) {
 			// print_r($infotrack); echo "<hr>";
 			continue;
 		}

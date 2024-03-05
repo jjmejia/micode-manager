@@ -5,9 +5,9 @@
  * @author John Mejia (C) Abril 2022.
  */
 
-$app_name = strtolower($this->router->param('app'));
+$app_name = strtolower(miframe_app()->router->param('app'));
 if ($app_name == '') {
-	$this->router->abort(
+	miframe_app()->router->abort(
 		miframe_text('Parámetros incompletos'),
 		miframe_text('No se ha definido nombre del Proyecto a actualizar')
 		);
@@ -31,9 +31,9 @@ if (file_exists($filename)) {
 
 }
 
-$data = $this->router->getDataReloaded(true);
+$data = miframe_app()->router->getDataReloaded(true);
 if (is_array($data) && isset($data['msg'])) {
 	$data_proyecto['mensajes'] = $data['msg'];
 }
 
-$this->startView('projects/info.php', $data_proyecto);
+miframe_app()->startView('projects/info.php', $data_proyecto);

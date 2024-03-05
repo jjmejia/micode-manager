@@ -11,26 +11,26 @@
 include_once __DIR__ . '/subs.php';
 
 // /public/favicon.png
-$micode_logo = $this->router->createURL('favicon.png');
+$micode_logo = miframe_app()->router->createURL('favicon.png');
 
 ?>
 <html>
 <head>
-	<title>miCode - <?= $this->params->get('author:e') ?></title>
+	<title>miCode - <?= miframe_app()->params->get('author:e') ?></title>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<link rel="icon" type="image/x-icon" href="<?= $micode_logo ?>">
-	<link rel="stylesheet" href="<?= str_replace('/tests/', '/', $this->router->createURL('resources/css/micode.css')) ?>">
+	<link rel="stylesheet" href="<?= str_replace('/tests/', '/', miframe_app()->router->createURL('resources/css/micode.css')) ?>">
 </head>
 
 
 <div class="header">
 	<div class="header-logo"><img src="<?= $micode_logo ?>" width="18"></div>
-	<b><a href="<?= $this->router->documentRoot() ?>"><span class="micode-main"><?= $this->params->get('page-title:e') ?></span> - <?= strtoupper($this->params->get('author:e')) ?></a></b>
-	<div class="session-info"><small><?= $this->params->get('author-email:e') ?></small></div>
+	<b><a href="<?= miframe_app()->router->documentRoot() ?>"><span class="micode-main"><?= miframe_app()->params->get('page-title:e') ?></span> - <?= strtoupper(miframe_app()->params->get('author:e')) ?></a></b>
+	<div class="session-info"><small><?= miframe_app()->params->get('author-email:e') ?></small></div>
 </div>
 
 <nav class="nav-main-app">
-<?= $this->view->get('menu') ?>
+<?= miframe_app()->view->get('menu') ?>
 </nav>
 
 <div class="container">
@@ -38,7 +38,7 @@ $micode_logo = $this->router->createURL('favicon.png');
 	<?php
 
 	// Botones de acción en cada página
-	if ($this->params->get('page-buttons:count') > 0) {
+	if (miframe_app()->params->get('page-buttons:count') > 0) {
 
 	?>
 
@@ -47,7 +47,7 @@ $micode_logo = $this->router->createURL('favicon.png');
 	<?php
 
 		$primero = true;
-		foreach ($this->params->get('page-buttons') as $enlace => $titulo) {
+		foreach (miframe_app()->params->get('page-buttons') as $enlace => $titulo) {
 			// Valida enlace
 			$params = array();
 			if (is_array($titulo)) {
@@ -59,7 +59,7 @@ $micode_logo = $this->router->createURL('favicon.png');
 					unset($params['_title']);
 				}
 			}
-			$enlace = $this->router->createRouteURL($enlace, $params);
+			$enlace = miframe_app()->router->createRouteURL($enlace, $params);
 			// Procede a la presentación
 			$clase = 'btn';
 			if ($primero) {
@@ -78,7 +78,7 @@ $micode_logo = $this->router->createURL('favicon.png');
 
 	?>
 
-	<?= $this->view->get('contenido'); ?>
+	<?= miframe_app()->view->get('contenido'); ?>
 
 	<div class="foot">
 		<b>miFrame</b> &copy; <?= date('Y') ?>

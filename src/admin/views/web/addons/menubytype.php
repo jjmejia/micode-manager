@@ -8,11 +8,11 @@
 
 $title = '';
 $pre = '';
-if ($this->router->requestStartWith('modules')) {
+if (miframe_app()->router->requestStartWith('modules')) {
 	$title = miframe_text('Listado de Módulos');
 	$pre = 'modules-list';
 }
-elseif ($this->router->requestStartWith('localtests')) {
+elseif (miframe_app()->router->requestStartWith('localtests')) {
 	$title = miframe_text('Listado de Tests');
 	$pre = 'localtests-list';
 }
@@ -20,7 +20,7 @@ elseif ($this->router->requestStartWith('localtests')) {
 // Recupera tipos validos
 $validos = micode_modules_types();
 $enlaces = array();
-$tiposvalidos = $this->params->get('tiposvalidos');
+$tiposvalidos = miframe_app()->params->get('tiposvalidos');
 
 foreach ($validos as $tipo => $titulo) {
 	// Valida si definió $tiposvalidos correctamente o si ignora
@@ -28,9 +28,9 @@ foreach ($validos as $tipo => $titulo) {
 		if (!isset($tiposvalidos[$tipo])) { continue; }
 		$titulo .= ' (' . count($tiposvalidos[$tipo]) . ')';
 	}
-	$enlace = $this->router->createRouteURL($pre, [ 'type' => $tipo ]);
+	$enlace = miframe_app()->router->createRouteURL($pre, [ 'type' => $tipo ]);
 
-	$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($this->params->get('type') == $tipo));
+	$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => (miframe_app()->params->get('type') == $tipo));
 }
 
-menuApps($this->router, $title, $enlaces);
+menuApps($title, $enlaces);

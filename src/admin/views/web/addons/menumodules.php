@@ -6,9 +6,9 @@
  * @since Diciembre 2022
  */
 
-$cfg_type = $this->params->get('type');
-$cfg_module = $this->params->get('module');
-// $paths = explode('/', $cfg_module);
+$cfg_type = miframe_app()->params->get('type');
+$cfg_module = miframe_app()->params->get('module');
+
 $repo_name = '';
 
 $arreglo = array(
@@ -21,33 +21,28 @@ $tituloppal = '';
 $enlaces = array();
 $enlace_modulos = '';
 
-if (!$this->params->get('nuevo:bool')) {
+if (!miframe_app()->params->get('nuevo:bool')) {
 	$tituloppal = miframe_text('Módulo $1', htmlspecialchars($cfg_module));
 	// Enlaces
 	$enlaces = array();
 
 	foreach ($arreglo as $alias => $titulo) {
-		$enlace = $this->router->createRouteURL($alias, [ 'module' => $cfg_module ]);
-		// $comparar = explode('?', $llave);
-		$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($this->router->selectedRoute() == $alias));
-		// echo "$cmd -- {$comparar[0]}<hr>";
+		$enlace = miframe_app()->router->createRouteURL($alias, [ 'module' => $cfg_module ]);
+		$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => (miframe_app()->router->selectedRoute() == $alias));
 	}
 
 	// Enlace a página de módulos
-	$enlace = $this->router->createRouteURL('modules-list', [ 'type' => $cfg_type ]);
+	$enlace = miframe_app()->router->createRouteURL('modules-list', [ 'type' => $cfg_type ]);
 	$enlace_modulos = "<a href=\"{$enlace}\">" . miframe_text('Listado de Módulos') . "</a>";
 }
 else {
-	$repo_name = $this->router->param('name');
-	// $paths[0] contiene el nombre del repositorio, lo toma del "Router"
+	$repo_name = miframe_app()->router->param('name');
+	// $repo_name contiene el nombre del repositorio, lo toma del "Router"
 	// (en este caso se invoca desde "modules/create/[repositorio]")
-	// $paths = array($repo_name);
 	$tituloppal = miframe_text('Nuevo Módulo para repositorio "$1"', $repo_name);
 
-	$enlace_repo = $this->router->createRouteURL('repositories-detail', [ 'name' => $repo_name, 'type' => $cfg_type]);
+	$enlace_repo = miframe_app()->router->createRouteURL('repositories-detail', [ 'name' => $repo_name, 'type' => $cfg_type]);
 	$enlace_modulos = "<a href=\"{$enlace_repo}\">" . miframe_text('Repositorio $1', $repo_name) . "</a>";
 }
 
-menuApps($this->router, $tituloppal, $enlaces,
-	$enlace_modulos
-);
+menuApps($tituloppal, $enlaces,	$enlace_modulos);

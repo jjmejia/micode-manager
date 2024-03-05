@@ -14,16 +14,16 @@ $m->getAllModules();
 $listado = $m->getAllRepos();
 
 foreach ($listado as $clase => $data) {
-	$listado[$clase]['url'] = $this->router->createRouteURL('repositories-detail', [ 'name' => $clase, 'type' => '' ]);
+	$listado[$clase]['url'] = miframe_app()->router->createRouteURL('repositories-detail', [ 'name' => $clase, 'type' => '' ]);
 	$listado[$clase]['dirbase'] = miframe_path($_SERVER['DOCUMENT_ROOT'], $data['path']);
 }
 
 $data_proyecto = array( 'listado' => $listado );
 // Valida valores fijados por ej. al crear proyecto
 // if (isset($mensajes)) { $data_proyecto['mensajes'] = $mensajes; }
-$data = $this->router->getDataReloaded(true);
+$data = miframe_app()->router->getDataReloaded(true);
 if ($data !== false && is_array($data) && isset($data['msg'])) {
 	$data_proyecto['mensajes'] = $data['msg'];
 }
 
-$this->startView('repos/list.php', $data_proyecto);
+miframe_app()->startView('repos/list.php', $data_proyecto);

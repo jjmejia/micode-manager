@@ -7,15 +7,15 @@
  */
 
 // Tipo selecto
-$clase = $this->router->param('name');
-$type = $this->router->param('type');
+$clase = miframe_app()->router->param('name');
+$type = miframe_app()->router->param('type');
 
 $m = new \miFrame\Local\AdminModules(true);
 
 $listado = $m->getAllRepos($clase);
 
 if ($clase == '' || !isset($listado[$clase])) {
-	$this->router->abort(
+	miframe_app()->router->abort(
 		miframe_text('Parámetros incompletos'),
 		miframe_text('No se ha definido un nombre de repositorio válido ($1)', $clase)
 		);
@@ -29,7 +29,7 @@ $tiposvalidos = array();
 
 foreach ($modulos as $modulo => $data) {
 	$tiposvalidos[$data['type']][] = $modulo;
-	$modulos[$modulo]['url'] = $this->router->createRouteURL('modules-detail', [ 'module' => $modulo ]);
+	$modulos[$modulo]['url'] = miframe_app()->router->createRouteURL('modules-detail', [ 'module' => $modulo ]);
 	$modulos[$modulo]['dirbase'] = $m->getDirBase($modulo);
 }
 
@@ -49,7 +49,7 @@ if ($type == '') {
 if ($type != '' && !isset($validos[$type])) {
 	// No hay  módulos validos?
 	// Si $type != '', es un tipo erradp. Si está en blanco, puede deberse a que el repositorio está en blanco
-	$this->router->abort(
+	miframe_app()->router->abort(
 		miframe_text('Parámetros incorrectos'),
 		miframe_text('El tipo indicado ($2) no es uno de los tipos validos: *$1*', implode(', ', array_keys($validos)), $type)
 		);
@@ -70,4 +70,4 @@ $data_proyecto = array(
 	'type' => $type
 	);
 
-$this->startView('modules/list.php', $data_proyecto);
+miframe_app()->startView('modules/list.php', $data_proyecto);

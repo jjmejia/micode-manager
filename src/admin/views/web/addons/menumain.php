@@ -15,15 +15,15 @@ $arreglo = array(
 );
 
 // Se asegura que haya configurado "sistema.ini"
-if ($this->userEmail() == '') {
+if (miframe_app()->userEmail() == '') {
 	$arreglo = array('settings' => 'Configuración');
 }
 
 $enlaces = array();
 
 foreach ($arreglo as $alias => $titulo) {
-	$enlace = $this->router->createRouteURL($alias);
-	$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => ($this->router->selectedRoute() == $alias));
+	$enlace = miframe_app()->router->createRouteURL($alias);
+	$enlaces[] = array('url' => $enlace, 'titulo' => $titulo, 'selecto' => (miframe_app()->router->selectedRoute() == $alias));
 }
 
-menuApps($this->router, '', $enlaces);
+menuApps('', $enlaces);

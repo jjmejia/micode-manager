@@ -6,7 +6,7 @@
  * @since Abril 2022
  */
 
-$this->params->set('page-buttons', [
+miframe_app()->params->set('page-buttons', [
 	"repositories-create" => miframe_text('Adicionar repositorio'),
 	// 'modules/newrepo' => miframe_text('Nuevo repositorio'),
 	// 'repositories/import' => miframe_text('Importar repositorio')
@@ -15,15 +15,15 @@ $this->params->set('page-buttons', [
 ?>
 
 <p class="info">
-	<?= $this->params->iif('listado:empty', "<i>No hay repositorios creados aun.</i>", "<b>" . $this->params->get('listado:count') . "</b> repositorios encontrados") ?>
+	<?= miframe_app()->params->iif('listado:empty', "<i>No hay repositorios creados aun.</i>", "<b>" . miframe_app()->params->get('listado:count') . "</b> repositorios encontrados") ?>
 </p>
 
-<?= $this->params->implode('mensajes', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
+<?= miframe_app()->params->implode('mensajes', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
 
 <?php
 
-if ($this->params->get('listado:count') > 0) {
-	foreach ($this->params->get('listado:e') as $name => $data) {
+if (miframe_app()->params->get('listado:count') > 0) {
+	foreach (miframe_app()->params->get('listado:e') as $name => $data) {
 		// Busca información del proyecto listado
 		$uname = urlencode($name);
 		$name = htmlspecialchars($name);
@@ -36,9 +36,9 @@ if ($this->params->get('listado:count') > 0) {
 		if ($enlace_url != '') {
 			$enlace = "<a href=\"$enlace_url\">{$name} {$total}</a>";
 		}
-		$enlace_editar = $this->router->createRouteURL('repositories-edit', [ 'name' => $name ]);
+		$enlace_editar = miframe_app()->router->createRouteURL('repositories-edit', [ 'name' => $name ]);
 
-		$this->view->buffer(
+		miframe_app()->view->buffer(
 			"<div class=\"box\"><h3>" .
 			$enlace .
 			"<span class=\"label-tipo label-edit\"><a href=\"{$enlace_editar}\">Editar</a></span>" .

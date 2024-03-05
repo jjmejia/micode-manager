@@ -6,7 +6,7 @@
  * @since Noviembre 2022.
  */
 
-$e = function() {
+$ex = function() {
 	if (count($_REQUEST) <= 0 || isset($_REQUEST['check-externals-update'])) {
 		include_once __DIR__ . '/../class/EvalMiCode.php';
 		try {
@@ -21,7 +21,7 @@ $e = function() {
 };
 
 // Ejecuta función temporal
-$e();
+$ex();
 
 // Remueve para no afectar el resto del sistema
-unset($e);
+unset($ex);

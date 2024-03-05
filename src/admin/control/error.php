@@ -9,6 +9,6 @@
 $data = array();
 
 // Exporta parámetros de Router a $data
-$this->router->exportParamsInto($data);
+miframe_app()->router->exportParamsInto($data);
 
-$this->startView('error.php', $data);
+miframe_app()->startView('error.php', $data);

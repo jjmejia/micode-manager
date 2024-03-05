@@ -6,9 +6,9 @@
  * @since Abril 2022
  */
 
-$type = $this->router->param('type', 'php');
+$type = miframe_app()->router->param('type', 'php');
 if (!micode_modules_eval_type($type)) {
-	$this->router->abort(
+	miframe_app()->router->abort(
 			miframe_text('Parámetros incorrectos'),
 			miframe_text('Tipo de módulos a recuperar no es valido ($1).', $type)
 			);
@@ -22,7 +22,7 @@ $tiposvalidos = array();
 foreach ($listado as $modulo => $data) {
 	$tiposvalidos[$data['type']][] = $modulo;
 	if ($data['type'] == $type) {
-		$listado[$modulo]['url'] = $this->router->createRouteURL('modules-detail', [ 'module' => $modulo ]);
+		$listado[$modulo]['url'] = miframe_app()->router->createRouteURL('modules-detail', [ 'module' => $modulo ]);
 		$listado[$modulo]['dirbase'] = $m->getDirBase($modulo);
 	}
 	else {
@@ -30,4 +30,4 @@ foreach ($listado as $modulo => $data) {
 	}
 }
 
-$this->startView('modules/list.php', [ 'listado' => $listado, 'type' => $type, 'tiposvalidos' => $tiposvalidos ]);
+miframe_app()->startView('modules/list.php', [ 'listado' => $listado, 'type' => $type, 'tiposvalidos' => $tiposvalidos ]);

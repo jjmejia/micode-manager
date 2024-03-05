@@ -6,4 +6,4 @@
  * @since Diciembre 2022
  */
 
-echo htmlentities($this->params->show());
+echo htmlentities(miframe_app()->params->show());

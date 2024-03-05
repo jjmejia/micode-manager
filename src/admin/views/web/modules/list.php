@@ -8,29 +8,26 @@
 
 // Lista modulos encontrados
 
-$tipo = $this->params->get('type');
-$reponame = $this->params->get('reponame');
+$tipo = miframe_app()->params->get('type');
+$reponame = miframe_app()->params->get('reponame');
 $show_infotipo = ($tipo == '');
 
 if ($reponame != '') {
-	$this->params->set('page-buttons', array(
+	miframe_app()->params->set('page-buttons', array(
 		'modules-create' => [ '_title' => miframe_text('Nuevo módulo'), 'name' => $reponame ],
 		));
 }
 
-if ($this->params->get('listado:count') <= 0) {
-	// $this->view->buffer("<p>No hay módulos " . htmlspecialchars($tipo) . " creados aun</p>");
-	$this->view->buffer("<p>No hay módulos creados aun.</p>");
+if (miframe_app()->params->get('listado:count') <= 0) {
+	miframe_app()->view->buffer("<p>No hay módulos creados aun.</p>");
 }
 
 
-$this->view->buffer($this->params->implode('mensajes', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>'));
+miframe_app()->view->buffer(miframe_app()->params->implode('mensajes', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>'));
 
-// $this->view->buffer($this->params->iif('repodata->path', '<p><b>Ubicación:</b> /{{ repodata->path:e }}</p>'));
+if (miframe_app()->params->get('listado:count') > 0) {
 
-if ($this->params->get('listado:count') > 0) {
-
-	foreach ($this->params->get('listado:e') as $modulo => $data) {
+	foreach (miframe_app()->params->get('listado:e') as $modulo => $data) {
 
 		// Obtiene listado para cada uno
 
@@ -39,7 +36,7 @@ if ($this->params->get('listado:count') > 0) {
 
 		if (!isset($data['type'])) {
 			// Archivo sin documentación asociada
-			$this->view->buffer(
+			miframe_app()->view->buffer(
 				"<div class=\"box\"><h3>" .
 				$modulo .
 				$tipo_encode .
@@ -75,11 +72,10 @@ if ($this->params->get('listado:count') > 0) {
 			$infotipo = "<span class=\"label-tipo\">{$data['type']}</span>";
 		}
 		// $umodulo = urlencode($modulo);
-		$utype = $this->params->get('type:e');
+		$utype = miframe_app()->params->get('type:e');
 		$basename = $modulo;
-		// if (isset($data['islocal']) && $data['islocal'] != '') { $basename = $data['islocal']; }
 		$enlace = $data['url'];
-		$this->view->buffer(
+		miframe_app()->view->buffer(
 			"<div class=\"box\"><h3>" .
 			"<a href=\"{$enlace}\">{$modulo}</a>" .
 			$infotipo .

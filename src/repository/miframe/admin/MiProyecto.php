@@ -7,7 +7,6 @@
  * @micode-uses miframe-interface-views
  * @micode-uses miframe-interface-request
  * @micode-uses miframe-interface-editconfig
- * @micode-uses miframe-utils-htmlsupport
  * @author John Mejia
  * @since Abril 2022
  * @version 1.0.0
@@ -22,7 +21,7 @@ use \miFrame\Interface\Request 	  as miRequest;
 use \miFrame\Interface\RouterIni  as miRouter;
 use \miFrame\Interface\EditConfig as miEditConfig;
 use \miFrame\Interface\Params 	  as miParams;
-use \miFrame\Utils\UI\HTMLSupport as miHTML;
+// use \miFrame\Utils\UI\HTMLSupport as miHTML;
 
 class MiProyecto { // extends Router
 
@@ -31,9 +30,8 @@ class MiProyecto { // extends Router
 	private $view = false;			// Objeto interface/Views
 	private $post = false;			// Objeto interface/Request
 	private $router = false;		// Objeto interface/Router
-	private $config = false;		// Objeto interface/EditConfig
+	private $config = false;		// Objeto interface/EditConfig <-- VALIDAR SI SE REQUIERE GLOBAL
 	private $params = false;		// Objeto interface/Params
-	private $html = false;			// Objeto Utils/UI/HTMLSupport
 	private $date_start = 0;
 
 	public function __construct() {
@@ -48,24 +46,9 @@ class MiProyecto { // extends Router
 		$this->post = new miRequest();
 		$this->view = new miViews();
 		$this->params = new miParams();
-		$this->html = new miHTML();
-
-		// Para uso en HTMLSupportTrait
-		// $this->html->setFilenameCSS(__DIR__ . '/miproyecto-styles.css');
 
 		// Exportar al REQUEST
 		$this->router->autoExport = true;
-
-		// Redefine include a usar en Router y View para que cuando se invoquen, "$this" haga
-		// referencia a este objeto (MiProyecto).
-		$this->router->setIncludeFun(array($this, 'includeFile'));
-
-		// Debe ir antes que se genere cualquier posible invocación a includes (sea por layout o error)
-		$this->view->setIncludeFun(array($this, 'includeFile'));
-
-		// Registra estilos para boxes
-		// miframe_data_put('miframe-box-css', $this->html->getStylesCSS());
-
 	}
 
 	public function executionTime() {
@@ -78,21 +61,29 @@ class MiProyecto { // extends Router
 		echo miframe_debug_box($t, 'Execution Time (' . $text . ')');
 	}
 
-	public function initializeJson() {
+	public function validateJSONRequest(string $api_starts_with = '') {
 
-		$this->router->forceJSON(true);
+		$resultado = (($api_starts_with != '' && $this->router->requestStartWith($api_starts_with)) ||
+			$this->router->isJSONRequest());
 
-		// Informa que la salida es en JSON
-		header('Content-Type: application/json');
+		if ($resultado) {
+
+			$this->router->forceJSON(true);
+
+			// Informa que la salida es en JSON
+			header('Content-Type: application/json');
+		}
+
+		return $resultado;
 	}
 
-	public function loadView(string $name) {
+	public function loadViews(string $path_views) {
 
-		$this->view->setViewName($name);
+		$this->view->setPathFiles($path_views);
 
 		$filename = $this->view->fileView('config-view.ini');
 
-		if ($name == '' || !file_exists($filename)) {
+		if (!file_exists($filename)) {
 			miframe_error('No se ha indicado una Vista valida');
 		}
 
@@ -128,11 +119,6 @@ class MiProyecto { // extends Router
 
 		$this->params->append($data);
 		$this->view->capture($filename);
-	}
-
-	public function includeFile(string $filename) {
-
-		include_once $filename;
 	}
 
 	/**
@@ -181,8 +167,24 @@ class MiProyecto { // extends Router
 	 *
 	 * @return bool TRUE si ya tiene datos registrados para correo y nombre de usuario, FALSE en otro caso.
 	 */
-	public function existsDataProject() {
-		return (trim($this->userEmail()) !== '' && trim($this->userName()) !== '');
+	public function validateDataProject(string $action = '') {
+
+		$resultado = (trim($this->userEmail()) !== '' && trim($this->userName()) !== '');
+		if (!$resultado) {
+			// miframe_is_web() retorna FALSE para consultas JSON o por consola
+			if ($action == '' || !miframe_is_web()) {
+				$this->router->abort(
+					miframe_text('Datos de proyecto no configurados'),
+					miframe_text('Contacte al Administrador para configurar correctamente el sistema.')
+					);
+			}
+			else {
+				// Ejecuta solamente si la consulta es via Web
+				return $this->router->runAction($action, '(settings-check)');
+			}
+		}
+
+		return $resultado;
 	}
 
 	/**
@@ -288,7 +290,7 @@ class MiProyecto { // extends Router
 		// Valida alguna de los objetos privados
 		// Se maneja de esta forma (y no declarando cada objeto como tipo publico) para prevenir que
 		// sea modificado el objeto como tal por accidente.
-		$validos = [ 'view', 'post', 'router', 'config' ];
+		$validos = [ 'view', 'post', 'router', 'config', 'params' ];
 		if (in_array($name, $validos)) {
 			if ($this->$name === false) {
 				// Intenta acceder a un objeto no declarado aun

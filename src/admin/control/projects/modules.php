@@ -5,14 +5,17 @@
  * @author John Mejia (C) Abril 2022.
  */
 
+// ********************************
+// PENDIENTE: revisar array_search y in_array para remplazar en lo posible por isset()
+// ********************************
 
 // opcion para reconstruir solo los modulos modificados
 // el nombre del parametro rebuildxxx debiera fijarse aca para evitar inconvenientes
 // y asi con todos los parametros
 
-$app_name = strtolower($this->router->param('app'));
+$app_name = strtolower(miframe_app()->router->param('app'));
 if ($app_name == '') {
-	$this->router->abort(
+	miframe_app()->router->abort(
 		miframe_text('Parámetros incompletos'),
 		miframe_text('No se ha definido nombre del Proyecto a actualizar')
 		);
@@ -26,7 +29,7 @@ $path_modulos = micode_modules_path($app_name, true, $data_repo);
 $type = $data_proyecto['mirepo']['type'];
 
 if ($path_modulos == '') {
-	$this->router->abort(
+	miframe_app()->router->abort(
 		miframe_text('Acceso restringido al servidor'),
 		miframe_text('No pudo crear directorio para copiar los archivos al proyecto **$1**', $app_name)
 		);
@@ -42,7 +45,7 @@ $mensajes = array();
 // - seleccionado en "add" lo pasa a "pre" y crea archivos locales
 // - seleccionado en "del" elimina directorio local (ya no existen en el repositorio global)
 
-$proceder = ($this->post->getString('modulok') != '');
+$proceder = (miframe_app()->post->getString('modulok') != '');
 
 //**********************************************************
 
@@ -51,9 +54,9 @@ $data_proyecto_add = &$data_proyecto['modules']['add'];
 // POST (modulok) se usa como control
 if ($proceder || count($data_proyecto_add) > 0) {
 
-	$user['pre'] = $this->post->getArray('pre');
-	$user['new'] = $this->post->getArray('new');
-	$user['del'] = $this->post->getArray('del');
+	$user['pre'] = miframe_app()->post->getArray('pre');
+	$user['new'] = miframe_app()->post->getArray('new');
+	$user['del'] = miframe_app()->post->getArray('del');
 
 	// Alias para elementos de $data_proyecto
 	$data_proyecto_pre = &$data_proyecto['modules']['pre'];
@@ -72,7 +75,7 @@ if ($proceder || count($data_proyecto_add) > 0) {
 
 	// Reconstruir los archivos actuales (si desmarca alguno de los instalados, no lo incluye en la
 	// actualización).
-	$rebuildall = strtolower($this->post->getString('rebuild'));
+	$rebuildall = strtolower(miframe_app()->post->getString('rebuild'));
 	if ($rebuildall != '') {
 		foreach ($user['pre'] as $k => $modulo) {
 			if ($rebuildall == 'all' || (
@@ -281,4 +284,4 @@ if ($proceder || count($data_proyecto_add) > 0) {
 
 $data_proyecto['mensajes'] = $mensajes;
 
-$this->startView('projects/modules.php', $data_proyecto);
+miframe_app()->startView('projects/modules.php', $data_proyecto);

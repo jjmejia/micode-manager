@@ -46,7 +46,7 @@
 
 include_once MIFRAME_LIBADMIN_PATH . '/modules/edit-support.php';
 
-$this->startEditConfig();
+miframe_app()->startEditConfig();
 
 $app_name = '';
 $app_path = '';
@@ -69,9 +69,9 @@ if (!$proyecto_nuevo) {
 	// *************************************************************
 	// EDICION DE PROYECTOS EXISTENTES
 	// *************************************************************
-	$app_name_local = strtolower($this->router->param('app'));
+	$app_name_local = strtolower(miframe_app()->router->param('app'));
 	if ($app_name_local == '') {
-		$this->router->abort(
+		miframe_app()->router->abort(
 			miframe_text('Parámetros incompletos'),
 			miframe_text('No se ha definido nombre del Proyecto a actualizar')
 		);
@@ -97,7 +97,7 @@ if (!$proyecto_nuevo) {
 	$path_modulos = micode_modules_path($app_name, false, $data_repo);
 
 	if ($path_modulos == '') {
-		$this->router->abort(
+		miframe_app()->router->abort(
 			miframe_text('Acceso restringido al servidor'),
 			miframe_text('No pudo crear directorio para copiar los archivos al proyecto')
 			);
@@ -106,22 +106,22 @@ if (!$proyecto_nuevo) {
 	// Archivo de proyecto
 	$inifile = miframe_path($path_modulos, 'config', 'miproyecto.ini');
 }
-elseif ($this->config->formSubmitted('configok')) {
+elseif (miframe_app()->config->formSubmitted('configok')) {
 	// *************************************************************
 	// CREACION DE NUEVOS PROYECTOS
 	// *************************************************************
 	// Proyecto nuevo, toma el nombre del proyecto y el path destino.
-	$app_name_local = $this->post->getString($this->config->formName('app-name-original'));
+	$app_name_local = miframe_app()->post->getString(miframe_app()->config->formName('app-name-original'));
 	// Opcional, si no se indica se crea directorio destino en el DOCUMENT_ROOT
-	$app_path = str_replace('..', '', $this->post->getString($this->config->formName('path')));
+	$app_path = str_replace('..', '', miframe_app()->post->getString(miframe_app()->config->formName('path')));
 	// Opcional, si no se indica usa "micode"
-	$app_module_sub = str_replace('..', '', $this->post->getString($this->config->formName('app-modules')));
+	$app_module_sub = str_replace('..', '', miframe_app()->post->getString(miframe_app()->config->formName('app-modules')));
 
 	if ($app_name_local == '') {
-		$this->config->setMessage(miframe_text('No se indicó nombre del proyecto'));
+		miframe_app()->config->setMessage(miframe_text('No se indicó nombre del proyecto'));
 	}
 	elseif ($app_path == '') {
-		$this->config->setMessage(miframe_text('No se indicó el directorio para ubicar el proyecto'));
+		miframe_app()->config->setMessage(miframe_text('No se indicó el directorio para ubicar el proyecto'));
 	}
 	else {
 		// Consideraciones:
@@ -138,7 +138,7 @@ elseif ($this->config->formSubmitted('configok')) {
 			$data = micode_modules_repo($app_name, $file_repo);
 			$temporal = (isset($data['temporal']) && $data['temporal'] == true);
 			if (!$temporal) {
-				$this->config->setMessage(miframe_text('El nombre de proyecto "$1" ya está en uso', $app_name));
+				miframe_app()->config->setMessage(miframe_text('El nombre de proyecto "$1" ya está en uso', $app_name));
 				$app_name = '';
 			}
 		}
@@ -148,7 +148,7 @@ elseif ($this->config->formSubmitted('configok')) {
 		// El path destino debe estar referido al DOCUMENT_ROOT y no debe existir
 		if (is_dir($dir_final)) {
 			if (!$temporal) {
-				$this->config->setMessage(miframe_text('El directorio destino "$1" ya existe', $base_final));
+				miframe_app()->config->setMessage(miframe_text('El directorio destino "$1" ya existe', $base_final));
 				$app_name = '';
 			}
 		}
@@ -156,14 +156,14 @@ elseif ($this->config->formSubmitted('configok')) {
 		$path_repo = dirname($file_repo);
 
 		if (!miframe_mkdir($path_repo)) {
-			$this->config->setMessage(miframe_text('No pudo crear directorio $1.', $path_repo));
+			miframe_app()->config->setMessage(miframe_text('No pudo crear directorio $1.', $path_repo));
 			$app_name = '';
 		}
 		if ($app_name != '') {
 			// Inicializa $data_proyecto
 			$data_proyecto['config']['path'] = $dir_final;
 			$data_proyecto['readme-path'] = micode_modules_readme($base_final);
-			$since = $this->post->getString($this->config->formName('since'));
+			$since = miframe_app()->post->getString(miframe_app()->config->formName('since'));
 			if ($since == '') { $since = date('Y-m-d'); }
 			// Guarda archivo con los datos actuales.
 			$data_repo = array(
@@ -184,12 +184,12 @@ elseif ($this->config->formSubmitted('configok')) {
 			if (!is_dir($dirname)) {
 				// Crea directorio destino
 				if (!miframe_mkdir($dirname)) {
-					$this->config->setMessage(miframe_text('No pudo crear directorio $1.', $dirname));
+					miframe_app()->config->setMessage(miframe_text('No pudo crear directorio $1.', $dirname));
 				}
 			}
 			elseif (file_exists($inifile) && !$temporal) {
 				// Archivo ya creado y no está haciendo una actualización de datos ($temporal = true)
-				$this->config->setMessage(miframe_text('El archivo de proyecto ya existe en el servidor.'));
+				miframe_app()->config->setMessage(miframe_text('El archivo de proyecto ya existe en el servidor.'));
 			}
 
 			// Todo OK, preserva configuración actual (no guarda el path)
@@ -211,18 +211,18 @@ elseif ($this->config->formSubmitted('configok')) {
 // miframe_debug_pause($inifile);
 
 if ($inifile != '') {
-	$this->config->createDirbase = true;
-	if (!$this->config->loadData('miproyecto', $inifile, true) && !$temporal) {
-		$this->router->abort(
+	miframe_app()->config->createDirbase = true;
+	if (!miframe_app()->config->loadData('miproyecto', $inifile, true) && !$temporal) {
+		miframe_app()->router->abort(
 			miframe_text('Acceso restringido al servidor'),
 			miframe_text('No pudo acceder al archivo/directorio de configuración de proyecto **$1**', $inifile)
 			);
 	}
-	$this->config->createDirbase = false;
+	miframe_app()->config->createDirbase = false;
 
 	// Complementa los datos de "miproyecto" con la data registrada en sistema
-	if (!$this->config->loadData('mirepo', $file_repo)) {
-		$this->router->abort(
+	if (!miframe_app()->config->loadData('mirepo', $file_repo)) {
+		miframe_app()->router->abort(
 			miframe_text('Acceso restringido al servidor'),
 			miframe_text('No pudo acceder al archivo/directorio de configuración global **$1**', $file_repo)
 			);
@@ -231,38 +231,38 @@ if ($inifile != '') {
 	// Datos locales (opcionales)
 	// Complementa los datos de "miproyecto" con la data registrada en sistema
 	$inifile = miframe_path($path_modulos, 'config', 'localconfig.ini');
-	$this->config->loadData('localconfig', $inifile);
+	miframe_app()->config->loadData('localconfig', $inifile);
 }
 
 $m = new \miFrame\Local\AdminModules();
 
 // Configura validadores y helpers del objeto EditConfig
-$this->config->addValidator('newproject', $proyecto_nuevo);
-$this->config->addValidator('notype', $notype);
-$this->config->addHelper('DOCUMENT_ROOT', $_SERVER['DOCUMENT_ROOT']);
+miframe_app()->config->addValidator('newproject', $proyecto_nuevo);
+miframe_app()->config->addValidator('notype', $notype);
+miframe_app()->config->addHelper('DOCUMENT_ROOT', $_SERVER['DOCUMENT_ROOT']);
 
 // Configuración de campos en $file_repo
 // Si está editando el repo Administrador, previene ediciones en línea
 // para no modificar el archivo ya versionado.
 $inifile = micode_modules_dataconfig_path('mirepo-cfg.ini');
-$this->config->addConfigFile('mirepo', $inifile, ($app_name == 'micode-admin'));
+miframe_app()->config->addConfigFile('mirepo', $inifile, ($app_name == 'micode-admin'));
 
 // Configuración de los campos básicos de miproyecto.ini
 $inifile = micode_modules_dataconfig_path('miproyecto-cfg.ini');
-$this->config->addConfigFile('miproyecto', $inifile);
+miframe_app()->config->addConfigFile('miproyecto', $inifile);
 
 if (!$proyecto_nuevo) {
 	// Campos de configuración propios de cada proyecto (si aplican)
 	$inifile = miframe_path($path_modulos, 'data', 'localconfig-cfg.ini');
-	$this->config->addConfigFile('miproyecto', $inifile);
-	$this->config->setDataValue('path', micode_modules_remove_root($data_repo['path']), true);
+	miframe_app()->config->addConfigFile('miproyecto', $inifile);
+	miframe_app()->config->setDataValue('path', micode_modules_remove_root($data_repo['path']), true);
 }
 
 // Configuración de campos asociados a tipo del proyecto (si hay tipo selecto)
 if (!$notype) {
 	// Path al archivo de configuración por tipo asociado
 	$inifile = micode_modules_dataconfig_path("type-{$type}-cfg.ini");
-	$this->config->addConfigFile('miproyecto', $inifile);
+	miframe_app()->config->addConfigFile('miproyecto', $inifile);
 	if ($m->loadManager('basename.' . $type)) {
 		// echo "$type<hr>"; print_r($m->clase_manejador); echo "<hr>";
 		$m->clase_manejador->helpersConfig($this->config);
@@ -272,50 +272,50 @@ if (!$notype) {
 if (count($lista_modulos) > 0) {
 	// Configuración de parámetros por modulo
 	$inifile = micode_modules_dataconfig_path('modules-cfg.ini');
-	$this->config->addConfigFile('miproyecto', $inifile);
-	$llaves = $this->config->getNames('miproyecto');
+	miframe_app()->config->addConfigFile('miproyecto', $inifile);
+	$llaves = miframe_app()->config->getNames('miproyecto');
 
 	foreach ($llaves as $k => $name) {
-		$modulo = strtolower(trim($this->config->getConfigAttrib($name, 'module')));
+		$modulo = strtolower(trim(miframe_app()->config->getConfigAttrib($name, 'module')));
 		// if ($modulo != '' && !in_array(strtolower(trim($modulo)), $lista_modulos)) {
 		// array_key_exists will definitely tell you if a key exists in an array,
 		// whereas isset will only return true if the key/variable exists and is not null.
 		if ($modulo != '' && !isset($lista_modulos[$modulo])) {
 			// echo "REMOVER $modulo --> $name<hr>";
-			$this->config->removeConfig($name);
+			miframe_app()->config->removeConfig($name);
 		}
 	}
 }
 
 // Comentarios adicionales para el ini
-$this->config->commentData('miproyecto', miframe_text('Archivo de configuración de proyecto'));
+miframe_app()->config->commentData('miproyecto', miframe_text('Archivo de configuración de proyecto'));
 
 $since = '';
 if (isset($data_repo['since'])) { $since = $data_repo['since']; }
 // Fija valores definidos en los cfg como "private" o "readonly" o que requieren
 // asegurar un formato especifico.
-$this->config->setDataValue('project-name', $app_name, true);
-$this->config->setDataValue('since', $since, true);
-$this->config->setDataValue('temp-path', miframe_temp_dir(), true);
+miframe_app()->config->setDataValue('project-name', $app_name, true);
+miframe_app()->config->setDataValue('since', $since, true);
+miframe_app()->config->setDataValue('temp-path', miframe_temp_dir(), true);
 
 // Visualiza datos bloqueados para edición al consultar el repo Administrador
 if ($app_name == 'micode-admin') {
 	$mostrar = miframe_text('No');
 	if (array_key_exists('minimize', $data_repo) && $data_repo['minimize']) { $mostrar = miframe_text('Si'); }
-	$this->config->setDataValue('minimize', $mostrar, true);
+	miframe_app()->config->setDataValue('minimize', $mostrar, true);
 
 }
 
 // checkformRequest() captura la data recibida via POST, por ello se valida primero.
-if ($this->config->checkformRequest('configok') && $app_name != '') {
+if (miframe_app()->config->checkformRequest('configok') && $app_name != '') {
 
 	$startup = $data_repo['startup']; // Predefine con el valor existente previamente
 
 	if ($notype) {
-		$arreglo = explode('/', $this->post->getString($this->config->formName('type'), $type) . '/');
+		$arreglo = explode('/', miframe_app()->post->getString(miframe_app()->config->formName('type'), $type) . '/');
 		$type = strtolower(trim($arreglo[0]));
 		$startup = strtolower(trim($arreglo[1]));
-		$this->config->setDataValue('type', $type);
+		miframe_app()->config->setDataValue('type', $type);
 	}
 
 	// Valida modulos a adicionar según el tipo de inicio
@@ -323,7 +323,7 @@ if ($this->config->checkformRequest('configok') && $app_name != '') {
 		$startup_info = micode_modules_startup_data($startup);
 		if (!isset($startup_info['title'])) {
 			// miframe_error('No encontró información para el tipo de inicio indicado ($1/$2)', $type, $startup);
-			$this->router->abort(
+			miframe_app()->router->abort(
 				miframe_text('Modelo inicial no valido'),
 				miframe_text('No encontró información para el modelo de inicio indicado ($1/$2)', $type, $startup)
 				);
@@ -340,7 +340,7 @@ if ($this->config->checkformRequest('configok') && $app_name != '') {
 
 		// echo "$origen --> $destino<hr>";
 
-		$evalpost = $this->post->getBoolean('startup-' . md5($path));
+		$evalpost = miframe_app()->post->getBoolean('startup-' . md5($path));
 
 		if ($notype || $evalpost) {
 			$mensaje = '';
@@ -354,7 +354,7 @@ if ($this->config->checkformRequest('configok') && $app_name != '') {
 				// Lee contenido del archivo si es del tipo permitido
 				if ($extension == '.php') {
 					$contenido = file_get_contents($origen);
-					$params = $this->config->getValues() + $data_proyecto['system'];
+					$params = miframe_app()->config->getValues() + $data_proyecto['system'];
 					$params['app-modules'] = $data_repo['app-modules'];
 					micode_edit_template($contenido, $params);
 
@@ -380,7 +380,7 @@ if ($this->config->checkformRequest('configok') && $app_name != '') {
 			else {
 				$mensaje = miframe_text('Archivo $1 ya existe en el proyecto', $path);
 			}
-			$this->config->setMessage($mensaje);
+			miframe_app()->config->setMessage($mensaje);
 		}
 	}
 
@@ -392,17 +392,17 @@ if ($this->config->checkformRequest('configok') && $app_name != '') {
 			$total += $subtotal;
 		}
 		if (count($datamodules['modules']) > 1) {
-			$this->config->setMessage(miframe_text('Copiados en total $1 archivos durante esta actualización', $total));
+			miframe_app()->config->setMessage(miframe_text('Copiados en total $1 archivos durante esta actualización', $total));
 		}
-		$this->config->setMessage($datamodules['result']);
+		miframe_app()->config->setMessage($datamodules['result']);
 	}
 
 	if ($data_proyecto['readme-path'] != ''
-		&& $this->post->getBoolean('readmeok')
+		&& miframe_app()->post->getBoolean('readmeok')
 		) {
 		// Crea archivo README.md
-		$contenido = '# ' . $this->config->getSingleValue('project-title') . PHP_EOL . PHP_EOL .
-			$this->config->getSingleValue('project-desc-info') . PHP_EOL . PHP_EOL .
+		$contenido = '# ' . miframe_app()->config->getSingleValue('project-title') . PHP_EOL . PHP_EOL .
+			miframe_app()->config->getSingleValue('project-desc-info') . PHP_EOL . PHP_EOL .
 			'---' . PHP_EOL .
 			date('Y/m/d');
 
@@ -414,11 +414,11 @@ if ($this->config->checkformRequest('configok') && $app_name != '') {
 		else {
 			$mensaje = miframe_text('No pudo crear archivo $1', basename($data_proyecto['readme-path']));
 		}
-		$this->config->setMessage($mensaje);
+		miframe_app()->config->setMessage($mensaje);
 	}
 
-	if ($this->config->unsaved('miproyecto')) {
-		$guardado = $this->config->putData('miproyecto');
+	if (miframe_app()->config->unsaved('miproyecto')) {
+		$guardado = miframe_app()->config->putData('miproyecto');
 		$mensaje = '';
 		if ($guardado) {
 			$items_guardados ++;
@@ -432,31 +432,31 @@ if ($this->config->checkformRequest('configok') && $app_name != '') {
 		else {
 			$mensaje = miframe_text('No pudo actualizar archivo para configuración de proyecto.');
 		}
-		$this->config->setMessage($mensaje);
+		miframe_app()->config->setMessage($mensaje);
 	}
 
 	// Actualiza archivo $file_repo
 	$data_repo['temporal'] = false;
 	$data_repo['type'] = $type;
 	$data_repo['startup'] = $startup;
-	$data_repo['minimize'] = $this->config->getSingleValue('minimize');
+	$data_repo['minimize'] = miframe_app()->config->getSingleValue('minimize');
 
 	foreach ($data_repo as $k => $v) {
-		$this->config->setDataValue($k, $v);
+		miframe_app()->config->setDataValue($k, $v);
 	}
 	// miframe_debug_box($data_repo, 'UNSAVED?');
-	if ($this->config->unsaved('mirepo')) {
-		$guardado = $this->config->putData('mirepo', [ 'path' ]);
+	if (miframe_app()->config->unsaved('mirepo')) {
+		$guardado = miframe_app()->config->putData('mirepo', [ 'path' ]);
 		if ($guardado) {
 			$items_guardados ++;
 		}
 		else {
-			miframe_error('No pudo habilitar archivo de proyecto $1', $this->config->getFilename('mirepo'));
+			miframe_error('No pudo habilitar archivo de proyecto $1', miframe_app()->config->getFilename('mirepo'));
 		}
 	}
 
 	/*
-	$guardado = $this->config->putData('modulos');
+	$guardado = miframe_app()->config->putData('modulos');
 	if ($guardado > 0) {
 		$mensajes[] = miframe_text('Actualizado archivo de configuración para parámetros de módulos.');
 	}
@@ -466,7 +466,7 @@ if ($this->config->checkformRequest('configok') && $app_name != '') {
 	*/
 
 	if ($items_guardados <= 0) {
-		$this->config->setMessage(miframe_text('Nada que actualizar'));
+		miframe_app()->config->setMessage(miframe_text('Nada que actualizar'));
 	}
 	else {
 		// Envia a detalle (fija $_REQUEST['app'] para que sea capturado al invocar $Router->param)
@@ -517,6 +517,6 @@ if (isset($data_proyecto['startup'])
 
 $data_proyecto['update-files'] = $actualizar_files;
 
-// miframe_debug_box($this->config->getConfigFiles(true));
+// miframe_debug_box(miframe_app()->config->getConfigFiles(true));
 
-$this->startView('projects/edit.php', $data_proyecto);
+miframe_app()->startView('projects/edit.php', $data_proyecto);

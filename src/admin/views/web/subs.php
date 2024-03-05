@@ -18,27 +18,27 @@
  * @since Abril 2022
  */
 
-if (!$this->params->exists('page-nomenu')) {
+if (!miframe_app()->params->exists('page-nomenu')) {
 	// Menú principal general
 	$include_nav = 'addons/menumain.php';
-	if ($this->params->exists('config->project-name')) {
+	if (miframe_app()->params->exists('config->project-name')) {
 		// Está consultando una aplicación
 		$include_nav = 'addons/menuprojects.php';
 	}
-	elseif ($this->params->exists('module')) {
+	elseif (miframe_app()->params->exists('module')) {
 		// Menús para detalle de módulos
 		$include_nav = 'addons/menumodules.php';
 	}
-	elseif ($this->params->exists('reponame')) {
+	elseif (miframe_app()->params->exists('reponame')) {
 		// Está consultando una aplicación
 		$include_nav = 'addons/menurepos.php';
 	}
-	elseif ($this->router->requestStartWith('modules') || $this->router->requestStartWith('localtests')) {
+	elseif (miframe_app()->router->requestStartWith('modules') || miframe_app()->router->requestStartWith('localtests')) {
 		// Menus por tipos de proyecto
 		$include_nav = 'addons/menubytype.php';
 	}
 
-	$this->view->capture($include_nav, 'menu');
+	miframe_app()->view->capture($include_nav, 'menu');
 }
 
 /**
@@ -47,7 +47,9 @@ if (!$this->params->exists('page-nomenu')) {
  * @return string HTML con la presentación alternativa.
  */
 
-function menuApps(&$router, string $title, array $enlaces, string $return = '') {
+function menuApps(string $title, array $enlaces, string $return = '') {
+
+	$router = miframe_app()->router;
 
 	$return_enlace = '';
 	if ($title != '') {

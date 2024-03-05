@@ -8,11 +8,11 @@
 
 ?>
 
-<link rel="stylesheet" href="<?= $this->router->createURL('resources/css/forms.css') ?>">
+<link rel="stylesheet" href="<?= miframe_app()->router->createURL('resources/css/forms.css') ?>">
 
-<?= $this->params->implode('mensajes', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
+<?= miframe_app()->params->implode('mensajes', '<div class="info"><ul>{{ <li>$1</li> }}</ul></div>') ?>
 
-<form action="<?= $this->params->get('form-action') ?>" method="POST">
+<form action="<?= miframe_app()->params->get('form-action') ?>" method="POST">
 
 <?php
 
@@ -35,9 +35,9 @@
 
 	$select = '';
 	// "tiposvalidos" solo se define si es viable la edición del tipo
-	if (count($this->view->params['tiposvalidos']) > 0) {
+	if (count(miframe_app()->view->params['tiposvalidos']) > 0) {
 		// Habilita edición del tipo
-		foreach ($this->view->params['tiposvalidos'] as $tipo => $nombre) {
+		foreach (miframe_app()->view->params['tiposvalidos'] as $tipo => $nombre) {
 			$select .= '<option value="' . htmlspecialchars($tipo) . '">' . htmlspecialchars($nombre) . '</option>';
 		}
 
