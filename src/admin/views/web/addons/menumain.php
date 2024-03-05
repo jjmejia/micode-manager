@@ -11,7 +11,8 @@ $arreglo = array(
 	'repositories-list' => miframe_text('Repositorios'),
 	'modules-list' => miframe_text('Módulos'),
 	'localtests-list' => miframe_text('Tests'),
-	'settings' => miframe_text('Configuración')
+	'settings' => miframe_text('Configuración'),
+	'about' => miframe_text('Acerca de')
 );
 
 // Se asegura que haya configurado "sistema.ini"
