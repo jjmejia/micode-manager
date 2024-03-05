@@ -8,7 +8,7 @@
 
 include_once __DIR__ . '/lib/testfunctions.php';
 include_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/debug.php';
-include_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/functions.php';
+include_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/helpers.php';
 
 // Por defecto, deshabilita modo Debug
 miframe_debug_enable(false);

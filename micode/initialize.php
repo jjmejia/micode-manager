@@ -23,7 +23,7 @@ define('MIFRAME_LOCALCONFIG_PATH', __DIR__ . DIRECTORY_SEPARATOR . 'config');
 // requeridos por otros
 
 // Deben haberse creado los archivos basicos de arranque
-require_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/functions.php';
+require_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/helpers.php';
 require_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/debug.php';
 require_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/errors.php';
 require_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/phpsettings.php';

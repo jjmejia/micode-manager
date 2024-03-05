@@ -131,6 +131,25 @@ function miframe_tree_directory(string $path, string $pattern = '', bool $ignore
 	return $dirs;
 }
 
+function register_main_app(object $app) {
+
+	$GLOBALS['MIFRAMEMAINAPP'] = $app;
+}
+
+function check_main_app() {
+	return (isset($GLOBALS['MIFRAMEMAINAPP']) && is_object($GLOBALS['MIFRAMEMAINAPP']));
+}
+
+function app() {
+
+	// Si no está definida o no es un objeto, genera error
+	if (!check_main_app()) {
+		miframe_error('MIFRAMEMAINAPP no definida correctamente');
+	}
+
+	return $GLOBALS['MIFRAMEMAINAPP'];
+}
+
 /*
 
 https://stackoverflow.com/questions/11452938/how-to-use-http-x-forwarded-for-properly

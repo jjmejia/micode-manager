@@ -220,7 +220,7 @@ minimize="0"
 
 			// Librerias requeridas
 			define('MIFRAME_LOCALMODULES_PATH', MIFRAME_SRC . '/repository');
-			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/functions.php';
+			include_once MIFRAME_LOCALMODULES_PATH . '/miframe/common/helpers.php';
 
 
 			$dirname = dirname($file_repo);
