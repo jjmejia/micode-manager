@@ -8,11 +8,11 @@
 
 $cfg_module = $this->params->get('reponame');
 $tituloppal = '';
-if ($this->params->exists('nuevo')) {
+if ($this->params->get('nuevo', false)) {
 	$tituloppal = miframe_text('Nuevo Repositorio');
 }
 else {
-	$tituloppal = miframe_text('Repositorio $1', htmlspecialchars($cfg_module));
+	$tituloppal = miframe_text('Repositorio "$1"', htmlspecialchars($cfg_module));
 }
 
 // Enlaces

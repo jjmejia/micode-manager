@@ -42,10 +42,10 @@ else {
 	// $paths[0] contiene el nombre del repositorio, lo toma del "Router"
 	// (en este caso se invoca desde "modules/create/[repositorio]")
 	// $paths = array($repo_name);
-	$tituloppal = miframe_text('Nuevo Módulo para repositorio $1', $repo_name);
+	$tituloppal = miframe_text('Nuevo Módulo para repositorio "$1"', $repo_name);
 
 	$enlace_repo = $this->router->createRouteURL('repositories-detail', [ 'name' => $repo_name, 'type' => $cfg_type]);
-	$enlace_modulos = "<a href=\"{$enlace_repo}\">" . miframe_text('Repositorio $1', $paths[0]) . "</a>";
+	$enlace_modulos = "<a href=\"{$enlace_repo}\">" . miframe_text('Repositorio $1', $repo_name) . "</a>";
 }
 
 menuApps($this->router, $tituloppal, $enlaces,

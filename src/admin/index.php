@@ -57,7 +57,7 @@ try {
 		$app->initializeJson();
 
 		// Carga rutas para consultas API
-		$app->loadRoutes(miframe_path(MIFRAME_DATA, 'base', 'rutas-api.ini'));
+		$app->loadRoutes(miframe_path(MIFRAME_DATA, 'routes', 'api.ini'));
 
 		// Configuración de vistas para API
 		$app->loadView('api');
@@ -72,7 +72,7 @@ try {
 	}
 	else {
 		// Carga rutas para consultas WEB
-		$app->loadRoutes(miframe_path(MIFRAME_DATA, 'base', 'rutas.ini'));
+		$app->loadRoutes(miframe_path(MIFRAME_DATA, 'routes', 'web.ini'));
 
 		// Configuración de vistas para Web
 		// (si hay multiples directorios de vistas para Web, indicar el path a la vista deseada)
