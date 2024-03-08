@@ -113,10 +113,12 @@ function miframe_debug_defines($full = false) {
 	miframe_debug_box($defines, 'DEFINES ' . $titulo);
 }
 
-function miframe_debug_show_code(string $filename, int $line = 0, int $maxlines = 3, bool $formatted = false) {
+function miframe_debug_show_code(string $filename, int $line = 0, int $maxlines = 3) {
 
 	$contents = '';
 	$filename = trim($filename);
+	$formatted = miframe_is_web();
+
 	if ($filename !== '' && is_file($filename)) {
 		// Remplaza tabs por 4 espacios
 		$contents = str_replace("\t", '    ', file_get_contents($filename));
@@ -127,6 +129,7 @@ function miframe_debug_show_code(string $filename, int $line = 0, int $maxlines 
 		// Adiciona información del archivo
 		if ($formatted) {
 			$filename_info = '<b>' . $filename . '</b>';
+			$contents = htmlentities($contents);
 		}
 		else {
 			$filename_info = $filename . "\n" . str_repeat('_', strlen($filename));

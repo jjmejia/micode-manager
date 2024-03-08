@@ -35,7 +35,7 @@ function miframe_test_start(string $title) {
 
 function miframe_test_pre(string $text) {
 
-	echo '<pre class="code">' . $text . '</pre>' . PHP_EOL;
+	echo '<pre class="code">' . htmlentities($text) . '</pre>' . PHP_EOL;
 }
 
 function miframe_test_end() {

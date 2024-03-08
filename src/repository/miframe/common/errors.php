@@ -97,7 +97,7 @@ function miframe_error_show(int $errno, string $errstr, string $errfile, int $er
 		if (miframe_is_debug_on()) {
 			$track_cadena = miframe_debug_backtrace_info($trace);
 			if ($cerrar && $errline > 0) {
-				$infoerror .= miframe_debug_show_code($errfile, $errline, 3, true);
+				$infoerror .= miframe_debug_show_code($errfile, $errline, 3);
 			}
 		}
 		$estilo .= ':error';
