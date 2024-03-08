@@ -120,7 +120,7 @@ function miframe_var_export(mixed $data, bool $showtype = false) {
 
 	$type = '';
 	if ($showtype) {
-		$type = '<i style="color:#999">(' . gettype($data) . ')</i> ';
+		$type = '<i>(' . gettype($data) . ')</i> ';
 		if (is_bool($data)) { $data = ($data === true) ? 'true' : 'false'; }
 		elseif (is_string($data) && strlen($data) > 0) { $type = str_replace(')', ':' . strlen($data) . ')', $type); }
 		elseif (is_array($data) && count($data) > 0) { $type = str_replace(')', ':' . count($data) . ')', $type); }
@@ -137,9 +137,9 @@ function miframe_var_export(mixed $data, bool $showtype = false) {
 			else {
 				// Lista elementos
 				foreach ($data as $k => $v) {
-					$sub = '</td><td class="debug-item-name' . $borde . '">' . miframe_var_export($v, true);
+					$sub = '</td><td class="debug-item-value' . $borde . '">' . miframe_var_export($v, true);
 					$text .= '<tr>' . PHP_EOL;
-					$text .= '<td class="debug-item-value' . $borde . '" valign="top">' .
+					$text .= '<td class="debug-item-name' . $borde . '" valign="top">' .
 						'<b>' . $k . '</b>' .
 						$sub .
 						'</td>' . PHP_EOL;
@@ -211,14 +211,7 @@ function miframe_debug_error_code($errno) {
 			break;
 
 		default:
-			if (defined('MIFRAME_EXCEPTION_ERROR_CODE_BASE') && $errno >= MIFRAME_EXCEPTION_ERROR_CODE_BASE) {
-				// EL error fue generado por una excepción
-				$errno -= MIFRAME_EXCEPTION_ERROR_CODE_BASE;
-				$titulo = miframe_text('PHP Excepción no capturada') . " ($errno) ";
-			}
-			else {
-				$titulo = miframe_text('PHP Error Desconocido') . " ($errno) ";
-			}
+			$titulo = miframe_text('PHP Error') . " ($errno) ";
 			break;
 	}
 
