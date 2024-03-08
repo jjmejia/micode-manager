@@ -12,22 +12,6 @@
 // Funciones debug compartidas con otras aplicaciones
 include_once __DIR__ . '/shared/debug.php';
 
-function miframe_box_css(string $html) {
-
-	if (strtolower(substr($html, 0, 4)) === 'url:') {
-		$path = trim(substr($html, 4));
-		$html = '';
-		if ($path != '') {
-			$html = '<link rel="stylesheet" href="' . $path . '">' . PHP_EOL;
-		}
-	}
-	elseif ($html !== '') {
-		$html = '<style>' . PHP_EOL . $html . PHP_EOL . '</style>' . PHP_EOL;
-	}
-
-	miframe_data_put('miframe-box-css', $html);
-}
-
 /**
  * Cajas de diálogo en pantalla.
  * Cuando se ejecuta desde consola, remueve los tags HTML.
@@ -65,6 +49,12 @@ function miframe_box(string $title, string $message, string $style = '', string 
 		$max_alto = ' box-message-limited';
 		// if (!$showscrolls) { $max_alto = ''; }
 
+		$style_error = '';
+		if (substr($style, -6) == ':error') {
+			$style = substr($style, 0, -6);
+			$style_error = ' miframe-box-error';
+		}
+
 		if ($footnote != '') {
 			$footnote = "<div class=\"box-footnote box-$style\">$footnote</div>";
 			}
@@ -79,12 +69,9 @@ function miframe_box(string $title, string $message, string $style = '', string 
 			$salida = '<style>' . PHP_EOL . $html . PHP_EOL . '</style>' . PHP_EOL;
 		}
 
-		// Elimina estilos para no repetir carga
-		miframe_box_css('');
-
-		$salida .= "<div class=\"miframe-box box-$style\">" .
-			'<div class="box-title"><b>' . $title . '</b></div>' .
-			'<div class="box-message' . $max_alto . '">'.
+		$salida .= "<div class=\"miframe-box box-{$style}{$style_error}\">" .
+			"<div class=\"box-title box-title-{$style}\"><b>{$title}</b></div>" .
+			"<div class=\"box-message{$max_alto}\">".
 			$message .
 			'</div>'.
 			$footnote .

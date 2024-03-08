@@ -41,7 +41,7 @@ function miframe_error(string $message, mixed ...$args) {
 	miframe_data_put('error-backtrace', miframe_debug_backtrace_info());
 	$message = miframe_text($message, ...$args);
 	// if ($debug_message != '') { $message .= ' - DEBUG: ' . $debug_message; }
-	throw new \Exception($message);
+	throw new \Exception($message, E_USER_ERROR);
 	// trigger_error($message, E_USER_ERROR);
 	exit;
 }

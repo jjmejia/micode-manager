@@ -12,8 +12,8 @@ if (!defined('MIFRAME_LOCALMODULES_PATH')) {
 
 function miframe_test_start(string $title) {
 
-	$tipo = 'php';
-	$estilos = dirname(dirname($_SERVER['SCRIPT_NAME'])) . '/resources/css/tests.css';
+	$estilos = dirname($_SERVER['SCRIPT_NAME']) . '/resources/css/tests.css';
+
 ?>
 <!DOCTYPE html>
 <html>

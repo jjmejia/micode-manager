@@ -41,16 +41,20 @@ h1, h2 {
 	padding: 20px;
 }
 code {
-	background: rgba(175,184,193,0.2);
-	font-size: 0.95em;
-	padding:0 5px;
+	background: #f4f4f4;
+	font-size: 0.9em;
+	padding:1px 5px;
 	font-family: Consolas;
+	color:#555555;
 }
 pre.code {
-	background: rgba(175,184,193,0.2);
-	border: 1px solid #d0d7de;
+	background: #f4f4f4;
+	border: 1px dashed #aaaaaa;
 	padding:16px;
 	font-size: 0.95em;
+	margin-top:20px;
+	margin-bottom:20px;
+	color:#555555;
 }
 .foot {
 	font-size: 12px;

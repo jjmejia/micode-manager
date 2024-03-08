@@ -36,42 +36,46 @@ function miframe_vscode_enable(bool $value) {
 /**
  * Retorna texto con la secuencia de llamados actual (rastreo o backtrace) o uno capturado previamente.
  *
- * @param mixed $track Backtrace obtenido previamente. Si no se indica, recupera el actual usando debug_backtrace().
+ * @param mixed $trace Backtrace obtenido previamente. Si no se indica, recupera el actual usando debug_backtrace().
  * @return string Texto con la secuencias de llamados
  */
-function miframe_debug_backtrace_info(array $track = null, string $function = '') {
+function miframe_debug_backtrace_info(array $trace = null, string $function = '') {
 
-	if (is_null($track)) {
-		$track = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+	if (is_null($trace)) {
+		$trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
 	}
 
-	$track_cadena = '';
+	$trace_cadena = '';
 	// Retorna invocacion hacia atras
-	$ultimo_track = '';
-	foreach ($track as $idebug => $infotrack) {
-		if ($infotrack['function'] == __FUNCTION__) {
+	$ignorar_primeras = true;
+	foreach ($trace as $idebug => $infotrack) {
+		if ($ignorar_primeras &&
+			($infotrack['function'] == __FUNCTION__ || $infotrack['function'] == 'miframe_error_show')
+		 	) {
 			// print_r($infotrack); echo "<hr>";
 			continue;
 		}
+		// Ya no ignora más primeras...
+		$ignorar_primeras = false;
 		if ($function != '' && $infotrack['function'] != $function) {
 			// echo $function . ' / ' . $infotrack['function'] . '<hr>';
 			continue;
 		}
 		if (isset($infotrack['file'])) {
-			if ($track_cadena != '') { $track_cadena .= '<br />' . PHP_EOL; }
+			if ($trace_cadena != '') { $trace_cadena .= '<br />' . PHP_EOL; }
 			$ultimo_track = miframe_text('Línea $1 - $2', $infotrack['line'], $infotrack['function']);
 			if (!miframe_is_vscode_on()) {
-				$track_cadena .= '<b>' . $infotrack['file'] . '</b> ' . $ultimo_track;
+				$trace_cadena .= '<b>' . $infotrack['file'] . '</b> ' . $ultimo_track;
 			}
 			else {
 				// vscode://file/{full path to file}:line
 				// https://stackoverflow.com/questions/48641921/is-it-possible-to-use-the-vscode-hyperlink-to-open-a-file-or-directory-in-code
-				$track_cadena .= "<a href=\"vscode://file/{$infotrack['file']}:{$infotrack['line']}\">{$infotrack['file']}</a> " . $ultimo_track;
+				$trace_cadena .= "<a href=\"vscode://file/{$infotrack['file']}:{$infotrack['line']}\">{$infotrack['file']}</a> " . $ultimo_track;
 			}
 		}
 	}
 
-	return $track_cadena;
+	return $trace_cadena;
 }
 
 /**
@@ -89,7 +93,7 @@ function miframe_debug_dump(mixed $data, bool $force = false) {
 			$debug_message = var_export($data, true);
 		}
 		else {
-			$debug_message = '<div class="mi-debug" style="background:#000;color:#eee;padding:5px 8px">' . miframe_var_export($data) . '</div>';
+			$debug_message = '<div class="miframe-debug">' . miframe_var_export($data) . '</div>';
 		}
 	}
 
@@ -101,7 +105,6 @@ function miframe_var_export(mixed $data, bool $showtype = false) {
 	$text = '';
 	$total = 0;
 	$pre = '';
-	// $pos = '';
 
 	if (!isset($GLOBALS['miframe_var_export_count'])) {
 		$GLOBALS['miframe_var_export_count'] = 0;
@@ -129,34 +132,34 @@ function miframe_var_export(mixed $data, bool $showtype = false) {
 
 			// Limita cantidad máxima en caso que haya recursión
 			if ($GLOBALS['miframe_var_export_count'] >= 500) {
-				$text = '<span style="color:darkred"><b>Aviso:</b> Suspende DEBUG porque alcanzó tope máximo de items a mostrar.</span>';
+				$text = '<span class="debug-error"><b>Aviso:</b> Suspende DEBUG porque alcanzó tope máximo de items a mostrar.</span>';
 			}
 			else {
 				// Lista elementos
 				foreach ($data as $k => $v) {
-					$sub = '</td><td style="color:#ddd;padding:4px;' . $borde . '">' . miframe_var_export($v, true);
+					$sub = '</td><td class="debug-item-name' . $borde . '">' . miframe_var_export($v, true);
 					$text .= '<tr>' . PHP_EOL;
-					$text .= '<td style="color:#eee;padding:4px;min-width:100px;white-space:nowrap;' . $borde . '" valign="top">' .
+					$text .= '<td class="debug-item-value' . $borde . '" valign="top">' .
 						'<b>' . $k . '</b>' .
 						$sub .
 						'</td>' . PHP_EOL;
 					$text .= '</tr>' . PHP_EOL;
-					$borde = 'border-top:1px solid #ccc;';
+					$borde = ' debug-separador';
 					$total ++;
 				}
 
-				$visible = 'block';
+				$visible = ' debug-show';
 
 				if ($id != 'mivex1' || $total > 3) {
-					$pre .= '<span style="font-size:12px;"><a href="javascript:shvex(\'' . $id . '\')" style="color:#ccffff">' .
+					$pre .= '<span class="debug-button"><a href="javascript:shvex(\'' . $id . '\')">' .
 						miframe_text('Mostrar/Ocultar') .
 						'</a></span></td></tr>' . PHP_EOL .
 						'<tr><td colspan="2">';
-					$visible = 'none';
+					$visible = '';
 				}
 
 				$text = $pre.
-					'<table id="' . $id. '" border="0" cellspacing="0" style="font-family:Monospace;margin:5px 0 5px 30px;display:' . $visible . ';">' . PHP_EOL .
+					'<table id="' . $id. '" border="0" cellspacing="0" class="debug-container' . $visible . '">' . PHP_EOL .
 					$text .
 					'</table>' . PHP_EOL;
 			}
@@ -208,7 +211,14 @@ function miframe_debug_error_code($errno) {
 			break;
 
 		default:
-			$titulo = miframe_text('PHP Error Desconocido') . " ($errno)";
+			if (defined('MIFRAME_EXCEPTION_ERROR_CODE_BASE') && $errno >= MIFRAME_EXCEPTION_ERROR_CODE_BASE) {
+				// EL error fue generado por una excepción
+				$errno -= MIFRAME_EXCEPTION_ERROR_CODE_BASE;
+				$titulo = miframe_text('PHP Excepción no capturada') . " ($errno) ";
+			}
+			else {
+				$titulo = miframe_text('PHP Error Desconocido') . " ($errno) ";
+			}
 			break;
 	}
 

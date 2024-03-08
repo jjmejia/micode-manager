@@ -44,10 +44,6 @@ if (miframe_test_option(
 	miframe_vscode_enable(true);
 }
 
-// Ejemplo de cómo definir estilos a usar
-// $estilos = 'url:'. dirname(dirname($_SERVER['SCRIPT_NAME'])) . '/src/repository/miframe/common/framebox.css';
-// miframe_box_css($estilos);
-
 miframe_test_start('Test Framebox');
 
 ?>
@@ -104,7 +100,6 @@ else {
 
 <?php
 
-// throw new Exception("Value must be 1 or below");
 miframe_test_pre("trigger_error('Prueba de manejo de errores Warning', E_USER_WARNING);");
 trigger_error('Prueba de manejo de errores Warning', E_USER_WARNING);
 
@@ -114,5 +109,6 @@ trigger_error('Prueba de manejo de errores Notice', E_USER_NOTICE);
 miframe_test_pre("trigger_error('Prueba de manejo de errores Deprecated (funciones obsoletas)', E_USER_DEPRECATED);");
 trigger_error('Prueba de manejo de errores Deprecated (funciones obsoletas)', E_USER_DEPRECATED);
 
-miframe_test_pre("miframe_error('Prueba de manejo de errores en $1', date('Y/m/d H:i:s'), debug: 'Mensaje de debug');");
-miframe_error('Prueba de manejo de errores en $1', date('Y/m/d H:i:s'), debug: 'Mensaje de debug');
+// miframe_test_pre("miframe_error('Prueba de manejo de errores en $1', date('Y/m/d H:i:s'), debug: 'Mensaje de debug');");
+miframe_test_pre("trigger_error('Prueba de manejo de errores Fatales', E_USER_ERROR);");
+trigger_error('Prueba de manejo de errores Fatales', E_USER_ERROR);

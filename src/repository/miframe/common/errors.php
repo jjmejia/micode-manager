@@ -25,17 +25,7 @@
  * 			(en caso que sea invocada la función directamente).
  */
 
-set_error_handler(function (
-	int $errno,
-	string $errstr,
-	string $errfile,
-	int $errline
-	) {
-
-	if (!(error_reporting() & $errno)) {
-		// Este código de error no está incluido en error_reporting
-		return;
-	}
+function miframe_error_show(int $errno, string $errstr, string $errfile, int $errline, array $trace = null) {
 
 	// Los errores nativos de core y muy criticos no son capturables
 	$titulo = miframe_debug_error_code($errno);
@@ -80,7 +70,8 @@ set_error_handler(function (
 
 		default:
 			// $titulo = miframe_text('PHP Desconocido');
-			$estilo = 'alert';
+			$estilo = 'critical';
+			$cerrar = true;
 			break;
 		}
 
@@ -98,14 +89,15 @@ set_error_handler(function (
 		// Salida web. Reconstruye $salida
 		$infoerror = str_replace("\n", "<br />\n", strip_tags($errstr, '<b><i>'));
 		if ($cerrar) {
-			$titulo .= ' <div style="float:right;font-size:10px;background:darkred;color:#fff;font-weight:bold;padding:2px 5px;border-radius:3px">Script interrumpido</div>';
+			$titulo .= ' <div class="box-stop">Script interrumpido</div>';
 		}
 		// En modo convencional, evita mostrar todo el path del archivo actual
 		$track_cadena = "Reportado en <b>" . basename($errfile) . "</b> Línea $errline";
 		// Opcionalmente presenta usa rastreo completo si esta definido (en módulo interface/debug)
 		if (miframe_is_debug_on()) {
-			$track_cadena = miframe_debug_backtrace_info();
+			$track_cadena = miframe_debug_backtrace_info($trace);
 		}
+		$estilo .= ':error';
 		$salida = miframe_box($titulo, $infoerror, $estilo, $track_cadena);
 	}
 	else {
@@ -122,32 +114,30 @@ set_error_handler(function (
 
 	// Retorna TRUE para no ejecutar el manejador interno de errores de PHP.
 	return true;
-});
+}
+
+set_error_handler(
+	function (int $errno, string $errstr, string $errfile, int $errline) {
+
+		if (!(error_reporting() & $errno)) {
+			// Este código de error no está incluido en error_reporting
+			return;
+		}
+
+		miframe_error_show($errno, $errstr, $errfile, $errline);
+	}
+);
 
 // El argumento puede ser del tipo "Exception" o "Error".
 // set_exception_handler() maneja los throw y los Fatal Error.
-set_exception_handler(function (mixed $e) {
+set_exception_handler(
+	function (\Throwable | \Exception $e) {
 
-	$data = miframe_error_info($e);
+		$data = miframe_error_info($e);
 
-	$salida = $data['title'] . ': ' . $data['text'];
+		// Para diferenciar los errores de Excepciones, suma 1000 al valor
+		miframe_error_show($e->getCode(), $e->getMessage(), $e->getFile(), $e->getLine(), $e->getTrace());
 
-	// GUarda al log de errores
-	error_log($salida);
-
-	if (miframe_is_web()) {
-		// Salida web. Reconstruye $salida
-		$titulo = $data['title'];
-		// Las Exceptions siempre terminan la ejecución del script
-		$titulo .= ' <div style="float:right;font-size:10px;background:darkred;color:#fff;font-weight:bold;padding:2px 5px;border-radius:3px">Script interrumpido</div>';
-		$salida = miframe_box($titulo, $data['message'], 'critical', $data['trace']);
+		exit();
 	}
-	else {
-		// Salida a pantalla
-		$salida = PHP_EOL . PHP_EOL . '---' . PHP_EOL . $salida . PHP_EOL . '---' . PHP_EOL . PHP_EOL;
-	}
-
-	echo $salida;
-
-	exit();
-});
+);
