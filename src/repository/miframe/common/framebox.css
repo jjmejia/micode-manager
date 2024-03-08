@@ -24,6 +24,10 @@
 .miframe-box .box-message-limited {
 	max-height:200px;
 }
+.miframe-box .box-message {
+	max-width:100%;
+	overflow:auto;
+}
 .miframe-box .box-title {
 	padding-bottom:15px;
 	/* font-weight:bold; */
@@ -110,4 +114,34 @@
 }
 .miframe-box .miframe-debug .debug-show {
 	display:block;
+}
+.miframe-box .miframe-debug-code {
+	background: #e8e8e8;
+	border: 1px dashed #aaaaaa;
+	padding:16px;
+	/* font-size: 0.95em; */
+	margin-top:20px;
+	margin-bottom:20px;
+	font-family: Consolas;
+	color:#555555;
+	white-space: nowrap;
+	overflow:auto;
+}
+.miframe-box .miframe-debug-code .debug-line {
+	padding: 2px 5px 2px 4px;
+	margin-right: 10px;
+	font-weight: 600;
+	background-color: #ccc;
+}
+.miframe-box .miframe-debug-code .debug-line-selected .debug-line {
+	background-color: darkred;
+	color: #f4f4f4;
+}
+.miframe-box .miframe-debug-code .debug-line-selected {
+	color:darkred;
+	font-weight: 600;
+}
+.miframe-box .miframe-debug-code .debug-title {
+	margin-bottom: 5px;
+	padding-bottom: 3px;
 }

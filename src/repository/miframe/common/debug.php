@@ -13,81 +13,6 @@
 include_once __DIR__ . '/shared/debug.php';
 
 /**
- * Cajas de diálogo en pantalla.
- * Cuando se ejecuta desde consola, remueve los tags HTML.
- * Puede personalizar la salida web a pantalla modificando los estilos usados.
- *
- * @param string $title Título de la presentación.
- * @param string $message Mensaje a mostrar.
- * @param string $style Define el tema usado para mostrar la ventana (colores). Puede ser uno de los siguientes:
- * 			mute (estilo por defecto), info, warning, alert, critical, console.
- * @param string $footnote Texto a mostrar en la parte baja de la ventana.
- * @return string Texto HTML para consultas web, texto regular para consola.
- */
-function miframe_box(string $title, string $message, string $style = '', string $footnote = '') {
-
-	$salida = '';
-	// $showscrolls = true;
-	// * @param bool $showscrolls TRUE para restringir la altura de la ventana con la información (si el contenido es mayor se habilitan scrolls
-	// *			en la ventana para permitir su visualización), FALSE para presentar el contenido sin restricción de altura (sin scrolls).
-
-	$fecha = date('Y/m/d H:i:s');
-
-	if (miframe_is_web()) {
-
-		// Definición de la ventana a usar por defecto si no se personaliza
-		/*
-		$estilos = array(
-			'alert'		=> 'red',
-			'mute'		=> 'gray',
-			'info'		=> 'blue',
-			'warning'	=> 'brown',
-			'critical'	=> 'darkred',
-			'console'	=> 'black'
-			);
-		*/
-		$max_alto = ' box-message-limited';
-		// if (!$showscrolls) { $max_alto = ''; }
-
-		$style_error = '';
-		if (substr($style, -6) == ':error') {
-			$style = substr($style, 0, -6);
-			$style_error = ' miframe-box-error';
-		}
-
-		if ($footnote != '') {
-			$footnote = "<div class=\"box-footnote box-$style\">$footnote</div>";
-			}
-
-		// $fecha = date('Y/m/d H:i:s');
-		if ($title == '') { $title = '. . .'; }
-
-		$salida = miframe_data_get('miframe-box-css', '?');
-		if ($salida == '?') {
-			// No se encontró valor definido, lee archivo css
-			$html = file_get_contents(__DIR__ . '/framebox.css');
-			$salida = '<style>' . PHP_EOL . $html . PHP_EOL . '</style>' . PHP_EOL;
-		}
-
-		$salida .= "<div class=\"miframe-box box-{$style}{$style_error}\">" .
-			"<div class=\"box-title box-title-{$style}\"><b>{$title}</b></div>" .
-			"<div class=\"box-message{$max_alto}\">".
-			$message .
-			'</div>'.
-			$footnote .
-			// '<div class="box-date">' . $fecha . '</div>' .
-			'</div>';
-	}
-	else {
-		// Salida por consola
-		$message = strip_tags($message);
-		$salida = "\n\n---\n$title\n$message\n---\n\n";
-	}
-
-	return $salida;
-}
-
-/**
  * Presenta en pantalla una ventana HTML con la descripción (contenido) de la expresión indicada.
  * Enmascara tags HTML incluidos en la expresión para prevenir comportamientos no deseados.
  *
@@ -186,4 +111,79 @@ function miframe_debug_defines($full = false) {
 		$titulo = 'User';
 	}
 	miframe_debug_box($defines, 'DEFINES ' . $titulo);
+}
+
+function miframe_debug_show_code(string $filename, int $line = 0, int $maxlines = 3, bool $formatted = false) {
+
+	$contents = '';
+	$filename = trim($filename);
+	if ($filename !== '' && is_file($filename)) {
+		// Remplaza tabs por 4 espacios
+		$contents = str_replace("\t", '    ', file_get_contents($filename));
+
+		// Titulo del archivo
+		$filename_info = '';
+		$total_lineas = substr_count($contents, "\n") + 1;
+		// Adiciona información del archivo
+		if ($formatted) {
+			$filename_info = '<b>' . $filename . '</b>';
+		}
+		else {
+			$filename_info = $filename . "\n" . str_repeat('_', strlen($filename));
+		}
+		$filename_info .= ' (' . miframe_text('$1 Líneas', $total_lineas) . ')' . PHP_EOL;
+
+		if ($line > 0) {
+			// $line=1 equivale a $line[0]
+			if ($line <= $total_lineas) {
+				$lines = explode("\n", $contents);
+				$contents = '';
+				for ($i = $line - $maxlines - 1; $i < $line + $maxlines; $i++) {
+					if (array_key_exists($i, $lines)) {
+						$line_info = ($i + 1);
+						$line_data = '';
+						if ($formatted) {
+							if ($contents != '') { $contents .= '<br />' . PHP_EOL; }
+							$line_data = "<span class=\"debug-line\">" . $line_info . "</span>" .
+								// Previene supresión de espacios en blanco a la izquierda
+								str_replace(' ', '&nbsp;', rtrim($lines[$i]));
+							if (($i + 1) == $line) {
+								$line_data = "<span class=\"debug-line-selected\">{$line_data}</span>";
+							}
+						}
+						else {
+							// if ($contents != '') { $contents .= PHP_EOL; }
+							$line_data = PHP_EOL . $line_info . "    ";
+							if (($i + 1) == $line) {
+								$line_data = $line_info . " >> ";
+							}
+							// Previene supere la longitud de una linea de consola
+							$line_data .= substr(trim($lines[$i]), 0, 75 - strlen($line_data));
+						}
+						$contents .= $line_data;
+					}
+				}
+			}
+			else {
+				$contents = miframe_text('**Error:** No existe la línea solicitada ($1).', $line);
+				// Prevent html formatting
+				// $formatted = false;
+			}
+		}
+	}
+	elseif ($filename !== '') {
+		$contents = miframe_text('**Error**: No existe el archivo $1', $filename);
+		// Prevent html formatting
+		// $formatted = false;
+	}
+
+	if ($formatted) {
+		// Add html format
+		$contents = '<div class="miframe-debug-code"><div class="debug-title">' . $filename_info . '</div>' . $contents . '</div>';
+	}
+	else {
+		$contents = $filename_info . $contents . PHP_EOL;
+	}
+
+	return $contents;
 }
